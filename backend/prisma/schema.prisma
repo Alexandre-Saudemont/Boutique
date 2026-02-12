@@ -1,0 +1,207 @@
+// schema.prisma - COMPLET
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------
+// ENUMS
+// -------------------
+enum UserRole {
+  customer
+  admin
+}
+
+enum OrderStatus {
+  pending
+  paid
+  shipped
+  delivered
+  cancelled
+}
+
+enum AddressType {
+  billing
+  shipping
+}
+
+enum PaymentMethod {
+  card
+  paypal
+  stripe
+}
+
+// -------------------
+// UTILISATEURS
+// -------------------
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  firstName String?
+  lastName  String?
+  role      UserRole @default(customer)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders      Order[]
+  cart        Cart?
+  addresses   Address[]
+  newsPosts   News[]   // admin lié aux news créées
+
+  @@map("users")
+}
+
+// -------------------
+// PRODUITS
+// -------------------
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?  @db.Text
+  price       Float
+  imageUrl    String?
+  category    String?
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+
+  @@map("products")
+}
+
+// -------------------
+// PANIER
+// -------------------
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        Int     @id @default(autoincrement())
+  cartId    Int
+  productId Int
+  quantity  Int
+
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("cart_items")
+}
+
+// -------------------
+// COMMANDES
+// -------------------
+model Order {
+  id                Int         @id @default(autoincrement())
+  userId            Int
+  shippingAddressId Int?
+  billingAddressId  Int?
+  total             Float
+  status            OrderStatus @default(pending)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  user             User      @relation(fields: [userId], references: [id])
+  shippingAddress  Address?  @relation("ShippingAddressRelation", fields: [shippingAddressId], references: [id])
+  billingAddress   Address?  @relation("BillingAddressRelation", fields: [billingAddressId], references: [id])
+  orderItems       OrderItem[]
+  payments         Payment[]
+}
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  price     Float
+
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+// -------------------
+// ADRESSES
+// -------------------
+model Address {
+  id         Int        @id @default(autoincrement())
+  userId     Int
+  type       AddressType
+  line1      String
+  line2      String?
+  city       String
+  postalCode String
+  country    String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  ordersAsShipping Order[] @relation("ShippingAddressRelation")
+  ordersAsBilling  Order[] @relation("BillingAddressRelation")
+
+  @@map("addresses")
+}
+
+// -------------------
+// PAIEMENTS
+// -------------------
+model Payment {
+  id        Int          @id @default(autoincrement())
+  orderId   Int
+  amount    Float
+  method    PaymentMethod
+  status    String       @default("pending") // pending, paid, failed
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  order     Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+// -------------------
+// NEWS (Admin)
+// -------------------
+model News {
+  id        Int      @id @default(autoincrement())
+  adminId   Int?
+  title     String
+  content   String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  admin     User?    @relation(fields: [adminId], references: [id])
+
+  @@map("news")
+}
+
+// -------------------
+// PROMOTIONS (optionnel)
+// -------------------
+model Promotion {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  discount  Float
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
