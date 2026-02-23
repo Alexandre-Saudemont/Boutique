@@ -58,6 +58,31 @@ export const getUserById = async (req, res) => {
 	}
 };
 
+export const getMe = async (req, res) => {
+	try {
+		const userId = req.userId;
+
+		const user = await prisma.user.findUnique({
+			where: {id: userId},
+			select: {
+				id: true,
+				email: true,
+				firstName: true,
+				lastName: true,
+				role: true,
+			},
+		});
+
+		if (!user) {
+			return res.status(404).json({error: 'Utilisateur avec cet ID non trouvé'});
+		}
+
+		res.json(user);
+	} catch (error) {
+		console.error("Impossible de récupérer l'utilisateur avec cet ID", error);
+		res.status(500).json({error: "L'utilisateur demandé n'existe pas"});
+	}
+};
 // Modifier son propre compte ou un autre compte (admin)
 export const updateUser = async (req, res) => {
 	try {
