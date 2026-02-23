@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import {PrismaClient} from '@prisma/client';
 import {authenticate, isAdmin} from '../middleware/auth.js';
-
+import {getMe} from '../controllers/usersController.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
@@ -25,6 +25,7 @@ router.get('/', authenticate, isAdmin, async (req, res) => {
 		res.status(500).json({error: 'Erreur lors de la récupération des utilisateurs'});
 	}
 });
+router.get('/me', authenticate, getMe);
 
 // Obtenir un utilisateur par ID (admin ou soi-même)
 router.get('/:id', authenticate, async (req, res) => {
