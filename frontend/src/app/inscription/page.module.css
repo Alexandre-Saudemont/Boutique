@@ -1,0 +1,154 @@
+.page {
+	min-height: 100vh;
+	background: #f5f5f5;
+	padding: 2rem 0;
+}
+
+.main {
+	width: 100%;
+	max-width: 1400px;
+	margin: 0 auto;
+	padding: 0 2rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	min-height: calc(100vh - 200px);
+}
+
+.container {
+	background: white;
+	border-radius: 8px;
+	padding: 3rem;
+	width: 100%;
+	max-width: 500px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+	box-sizing: border-box;
+}
+
+.title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	color: #2e5a1a;
+	margin-bottom: 0.5rem;
+	text-align: center;
+}
+
+.subtitle {
+	font-size: 1rem;
+	color: #666;
+	text-align: center;
+	margin-bottom: 2rem;
+}
+
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+
+.formRow {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	width: 100%;
+}
+
+.formGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	width: 100%;
+	min-width: 0;
+}
+
+.formGroup label {
+	font-weight: 600;
+	color: #333;
+	font-size: 0.95rem;
+}
+
+.formGroup input {
+	padding: 0.75rem;
+	border: 2px solid #e0e0e0;
+	border-radius: 4px;
+	font-size: 1rem;
+	transition: border-color 0.2s;
+	outline: none;
+	width: 100%;
+	box-sizing: border-box;
+	cursor: text;
+}
+
+.formGroup input:focus {
+	border-color: #2e5a1a;
+}
+
+.error {
+	background: #fee;
+	color: #c33;
+	padding: 0.75rem;
+	border-radius: 4px;
+	font-size: 0.9rem;
+	border: 1px solid #fcc;
+}
+
+.submitButton {
+	padding: 0.75rem 1.5rem;
+	background: #2e5a1a;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.2s;
+	margin-top: 0.5rem;
+}
+
+.submitButton:hover:not(:disabled) {
+	background: #0066cc;
+}
+
+.submitButton:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.footer {
+	margin-top: 2rem;
+	text-align: center;
+	padding-top: 2rem;
+	border-top: 1px solid #e0e0e0;
+}
+
+.footer p {
+	color: #666;
+	font-size: 0.95rem;
+}
+
+.link {
+	color: #0066cc;
+	text-decoration: none;
+	font-weight: 600;
+	transition: color 0.2s;
+}
+
+.link:hover {
+	color: #2e5a1a;
+	text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+	.container {
+		padding: 2rem 1.5rem;
+	}
+
+	.title {
+		font-size: 2rem;
+	}
+
+	.formRow {
+		grid-template-columns: 1fr;
+	}
+}

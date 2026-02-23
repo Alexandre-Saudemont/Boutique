@@ -1,0 +1,216 @@
+.header {
+	width: 100%;
+	background: #fff;
+	border-bottom: 2px solid #2e5a1a;
+}
+
+.topBar {
+	background: #3a6f22;
+
+	padding: 0.5rem 0;
+}
+
+.topBarContent {
+	max-width: 1400px;
+	margin: 0 auto;
+	padding: 0 2rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.actionsContainer {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.searchContainer {
+	display: flex;
+	gap: 0;
+	align-items: center;
+}
+
+.searchInput {
+	padding: 0.6rem 1rem;
+	background: #4a8a2f;
+	color: black;
+	border: 1px solid #3a6f22;
+	border-radius: 4px 0 0 4px;
+	font-size: 0.95rem;
+	outline: none;
+	transition: background-color 0.2s;
+	width: 300px;
+	height: 40px;
+	box-sizing: border-box;
+}
+
+.searchInput::placeholder {
+	color: rgba(255, 255, 255, 0.7);
+}
+
+.searchInput:focus {
+	background: #5fa043; /* encore plus clair au focus */
+	border-color: #c5f0a4; /* contraste et effet “focus” */
+	color: #fff;
+}
+
+.searchButton {
+	padding: 0;
+	background: #2e5a1a;
+	color: white;
+	border: none;
+	border-radius: 0 4px 4px 0;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background-color 0.2s;
+	width: 40px;
+	height: 40px;
+	box-sizing: border-box;
+}
+
+.searchButton:hover {
+	background: #0066cc;
+}
+
+.searchButton svg {
+	width: 20px;
+	height: 20px;
+}
+
+.accountContainer {
+	position: relative;
+}
+
+.accountContainer:hover .userMenu {
+	display: block;
+}
+
+.accountButton {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem;
+	background: transparent;
+	border: 2px solid transparent;
+	border-radius: 4px;
+	font-size: 0.95rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s;
+	color: #f5f5f5;
+}
+
+.accountButton:hover {
+	background: #0066cc;
+	color: white;
+}
+
+.accountButton svg {
+	flex-shrink: 0;
+}
+
+.userMenu {
+	position: absolute;
+	top: 100%;
+	right: 0;
+	margin-top: 0.5rem;
+	background: white;
+	border: 2px solid #2e5a1a;
+	border-radius: 4px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	min-width: 150px;
+	z-index: 100;
+	display: none;
+}
+
+.accountContainer:hover .userMenu {
+	display: block;
+}
+
+.menuItem {
+	display: block;
+	width: 100%;
+	padding: 0.75rem 1rem;
+	text-align: left;
+	background: transparent;
+	border: none;
+	color: #2e5a1a;
+	font-size: 0.95rem;
+	cursor: pointer;
+	transition: background-color 0.2s;
+}
+
+.menuItem:hover {
+	background: #0066cc;
+	color: white;
+}
+
+.menuItem:first-child {
+	border-radius: 4px 4px 0 0;
+}
+
+.menuItem:last-child {
+	border-radius: 0 0 4px 4px;
+}
+
+.cartButton {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.6rem 1rem;
+	background: transparent;
+	border: 2px solid #2e5a1a;
+	border-radius: 4px;
+	font-size: 0.95rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.cartButton:hover {
+	background: #0066cc;
+	border-color: #0066cc;
+	color: white;
+}
+
+.cartButton {
+	position: relative;
+}
+
+.cartCount {
+	background: #2e5a1a;
+	color: white;
+	border-radius: 50%;
+	width: 20px;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.75rem;
+	font-weight: bold;
+}
+
+.cartButton:hover .cartCount {
+	background: white;
+	color: #0066cc;
+}
+
+@media (max-width: 768px) {
+	.actionsContainer {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.5rem;
+	}
+
+	.searchInput {
+		width: 200px;
+	}
+
+	.accountButton span,
+	.cartButton span:not(.cartCount) {
+		display: none;
+	}
+}

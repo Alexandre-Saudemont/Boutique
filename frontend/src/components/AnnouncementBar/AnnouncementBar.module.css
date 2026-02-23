@@ -1,0 +1,47 @@
+.announcementBar {
+  background: linear-gradient(135deg, #2e5a1a 0%, #3f6f24 100%);
+  color: white;
+  padding: 0.75rem 0;
+  border-bottom: 2px solid #1a3a0d;
+}
+
+.announcementContent {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.announcementItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.announcementText {
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.announcementText::before {
+  content: '★';
+  color: #ffd700;
+  margin-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .announcementContent {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .announcementText {
+    font-size: 0.85rem;
+  }
+}
