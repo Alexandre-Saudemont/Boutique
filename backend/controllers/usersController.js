@@ -24,23 +24,29 @@ export const getAllUsers = async (req, res) => {
 };
 
 // Obtenir un utilisateur par ID (admin ou soi-même)
+// À faire : récupérer l'id depuis req.params, vérifier que l'appelant est admin OU qu'il demande son propre profil (sinon 403),
+// puis findUnique par id, renvoyer 404 si pas trouvé, sinon res.json(user). Penser au try/catch et à ne pas exposer le password.
 export const getUserById = async (req, res) => {
 	try {
 		const {id} = req.params;
-		const userId = parseInt(id);
+		const userId = Number(id);
 
-		// Vérifier que l'utilisateur peut accéder à ce profil
-		if (req.userRole !== 'admin' && req.userId !== userId) {
+		if (!Number.isInteger(userId)) {
+			return res.status(400).json({error: 'ID Invalide'});
+		}
+
+		// admin ou soi-même
+		if (req.userRole !== 'admin' && requestedIf !== userId) {
 			return res.status(403).json({error: 'Accès refusé'});
 		}
 
 		const user = await prisma.user.findUnique({
-			where: {id: userId},
+			where: {id: userID},
 			select: {
 				id: true,
 				email: true,
-				firstName: true,
-				lastName: true,
+				firstname: true,
+				lastname: true,
 				role: true,
 				createdAt: true,
 				updatedAt: true,
@@ -51,7 +57,7 @@ export const getUserById = async (req, res) => {
 			return res.status(404).json({error: 'Utilisateur non trouvé'});
 		}
 
-		res.json(user);
+		return res.json(user);
 	} catch (error) {
 		console.error("Erreur lors de la récupération de l'utilisateur:", error);
 		res.status(500).json({error: "Erreur lors de la récupération de l'utilisateur"});
@@ -114,50 +120,68 @@ export const updateUser = async (req, res) => {
 };
 
 // Supprimer son propre compte ou un autre compte (admin)
+// À faire : vérifier 403 (admin ou soi-même). Si on supprime un admin, vérifier qu'il ne reste pas qu'un seul admin (sinon 400).
+// Puis prisma.user.delete par id, et res.json avec un message de succès. try/catch.
 export const deleteUser = async (req, res) => {
 	try {
 		const {id} = req.params;
-		const userId = parseInt(id);
+		const userId = Number(id);
 
-		// Vérifier que l'utilisateur peut supprimer ce compte
-		if (req.userRole !== 'admin' && req.userId !== userId) {
-			return res.status(403).json({error: 'Accès refusé'});
+		if (!Number.isInteger(userId)) {
+			return res.status(400).json({error: 'ID invalide'});
+		}
+
+		const requestedId = Number(req.userId);
+
+		// admin ou soi même
+		if (req.userRole !== 'admin' && requestedId !== userId) {
+			return res.status(400).json({error: 'Accès refusé'});
 		}
 
 		// Empêcher la suppression du dernier admin
-		if (req.userRole === 'admin') {
-			const user = await prisma.user.findUnique({
-				where: {id: userId},
-			});
-			if (user && user.role === 'admin') {
-				const adminCount = await prisma.user.count({
-					where: {role: 'admin'},
-				});
-				if (adminCount === 1) {
-					return res.status(400).json({error: 'Impossible de supprimer le dernier administrateur'});
-				}
-			}
-		}
-
-		await prisma.user.delete({
+		const userToDelete = await prisma.user.findUnique({
 			where: {id: userId},
 		});
 
-		res.json({message: 'Utilisateur supprimé avec succès'});
+		if (!userToDelete) {
+			return res.status(404).json({error: 'Utilisateur non trouvé'});
+		}
+
+		if (userToDelete.role === 'admin') {
+			const adminCount = await prisma.user.count({
+				where: {role: 'admin'},
+			});
+			if (adminCount === 1) {
+				return res.status(400).json({error: 'Impossible de supprimer le dernier administrateur'});
+			}
+		}
+
+		const deleteUser = await prisma.user.delete({
+			where: {id: userId},
+			select: {
+				id: true,
+				email: true,
+				firstName: true,
+				lastName: true,
+				role: true,
+			},
+		});
+
+		return res.json({
+			message: 'Votre compte à bien été supprimé',
+			user: deleteUser,
+		});
 	} catch (error) {
 		console.error("Erreur lors de la suppression de l'utilisateur:", error);
 		res.status(500).json({error: "Erreur lors de la suppression de l'utilisateur"});
 	}
 };
+// Liste "light" : uniquement id + email pour tous les utilisateurs.
+// À faire : findMany avec un select limité à id et email, puis renvoyer le résultat au client. Gérer les erreurs (try/catch, 500).
 export const getAllUsersLight = async (req, res) => {
 	try {
-		const users = await prisma.user.findMany({
-			select: {
-				id: true,
-				email: true,
-			},
-		});
+		// TODO: ton code ici
 	} catch (error) {
-		return res.status(500).json({error: 'Erreur lors de la récupération des utilisateurs'});
+		// TODO: gérer l'erreur (log + réponse 500)
 	}
 };
