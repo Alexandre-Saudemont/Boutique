@@ -47,6 +47,14 @@ const RAYONS = [
 		slug: 'jdr-wargame',
 		description: 'Univers, dés, écrans, figs à peindre',
 	},
+	/* Présent dans les filtres de la page Boutique du design, mais absent du
+	   menu « Rayons » du header — une incohérence de la maquette. Les mangas
+	   étant au cœur du cahier des charges, on garde le rayon. */
+	{
+		name: 'Mangas & BD',
+		slug: 'mangas-bd',
+		description: 'Séries, intégrales, artbooks',
+	},
 	{
 		name: 'Box surprise',
 		slug: 'box-surprise',

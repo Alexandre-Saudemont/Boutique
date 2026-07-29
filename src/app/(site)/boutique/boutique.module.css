@@ -1,0 +1,264 @@
+/* — intro — */
+
+.intro {
+	position: relative;
+	overflow: clip;
+}
+
+/* Le blob décoratif qui déborde en haut à droite. Purement ornemental. */
+.blob {
+	position: absolute;
+	right: -130px;
+	top: -110px;
+	width: 380px;
+	height: 380px;
+	border-radius: 50%;
+	background: var(--color-accent-100);
+	z-index: 0;
+}
+
+.introContenu {
+	position: relative;
+	z-index: 1;
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(38px, 5.5vw, 64px) clamp(20px, 5vw, 64px) clamp(20px, 3vw, 32px);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 20px 32px;
+	align-items: flex-end;
+	justify-content: space-between;
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(36px, 5vw, 56px);
+	line-height: 1.02;
+	letter-spacing: -0.02em;
+	margin: 0 0 16px;
+}
+
+.chapeau {
+	font-size: 16.5px;
+	line-height: 1.6;
+	max-width: 54ch;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 80%, transparent);
+}
+
+.pastilleOuverture {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	background: var(--color-surface);
+	border-radius: 999px;
+	padding: 10px 18px;
+	box-shadow: var(--shadow-sm);
+}
+
+.point {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--color-accent-2-500);
+	box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent-2-500) 22%, transparent);
+}
+
+.pastilleTexte {
+	font-size: 13.5px;
+	font-weight: 600;
+}
+
+/* — mise en page — */
+
+.section {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(16px, 3vw, 28px) clamp(20px, 5vw, 64px) clamp(48px, 7vw, 88px);
+}
+
+.grille {
+	display: grid;
+	grid-template-columns: 232px 1fr;
+	gap: clamp(28px, 4vw, 52px);
+	align-items: start;
+}
+
+.sidebar {
+	position: sticky;
+	/* Sous le header collant, sous-barre comprise. */
+	top: 150px;
+	display: flex;
+	flex-direction: column;
+	gap: 26px;
+}
+
+.titreFiltre {
+	font-family: var(--font-heading);
+	font-size: 16px;
+	margin-bottom: 12px;
+}
+
+.listeRayons {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.filtreRayon {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-family: var(--font-body);
+	font-size: 14.5px;
+	text-align: left;
+	text-decoration: none;
+	color: var(--color-text);
+	font-weight: 500;
+	background: transparent;
+	border-radius: var(--radius-md);
+	padding: 9px 12px;
+}
+
+.filtreRayon:hover {
+	background: var(--color-surface);
+}
+
+.filtreRayonActif {
+	color: var(--color-accent-700);
+	font-weight: 700;
+	background: var(--color-accent-100);
+}
+
+.compteur {
+	font-size: 12px;
+	color: color-mix(in srgb, var(--color-text) 48%, transparent);
+}
+
+.chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.chip {
+	font-family: var(--font-body);
+	font-size: 13.5px;
+	font-weight: 600;
+	text-decoration: none;
+	color: var(--color-text);
+	background: var(--color-surface);
+	border: 1px solid var(--color-divider);
+	border-radius: 999px;
+	padding: 7px 14px;
+}
+
+.chipActif {
+	background: var(--color-accent);
+	color: var(--color-bg);
+	border-color: var(--color-accent);
+}
+
+.encart {
+	background: var(--color-accent-2-100);
+	border-radius: var(--radius-lg);
+	padding: 18px 20px;
+}
+
+.encartTitre {
+	font-family: var(--font-heading);
+	font-size: 16px;
+	line-height: 1.15;
+	margin-bottom: 8px;
+}
+
+.encartTexte {
+	font-size: 13px;
+	line-height: 1.5;
+	margin: 0 0 14px;
+	color: color-mix(in srgb, var(--color-text) 72%, transparent);
+}
+
+/* — liste — */
+
+.barreListe {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 22px;
+}
+
+.nombre {
+	font-size: 14px;
+	color: color-mix(in srgb, var(--color-text) 62%, transparent);
+}
+
+.tri {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13.5px;
+}
+
+.triLabel {
+	color: color-mix(in srgb, var(--color-text) 62%, transparent);
+}
+
+.cartes {
+	display: grid;
+	gap: 22px 20px;
+	grid-template-columns: repeat(3, 1fr);
+}
+
+.vide {
+	text-align: center;
+	font-size: 16px;
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+	padding: 40px 0;
+}
+
+.appel {
+	margin-top: 40px;
+	background: var(--color-accent-2-100);
+	border-radius: calc(1.4 * var(--radius-lg));
+	padding: clamp(24px, 3vw, 36px);
+	text-align: center;
+}
+
+.appelTitre {
+	font-family: var(--font-heading);
+	font-size: clamp(22px, 2.6vw, 30px);
+	line-height: 1.1;
+	margin: 0 0 10px;
+}
+
+.appelTexte {
+	font-size: 15.5px;
+	line-height: 1.6;
+	max-width: 52ch;
+	margin: 0 auto 20px;
+	color: color-mix(in srgb, var(--color-text) 76%, transparent);
+}
+
+@media (max-width: 900px) {
+	.grille {
+		grid-template-columns: 1fr;
+	}
+
+	.sidebar {
+		position: static;
+	}
+
+	.cartes {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+@media (max-width: 560px) {
+	.cartes {
+		grid-template-columns: 1fr;
+	}
+}

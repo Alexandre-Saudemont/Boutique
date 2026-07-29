@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from 'react';
 import Link from 'next/link';
+import {usePathname} from 'next/navigation';
 import {ChevronDown, Menu, Search, ShoppingCart, Ticket, X} from 'lucide-react';
 import styles from './SiteHeader.module.css';
 
@@ -41,9 +42,16 @@ function couleurPastille(index) {
 	return index % 2 === 0 ? 'var(--color-accent-100)' : 'var(--color-accent-2-100)';
 }
 
-export default function HeaderClient({rayons, annonce, active}) {
+export default function HeaderClient({rayons, annonce}) {
 	const [menuOuvert, setMenuOuvert] = useState(null);
 	const [mobileOuvert, setMobileOuvert] = useState(false);
+
+	/* L'entrée de nav en cours se déduit du chemin plutôt que de descendre en
+	   prop depuis chaque page : une page qui oublierait de la passer n'aurait
+	   silencieusement aucun onglet actif. `startsWith` pour que /produit/x
+	   surligne bien « Boutique ». */
+	const chemin = usePathname();
+	const estActif = (prefixes) => prefixes.some((prefixe) => chemin.startsWith(prefixe));
 
 	const fermerMenu = () => setMenuOuvert(null);
 	const fermerMobile = () => setMobileOuvert(false);
@@ -84,13 +92,13 @@ export default function HeaderClient({rayons, annonce, active}) {
 				</Link>
 
 				<nav className={styles.nav}>
-					<Link href='/boutique' data-actif={active === 'boutique'}>
+					<Link href='/boutique' data-actif={estActif(['/boutique', '/produit'])}>
 						Boutique
 					</Link>
-					<Link href='/blog' data-actif={active === 'blog'}>
+					<Link href='/blog' data-actif={estActif(['/blog'])}>
 						Blog
 					</Link>
-					<Link href='/compte' data-actif={active === 'compte'}>
+					<Link href='/compte' data-actif={estActif(['/compte'])}>
 						Compte
 					</Link>
 				</nav>

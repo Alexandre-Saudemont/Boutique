@@ -8,11 +8,11 @@ import HeaderClient from './HeaderClient';
    base — on ne rend pas tout le composant serveur pour autant, et on n'ouvre
    pas non plus de route API pour aller chercher deux valeurs. */
 
-export default async function SiteHeader({active}) {
+export default async function SiteHeader() {
 	const [rayons, annonce] = await Promise.all([
 		getRayons(),
 		getSetting('shop.announcement'),
 	]);
 
-	return <HeaderClient rayons={rayons} annonce={annonce} active={active} />;
+	return <HeaderClient rayons={rayons} annonce={annonce} />;
 }
