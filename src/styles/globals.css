@@ -1,0 +1,65 @@
+/* Styles globaux de la boutique.
+   Les tokens et classes du design system Organic sont importés tels quels ;
+   on n'ajoute ici que ce qui relève du site et non du design system. */
+
+@import './organic.css';
+
+html {
+	/* Le design cale les ancres (#faq, #cgv…) sous le header sticky. */
+	scroll-padding-top: 96px;
+	scroll-behavior: smooth;
+}
+
+body {
+	min-height: 100dvh;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/* Largeur de contenu commune à toutes les pages vitrine.
+   Le design aligne le contenu à gauche : la respiration est à droite. */
+.shell {
+	width: 100%;
+	max-width: 1180px;
+	margin-inline: auto;
+	padding-inline: var(--space-6);
+}
+
+@media (max-width: 620px) {
+	.shell {
+		padding-inline: var(--space-4);
+	}
+}
+
+/* Lien d'évitement, visible uniquement au clavier. */
+.skip-link {
+	position: absolute;
+	left: var(--space-4);
+	top: var(--space-4);
+	z-index: 100;
+	padding: var(--space-2) var(--space-4);
+	border-radius: 999px;
+	background: var(--color-accent);
+	color: var(--color-bg);
+	font-family: var(--font-heading);
+	text-decoration: none;
+	transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+	transform: translateY(0);
+}
