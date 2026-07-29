@@ -1,0 +1,391 @@
+.header {
+	position: sticky;
+	top: 0;
+	z-index: 20;
+	/* Translucide + flou : le contenu défile visiblement dessous, comme au design. */
+	background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+	backdrop-filter: blur(8px);
+	border-bottom: 1px solid var(--color-divider);
+	font-family: var(--font-body);
+}
+
+/* — bandeau d'annonce — */
+
+.annonce {
+	background: var(--color-accent-2-700);
+	color: var(--color-bg);
+	font-size: 13px;
+	letter-spacing: 0.01em;
+}
+
+.annonceContenu {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 9px clamp(20px, 5vw, 64px);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 28px;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+}
+
+/* — barre principale — */
+
+.barre {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 12px clamp(20px, 5vw, 64px);
+	display: flex;
+	align-items: center;
+	gap: 24px;
+}
+
+.wordmark {
+	display: flex;
+	flex-direction: column;
+	line-height: 1;
+	margin-right: auto;
+	text-decoration: none;
+	color: var(--color-text);
+}
+
+.wordmarkHaut {
+	font-size: 10px;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	font-weight: 700;
+	opacity: 0.62;
+}
+
+.wordmarkBas {
+	font-family: var(--font-heading);
+	font-size: 22px;
+	color: var(--color-accent);
+	letter-spacing: -0.01em;
+	margin-top: 2px;
+}
+
+.nav {
+	display: flex;
+	gap: 22px;
+	align-items: center;
+	font-size: 14.5px;
+}
+
+.nav a {
+	color: var(--color-text);
+	text-decoration: none;
+}
+
+.nav a:hover,
+.nav a[data-actif='true'] {
+	color: var(--color-accent);
+}
+
+.actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+/* — sous-barre de navigation — */
+
+.sousBarre {
+	position: relative;
+	z-index: 20;
+	border-top: 1px solid var(--color-divider);
+	background: var(--color-surface);
+}
+
+.sousBarreContenu {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 2px clamp(12px, 4vw, 56px);
+	display: flex;
+	gap: 4px;
+	flex-wrap: wrap;
+}
+
+.lienIchiban {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	font-family: var(--font-body);
+	font-size: 14.5px;
+	font-weight: 600;
+	color: var(--color-accent-700);
+	text-decoration: none;
+	padding: 13px 16px;
+}
+
+.lienIchiban:hover {
+	color: var(--color-accent);
+}
+
+.menu {
+	position: relative;
+}
+
+.declencheur {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-family: var(--font-body);
+	font-size: 14.5px;
+	font-weight: 600;
+	color: var(--color-text);
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	padding: 13px 16px;
+}
+
+.declencheur:hover {
+	color: var(--color-accent);
+}
+
+.caret {
+	transition: transform 0.18s ease;
+}
+
+.caretOuvert {
+	transform: rotate(180deg);
+}
+
+/* — panneaux déroulants — */
+
+.panneau {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	z-index: 40;
+	background: var(--color-bg);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
+	padding: 12px;
+}
+
+.panneauRayons {
+	width: min(520px, 92vw);
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 4px;
+}
+
+.panneauListe {
+	width: min(320px, 92vw);
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.panneauBox {
+	width: min(320px, 92vw);
+	padding: 16px;
+}
+
+.entree {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	padding: 10px 12px;
+	border-radius: var(--radius-md);
+	text-decoration: none;
+	color: var(--color-text);
+}
+
+.entree:hover {
+	background: var(--color-surface);
+}
+
+.entreeSimple {
+	display: block;
+	padding: 10px 12px;
+	border-radius: var(--radius-md);
+	text-decoration: none;
+	color: var(--color-text);
+}
+
+.entreeSimple:hover {
+	background: var(--color-surface);
+}
+
+.pastille {
+	flex: none;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+}
+
+.entreeNom {
+	display: block;
+	font-family: var(--font-heading);
+	font-size: 15px;
+	line-height: 1.1;
+}
+
+.entreeMeta {
+	display: block;
+	font-size: 12px;
+	color: color-mix(in srgb, var(--color-text) 62%, transparent);
+}
+
+.sousTitre {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: color-mix(in srgb, var(--color-text) 62%, transparent);
+	margin: 0 0 8px;
+	padding-left: 2px;
+}
+
+.themes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+	margin-bottom: 16px;
+}
+
+.themes a {
+	text-decoration: none;
+}
+
+.tailles {
+	display: flex;
+	gap: 8px;
+}
+
+.taille {
+	flex: 1;
+	text-align: center;
+	text-decoration: none;
+	color: var(--color-text);
+	background: var(--color-surface);
+	border-radius: var(--radius-md);
+	padding: 10px 6px;
+}
+
+.taille:hover {
+	background: var(--color-accent-100);
+}
+
+.tailleNom {
+	display: block;
+	font-family: var(--font-heading);
+	font-size: 17px;
+}
+
+.taillePrix {
+	font-size: 12px;
+	color: var(--color-accent-700);
+}
+
+/* Capte le clic hors du panneau pour le refermer. Transparent et sous les
+   panneaux, donc invisible et sans effet sur eux. */
+.captureClic {
+	position: fixed;
+	inset: 0;
+	z-index: 10;
+	background: transparent;
+}
+
+/* — menu mobile — */
+
+.burger {
+	display: none;
+}
+
+.mobile {
+	border-top: 1px solid var(--color-divider);
+	background: var(--color-bg);
+	padding: 12px clamp(20px, 5vw, 64px) 20px;
+}
+
+.mobileNav {
+	display: flex;
+	flex-direction: column;
+}
+
+.mobileNav a {
+	font-family: var(--font-heading);
+	font-size: 19px;
+	color: var(--color-text);
+	text-decoration: none;
+	padding: 12px 0;
+	border-bottom: 1px solid var(--color-divider);
+}
+
+.mobileNav a:hover {
+	color: var(--color-accent);
+}
+
+.mobileNav a.mobilePanier {
+	color: var(--color-accent-700);
+}
+
+.mobileTitre {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: color-mix(in srgb, var(--color-text) 50%, transparent);
+	margin: 18px 0 8px;
+}
+
+.mobileRayons {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 4px 16px;
+}
+
+.mobileRayons a {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	color: var(--color-text);
+	text-decoration: none;
+	padding: 8px 0;
+	font-size: 14.5px;
+}
+
+.mobileRayons a:hover {
+	color: var(--color-accent);
+}
+
+.mobilePastille {
+	flex: none;
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+}
+
+.mobileBox {
+	display: inline-block;
+	margin-top: 14px;
+	font-size: 14.5px;
+	font-weight: 600;
+	color: var(--color-accent-700);
+	text-decoration: none;
+}
+
+@media (max-width: 760px) {
+	.nav,
+	.sousBarre {
+		display: none;
+	}
+
+	.burger {
+		display: inline-flex;
+	}
+
+	.panierLibelle {
+		display: none;
+	}
+}
+
+@media (min-width: 761px) {
+	.mobile {
+		display: none;
+	}
+}
