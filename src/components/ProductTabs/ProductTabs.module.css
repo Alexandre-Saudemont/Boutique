@@ -1,0 +1,58 @@
+.onglets {
+	display: flex;
+	gap: 24px;
+	border-bottom: 1px solid var(--color-divider);
+	margin-bottom: 20px;
+}
+
+.onglet {
+	font-family: var(--font-body);
+	font-size: 15px;
+	font-weight: 600;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid transparent;
+	padding: 0 0 12px;
+	/* Fait chevaucher la bordure de l'onglet actif avec celle du conteneur,
+	   pour qu'elles se confondent au lieu de se superposer sur deux pixels. */
+	margin-bottom: -1px;
+	cursor: pointer;
+}
+
+.ongletActif {
+	color: var(--color-text);
+	border-bottom-color: var(--color-accent);
+}
+
+.contenu {
+	font-size: 15px;
+	line-height: 1.7;
+	color: color-mix(in srgb, var(--color-text) 84%, transparent);
+}
+
+.contenu p {
+	margin: 0 0 14px;
+}
+
+.contenu p:last-child {
+	margin-bottom: 0;
+}
+
+.ligne {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 11px 0;
+	border-bottom: 1px solid var(--color-divider);
+	font-size: 14.5px;
+}
+
+.cle {
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+.valeur {
+	font-weight: 600;
+	text-align: right;
+}

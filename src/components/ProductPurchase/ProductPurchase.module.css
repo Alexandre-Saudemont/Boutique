@@ -1,0 +1,85 @@
+.bloc {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+	margin-bottom: 14px;
+}
+
+.quantite {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	background: var(--color-surface);
+	border-radius: 999px;
+	padding: 5px;
+}
+
+.pas {
+	width: 38px;
+	height: 38px;
+	border-radius: 50%;
+	border: none;
+	background: var(--color-bg);
+	color: var(--color-text);
+	font-size: 20px;
+	cursor: pointer;
+	display: grid;
+	place-items: center;
+}
+
+.pas:hover:not(:disabled) {
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+}
+
+.pas:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.valeur {
+	min-width: 40px;
+	text-align: center;
+	font-family: var(--font-heading);
+	font-size: 18px;
+}
+
+.ajouter {
+	flex: 1;
+	min-width: 200px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 9px;
+	font-family: var(--font-body);
+	font-size: 15px;
+	font-weight: 600;
+	border-radius: 999px;
+	padding: 13px 22px;
+}
+
+.ajouterFerme {
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+	background: var(--color-surface);
+	border: 1px solid var(--color-divider);
+	cursor: not-allowed;
+}
+
+.favori {
+	width: 50px;
+	height: 50px;
+}
+
+.lienPrevenir {
+	display: inline-block;
+	font-size: 13.5px;
+	font-weight: 600;
+	margin-bottom: 26px;
+	color: var(--color-accent-700);
+	text-decoration: none;
+}
+
+.lienPrevenir:hover {
+	color: var(--color-accent);
+}

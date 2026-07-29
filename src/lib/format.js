@@ -17,6 +17,24 @@ export function formatPrix(centimes) {
 	return FORMAT_EURO.format(centimes / 100);
 }
 
+const FORMAT_EURO_ENTIER = new Intl.NumberFormat('fr-FR', {
+	style: 'currency',
+	currency: 'EUR',
+	maximumFractionDigits: 0,
+});
+
+/* Montant sans centimes quand il tombe rond : 5000 → « 50 € », 7490 → « 74,90 € ».
+
+   À réserver aux seuils annoncés en clair (« livraison offerte dès 50 € »), où
+   « 50,00 € » fait lourd et s'écarte de ce qu'écrit le design. Les prix de vente
+   gardent toujours leurs centimes — un « 74 € » arrondi serait faux. */
+export function formatPrixCompact(centimes) {
+	if (typeof centimes !== 'number' || !Number.isFinite(centimes)) return '';
+	return centimes % 100 === 0
+		? FORMAT_EURO_ENTIER.format(centimes / 100)
+		: FORMAT_EURO.format(centimes / 100);
+}
+
 const FORMAT_DATE = new Intl.DateTimeFormat('fr-FR', {
 	day: 'numeric',
 	month: 'long',
