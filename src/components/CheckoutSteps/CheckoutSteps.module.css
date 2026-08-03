@@ -1,0 +1,68 @@
+.stepper {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	list-style: none;
+	margin: 0 0 clamp(28px, 4vw, 40px);
+	padding: 0;
+}
+
+.etape {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.lien {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	text-decoration: none;
+}
+
+.pastille {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	font-size: 13px;
+	font-weight: 700;
+	background: var(--color-surface);
+	color: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+
+.pastilleActive {
+	background: var(--color-accent);
+	color: var(--color-bg);
+}
+
+.pastilleFranchie {
+	background: var(--color-accent-2-500);
+	color: var(--color-bg);
+}
+
+.nom {
+	font-size: 14px;
+	font-weight: 600;
+	white-space: nowrap;
+	color: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+
+.nomActif,
+.nomFranchi {
+	color: var(--color-text);
+}
+
+.lien:hover .nomFranchi {
+	color: var(--color-accent-700);
+}
+
+.trait {
+	width: 22px;
+	height: 1px;
+	background: var(--color-divider);
+	margin: 0 4px;
+}
