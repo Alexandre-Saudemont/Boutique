@@ -1,5 +1,6 @@
 import 'server-only';
 import {prisma} from '@/server/db';
+import {envoyerAvisExpedition} from '@/server/email/messages';
 
 /* Les commandes vues du back-office.
 
@@ -116,7 +117,11 @@ export async function getCommandeAdmin(numero) {
 export async function changerStatutCommande({numero, statut, suivi = null, transporteur = null}) {
 	const commande = await prisma.order.findUnique({
 		where: {orderNumber: numero},
-		select: {id: true, status: true, items: {select: {variantId: true, kind: true, quantity: true}}},
+		select: {
+			id: true,
+			status: true,
+			items: {select: {variantId: true, kind: true, quantity: true}},
+		},
 	});
 
 	if (!commande) return {ok: false, erreur: 'Commande introuvable.'};
@@ -154,6 +159,7 @@ export async function changerStatutCommande({numero, statut, suivi = null, trans
 
 		if (!rendreLeStock) return;
 
+
 		for (const ligne of commande.items) {
 			if (!ligne.variantId || ligne.kind === 'DIGITAL') continue;
 
@@ -163,6 +169,22 @@ export async function changerStatutCommande({numero, statut, suivi = null, trans
 			});
 		}
 	});
+
+	/* Le client est prévenu du départ de son colis — c'est le message qu'il
+	   attend le plus. Envoyé hors transaction, et sans lever : le statut est déjà
+	   enregistré, un e-mail qui ne part pas ne doit pas le défaire.
+
+	   Les autres transitions ne déclenchent rien : « en préparation » n'apprend
+	   rien à personne, et un e-mail d'annulation demande une explication écrite à
+	   la main, pas un message automatique. */
+	if (statut === 'SHIPPED') {
+		const complete = await prisma.order.findUnique({
+			where: {id: commande.id},
+			select: {orderNumber: true, email: true, carrier: true, trackingNumber: true},
+		});
+
+		await envoyerAvisExpedition(complete);
+	}
 
 	return {ok: true};
 }

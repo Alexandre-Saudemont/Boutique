@@ -1,6 +1,7 @@
 import 'server-only';
 import Stripe from 'stripe';
 import {prisma} from '@/server/db';
+import {envoyerConfirmationCommande} from '@/server/email/messages';
 
 /* L'encaissement.
 
@@ -213,6 +214,12 @@ export async function confirmerPaiement(session) {
 		const jeton = session.metadata?.jetonPanier;
 		if (jeton) await tx.cartItem.deleteMany({where: {cart: {sessionToken: jeton}}});
 	});
+
+	/* L'e-mail part après la transaction, jamais dedans : un envoi lent
+	   tiendrait la transaction ouverte, et un envoi raté annulerait
+	   l'encaissement. `envoyerConfirmationCommande` ne lève pas — au pire, le
+	   message manque et la commande, elle, est bien enregistrée. */
+	await envoyerConfirmationCommande(commande);
 
 	return {ok: true};
 }
