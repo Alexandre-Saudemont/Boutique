@@ -1,0 +1,68 @@
+.bloc {
+	flex: 1;
+	min-width: 280px;
+	max-width: 460px;
+}
+
+.formulaire {
+	display: flex;
+	gap: 10px;
+	align-items: stretch;
+}
+
+.champ {
+	flex: 1;
+	min-width: 0;
+}
+
+/* Sur le bloc terracotta, le champ repasse en fond crème : un champ transparent
+   sur l'accent tomberait sous le contraste minimum. */
+.champSombre {
+	background: var(--color-bg);
+	color: var(--color-text);
+	border-color: transparent;
+}
+
+/* Le bouton du bloc accent : le terracotta sur terracotta ne se verrait pas,
+   le design le passe en encre sombre. */
+.boutonSombre {
+	background: var(--color-text);
+	color: var(--color-bg);
+	border-color: transparent;
+}
+
+.boutonSombre:hover {
+	background: var(--color-neutral-800);
+}
+
+.confirmation {
+	margin: 0;
+	font-size: 14.5px;
+	font-weight: 600;
+	color: var(--color-accent-2-700);
+}
+
+.confirmationSombre {
+	color: var(--color-bg);
+}
+
+.erreur {
+	margin: 10px 2px 0;
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var(--color-accent-700);
+}
+
+.erreurSombre {
+	color: var(--color-bg);
+}
+
+@media (max-width: 460px) {
+	.formulaire {
+		flex-wrap: wrap;
+	}
+
+	.champ {
+		flex-basis: 100%;
+	}
+}
