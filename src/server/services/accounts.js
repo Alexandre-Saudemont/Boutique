@@ -1,6 +1,8 @@
 import 'server-only';
 import {prisma} from '@/server/db';
 import {hashPassword, needsRehash, verifyPassword} from '@/server/auth/password';
+import {consommerJeton, creerJeton} from '@/server/auth/tokens';
+import {envoyerLienReinitialisation, envoyerVerificationEmail} from '@/server/email/messages';
 
 /* Comptes clients : inscription, connexion, profil.
 
@@ -136,6 +138,100 @@ export async function connecter({email, motDePasse}) {
 	});
 
 	return {ok: true, userId: utilisateur.id};
+}
+
+/* Demande de réinitialisation de mot de passe.
+
+   La fonction répond toujours `ok`, que l'adresse soit connue ou non. C'est la
+   même règle que partout ailleurs : un formulaire qui répond « adresse
+   inconnue » se transforme en outil pour savoir qui est client.
+
+   L'e-mail n'est donc envoyé que si le compte existe — et le visiteur voit dans
+   les deux cas « si un compte existe, un lien vient de partir ». */
+export async function demanderReinitialisation(email) {
+	const adresse = normaliserEmail(email);
+
+	const utilisateur = await prisma.user.findUnique({
+		where: {email: adresse},
+		select: {id: true, email: true, firstName: true, anonymizedAt: true, passwordHash: true},
+	});
+
+	/* Trois cas de silence : compte inexistant, compte anonymisé, et compte sans
+	   mot de passe (connexion externe). Dans le dernier, envoyer un lien de
+	   réinitialisation créerait un mot de passe là où il n'y en a jamais eu — ce
+	   n'est pas ce que la personne attend. */
+	if (!utilisateur || utilisateur.anonymizedAt || !utilisateur.passwordHash) {
+		return {ok: true};
+	}
+
+	const jeton = await creerJeton(utilisateur.id, 'PASSWORD_RESET');
+	await envoyerLienReinitialisation(utilisateur, jeton);
+
+	return {ok: true};
+}
+
+/* Change le mot de passe à partir d'un jeton reçu par e-mail.
+
+   Deux gestes en plus du changement lui-même, et ils comptent autant que lui.
+
+   **Toutes les sessions sont fermées.** Quelqu'un réinitialise son mot de passe
+   parce qu'il l'a oublié — ou parce qu'il soupçonne quelque chose. Dans le
+   second cas, laisser ouvertes les sessions de l'intrus rendrait l'opération
+   inutile.
+
+   **L'adresse est marquée vérifiée.** La personne vient de prouver qu'elle
+   accède à cette boîte mail : c'est exactement ce que la vérification atteste. */
+export async function reinitialiserMotDePasse(jeton, nouveauMotDePasse) {
+	const controle = validerMotDePasse(nouveauMotDePasse);
+	if (!controle.valide) return {ok: false, erreur: controle.erreur};
+
+	const userId = await consommerJeton(jeton, 'PASSWORD_RESET');
+
+	if (!userId) {
+		return {
+			ok: false,
+			erreur: 'Ce lien n’est plus valable. Demandez-en un nouveau, il ne coûte rien.',
+		};
+	}
+
+	const empreinte = await hashPassword(nouveauMotDePasse);
+
+	await prisma.$transaction([
+		prisma.user.update({
+			where: {id: userId},
+			data: {passwordHash: empreinte, emailVerifiedAt: new Date()},
+		}),
+		prisma.session.deleteMany({where: {userId}}),
+	]);
+
+	return {ok: true};
+}
+
+/// Envoie (ou renvoie) le lien de vérification d'adresse. Silencieux sur un
+/// compte déjà vérifié : le lien ne servirait à rien.
+export async function demanderVerificationEmail(userId) {
+	const utilisateur = await prisma.user.findUnique({
+		where: {id: userId},
+		select: {id: true, email: true, firstName: true, emailVerifiedAt: true},
+	});
+
+	if (!utilisateur || utilisateur.emailVerifiedAt) return {ok: true};
+
+	const jeton = await creerJeton(utilisateur.id, 'EMAIL_VERIFY');
+	await envoyerVerificationEmail(utilisateur, jeton);
+
+	return {ok: true};
+}
+
+/// Marque l'adresse comme vérifiée à partir du jeton du lien.
+export async function verifierEmail(jeton) {
+	const userId = await consommerJeton(jeton, 'EMAIL_VERIFY');
+
+	if (!userId) return {ok: false};
+
+	await prisma.user.update({where: {id: userId}, data: {emailVerifiedAt: new Date()}});
+
+	return {ok: true};
 }
 
 /* Rattache le panier invité au compte à la connexion.

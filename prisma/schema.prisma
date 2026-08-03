@@ -118,6 +118,7 @@ model User {
   orders         Order[]
   cart           Cart?
   sessions       Session[]
+  jetons         VerificationToken[]
   wishlistItems  WishlistItem[]
   reviews        Review[]
   posts          Post[]
@@ -144,6 +145,37 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+enum TokenPurpose {
+  PASSWORD_RESET
+  EMAIL_VERIFY
+}
+
+/// Jeton à usage unique envoyé par e-mail : réinitialisation de mot de passe,
+/// vérification d'adresse.
+///
+/// **Seule l'empreinte du jeton est stockée**, comme pour un mot de passe. Le
+/// jeton en clair ne vit que dans l'e-mail du destinataire : quelqu'un qui
+/// obtiendrait une copie de la base ne pourrait pas s'en servir pour prendre la
+/// main sur un compte.
+///
+/// `usedAt` rend le jeton inutilisable après un premier usage — sans quoi un
+/// lien resté dans une boîte mail rouvrirait le compte des mois plus tard.
+model VerificationToken {
+  id        String       @id @default(cuid())
+  userId    String
+  purpose   TokenPurpose
+  tokenHash String       @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+  @@map("verification_tokens")
 }
 
 model Address {

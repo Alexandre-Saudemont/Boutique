@@ -1,6 +1,7 @@
 'use client';
 
 import {useActionState, useState} from 'react';
+import Link from 'next/link';
 import {useFormStatus} from 'react-dom';
 import {MailCheck} from 'lucide-react';
 import {seConnecter, sInscrire} from './actions';
@@ -120,8 +121,7 @@ export default function AuthPanel({suite = null}) {
 					<Bouton libelle='Se connecter' />
 
 					<p className={styles.oubli}>
-						Mot de passe oublié ? Le parcours de réinitialisation arrive bientôt —
-						écrivez-moi en attendant.
+						<Link href='/compte/mot-de-passe-oublie'>Mot de passe oublié ?</Link>
 					</p>
 				</form>
 			) : (

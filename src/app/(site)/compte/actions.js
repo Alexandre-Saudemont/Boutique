@@ -5,9 +5,12 @@ import {headers} from 'next/headers';
 import {revalidatePath} from 'next/cache';
 import {
 	connecter,
+	demanderReinitialisation,
+	demanderVerificationEmail,
 	fusionnerPanier,
 	inscrire,
 	mettreAJourProfil,
+	reinitialiserMotDePasse,
 } from '@/server/services/accounts';
 import {
 	creerSession,
@@ -130,7 +133,60 @@ export async function sInscrire(_precedent, donnees) {
 
 	await ouvrirSessionEtFusionner(resultat.userId);
 
+	/* Le lien de vérification part maintenant que le compte existe. Il ne bloque
+	   rien : le client peut commander sans avoir cliqué. Exiger la vérification
+	   avant tout achat ferait perdre des ventes pour un gain de sécurité mince —
+	   c'est le paiement qui atteste sérieusement de l'identité, pas une boîte
+	   mail. */
+	await demanderVerificationEmail(resultat.userId);
+
 	redirect('/compte');
+}
+
+/* Demande d'un lien de réinitialisation.
+
+   Deux limites, pour deux abus différents. Par adresse : sans elle, ce
+   formulaire sert à inonder la boîte mail de quelqu'un — trois messages par
+   quart d'heure suffisent largement à un usage honnête. La réponse est toujours
+   la même, y compris quand la limite est atteinte : dire « trop de demandes sur
+   cette adresse » révélerait qu'elle est connue. */
+export async function demanderNouveauMotDePasse(_precedent, donnees) {
+	const email = String(donnees.get('email') ?? '')
+		.trim()
+		.toLowerCase();
+
+	const limite = verifierLimite(`reinit:${email}`, {max: 3, fenetreMs: 15 * 60 * 1000});
+
+	if (limite.autorise) {
+		await demanderReinitialisation(email);
+	}
+
+	// Réponse unique, quoi qu'il arrive : compte inexistant, limite atteinte ou
+	// e-mail parti, le visiteur lit exactement la même phrase.
+	return {statut: 'envoye'};
+}
+
+/* Choix du nouveau mot de passe.
+
+   Le jeton n'est pas revalidé ici : `reinitialiserMotDePasse` le consomme dans
+   une transaction, ce qui est le seul endroit où la vérification et l'usage ne
+   peuvent pas être dissociés. */
+export async function choisirNouveauMotDePasse(_precedent, donnees) {
+	const jeton = String(donnees.get('jeton') ?? '');
+	const motDePasse = donnees.get('motDePasse');
+
+	if (motDePasse !== donnees.get('confirmation')) {
+		return {statut: 'erreur', message: 'Les deux mots de passe ne sont pas identiques.'};
+	}
+
+	const resultat = await reinitialiserMotDePasse(jeton, motDePasse);
+
+	if (!resultat.ok) return {statut: 'erreur', message: resultat.erreur};
+
+	/* Toutes les sessions ont été fermées, y compris celle en cours si la
+	   personne était connectée : elle se reconnecte avec son nouveau mot de
+	   passe, ce qui confirme au passage qu'il fonctionne. */
+	redirect('/compte?motdepasse=change');
 }
 
 export async function seDeconnecter() {

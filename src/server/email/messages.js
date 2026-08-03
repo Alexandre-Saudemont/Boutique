@@ -165,6 +165,73 @@ Le Vieux geek`;
 	});
 }
 
+/* Lien de réinitialisation de mot de passe.
+
+   Le message dit explicitement quoi faire si la demande ne vient pas de la
+   personne : ne rien faire. C'est important — recevoir ce message sans l'avoir
+   demandé est inquiétant, et le silence sur ce point pousse à cliquer « pour
+   voir », ce qui est exactement l'inverse de ce qu'on veut. */
+export async function envoyerLienReinitialisation(utilisateur, jeton) {
+	const lien = `${adresseDuSite()}/compte/nouveau-mot-de-passe?jeton=${encodeURIComponent(jeton)}`;
+
+	const texte = `Bonjour,
+
+Vous avez demandé à changer le mot de passe de votre compte sur L'antre du vieux geek fou.
+
+Choisissez-en un nouveau ici (lien valable une heure) :
+${lien}
+
+Si ce n'était pas vous, ignorez ce message : votre mot de passe actuel reste valable et personne n'a accès à votre compte.
+
+Le Vieux geek`;
+
+	const html = coquille(
+		'Changer votre mot de passe',
+		`<p style="font-size:15px;line-height:1.6;">Vous avez demandé à changer le mot de passe de votre compte.</p>
+<p style="margin:22px 0;"><a href="${echapper(
+			lien,
+		)}" style="display:inline-block;background:#c67139;color:#fffdf9;padding:12px 22px;border-radius:999px;font-size:15px;">Choisir un nouveau mot de passe</a></p>
+<p style="font-size:13.5px;line-height:1.6;color:#6b6459;">Ce lien est valable une heure. Si ce n'était pas vous, ignorez ce message : votre mot de passe actuel reste valable.</p>`,
+	);
+
+	return envoyerEmail({
+		destinataire: utilisateur.email,
+		sujet: 'Changer votre mot de passe',
+		texte,
+		html,
+	});
+}
+
+/// Vérification de l'adresse e-mail, envoyée à l'inscription.
+export async function envoyerVerificationEmail(utilisateur, jeton) {
+	const lien = `${adresseDuSite()}/compte/verification?jeton=${encodeURIComponent(jeton)}`;
+
+	const texte = `Bienvenue dans l'antre !
+
+Confirmez votre adresse d'un clic (lien valable 24 heures) :
+${lien}
+
+Si vous n'avez pas créé de compte chez moi, ignorez ce message.
+
+Le Vieux geek`;
+
+	const html = coquille(
+		'Bienvenue dans l’antre',
+		`<p style="font-size:15px;line-height:1.6;">Il ne reste qu'à confirmer votre adresse — c'est elle qui servira pour le suivi de vos commandes.</p>
+<p style="margin:22px 0;"><a href="${echapper(
+			lien,
+		)}" style="display:inline-block;background:#c67139;color:#fffdf9;padding:12px 22px;border-radius:999px;font-size:15px;">Confirmer mon adresse</a></p>
+<p style="font-size:13.5px;line-height:1.6;color:#6b6459;">Lien valable 24 heures. Si vous n'avez pas créé de compte chez moi, ignorez ce message.</p>`,
+	);
+
+	return envoyerEmail({
+		destinataire: utilisateur.email,
+		sujet: 'Confirmez votre adresse',
+		texte,
+		html,
+	});
+}
+
 /// Avis d'expédition, avec le suivi s'il a été saisi.
 export async function envoyerAvisExpedition(commande) {
 	const sujet = `Votre commande ${commande.orderNumber} est en route`;
