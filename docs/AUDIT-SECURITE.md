@@ -1,5 +1,12 @@
 # Audit de sécurité — 3 août 2026
 
+> **Mise à jour du même jour.** Les points 1 à 7 de la partie 3 ont tous été
+> traités depuis la première rédaction : CSP, montée de Next, double opt-in,
+> journal des actions, mot de passe oublié, vérification d'adresse, droit à
+> l'effacement. Une suite de tests couvre désormais les garde-fous. Le détail
+> est en partie 5, et les parties 1 à 4 sont laissées telles qu'elles ont été
+> écrites — elles racontent l'état de départ.
+
 Revue complète du code du projet : authentification, sessions, panier, tunnel de
 commande, encaissement Stripe, back-office, envoi d'e-mails, configuration.
 
@@ -163,3 +170,80 @@ le plus gros risque à moyen terme du projet, et il grandit à chaque écran ajo
   dans la console. Le contenu a été relu, pas la délivrabilité.
 - **Le comportement en production** (proxy, en-têtes transmis, HSTS effectif) :
   rien n'est déployé à ce jour.
+
+---
+
+## 5. Suites données — même jour
+
+### Traité
+
+**Content-Security-Policy** (`src/middleware.js`). Un `nonce` par réponse, seul
+moyen d'autoriser les scripts d'hydratation de Next sans ouvrir la porte à ceux
+qu'on injecterait. Vérifié sur cinq pages : aucune balise `<script>` sans nonce.
+`strict-dynamic` évite d'énumérer des domaines qui changeront. Les styles
+restent en `unsafe-inline` — React pose des styles en ligne que le projet
+utilise ; le risque est un défacement, pas une exécution.
+*Conséquence :* aucune page portant cette CSP ne peut être servie depuis un
+cache statique. Toutes sont déjà dynamiques, le coût est nul aujourd'hui.
+
+**Next 16.2.12.** Les trois alertes `npm audit` **subsistent** et c'est
+volontaire : elles viennent de `postcss` et `sharp`, dépendances internes de
+Next qu'aucune version publiée ne corrige — le seul « correctif » proposé est un
+retour à Next 9. Le risque réel est faible : `postcss` traite au build du CSS
+que nous écrivons, `sharp` traite des images dont les domaines sont désormais
+restreints. À revoir à chaque montée de version.
+
+**Double opt-in de la lettre.** Une adresse ne reçoit rien tant que le lien
+envoyé n'a pas été suivi. Une adresse déjà confirmée ne reçoit pas de second
+message — ce serait le moyen le plus simple de la harceler depuis le formulaire
+public. Le lien porte un jeton opaque, jamais l'adresse. Désinscription en un
+clic, sans question posée.
+
+**Journal des actions du personnel.** `AuditLog` est alimenté par chaque
+écriture du back-office ; l'historique s'affiche sur la fiche commande. Aucune
+donnée personnelle n'y entre (ni le texte d'une note, ni une adresse) : le
+journal se conserve bien plus longtemps que ces données ne le justifient. Et
+journaliser n'échoue jamais bruyamment — perdre une ligne de journal ne doit pas
+défaire le travail de quelqu'un.
+
+**Mot de passe oublié et vérification d'adresse.** Jetons à usage unique,
+**stockés hachés** : le jeton en clair ne vit que dans l'e-mail du destinataire,
+une copie de la base ne permet pas de forger un lien. Une heure de validité pour
+un mot de passe, un jour pour une adresse ; demander un nouveau lien ferme le
+précédent. Réinitialiser **ferme toutes les sessions** — sans quoi l'opération
+serait inutile face à une intrusion. Le formulaire de demande répond la même
+phrase pour une adresse connue, inconnue ou limitée.
+
+**Droit à l'effacement.** Le compte est anonymisé, pas supprimé : les commandes
+sont des pièces comptables à conserver dix ans. Disparaissent l'adresse, le nom,
+le téléphone, le mot de passe, les sessions, les jetons, le panier, les adresses
+enregistrées et le nom affiché sous les avis. Le mot de passe est redemandé —
+une session ouverte sur un poste partagé ne doit pas suffire.
+
+**Tests.** 187 tests (`npm test`). Les unitaires couvrent scrypt et ses
+paramètres, la matrice des droits, la limitation glissante, la validation, la
+conversion des prix, la neutralisation des formules CSV, le refus des clés de
+réglage inventées, chaque directive de la CSP. Les tests d'intégration, contre
+un vrai PostgreSQL, vérifient qu'un panier n'est ni lisible ni modifiable avec
+le jeton d'un autre, que les montants sont recalculés côté serveur, qu'une
+commande est figée, que les transitions de statut sont fermées, et que chaque
+manière connue de détourner un jeton échoue.
+
+### Ajouté depuis, à traiter
+
+**Vérification au navigateur.** La CSP a été validée par inspection du HTML
+rendu (aucun script sans nonce sur cinq pages), pas dans un vrai navigateur :
+l'extension Chrome n'était pas connectée. Une passe console sur les écrans
+interactifs — panier, tunnel, formulaire produit — reste à faire avant
+l'ouverture.
+
+**`connect-src 'self'`** interdit tout appel sortant. C'est volontaire
+aujourd'hui, puisque le paiement se fait sur une page hébergée par Stripe. Le
+jour où un paiement intégré arriverait, cette directive devra s'ouvrir aux
+domaines de Stripe — et à eux seuls.
+
+**Purge des jetons.** `purgerJetons()` existe et est testée, mais rien ne
+l'appelle : il n'y a pas de travail programmé. Sans conséquence de sécurité —
+les jetons expirés sont refusés — mais la table grossit lentement.
+
+**Limitation toujours en mémoire.** Inchangé : mono-instance. Voir plus haut.
