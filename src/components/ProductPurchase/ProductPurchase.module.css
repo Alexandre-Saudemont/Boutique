@@ -71,6 +71,30 @@
 	height: 50px;
 }
 
+.confirmation,
+.erreur {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 13.5px;
+	font-weight: 600;
+	margin: 0 0 20px;
+	color: var(--color-accent-2-700);
+}
+
+.erreur {
+	color: var(--color-accent-700);
+}
+
+.lienPanier {
+	color: var(--color-accent-700);
+	text-decoration: none;
+}
+
+.lienPanier:hover {
+	color: var(--color-accent);
+}
+
 .lienPrevenir {
 	display: inline-block;
 	font-size: 13.5px;

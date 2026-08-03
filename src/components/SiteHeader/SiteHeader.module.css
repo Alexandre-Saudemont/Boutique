@@ -369,6 +369,42 @@
 	text-decoration: none;
 }
 
+/* Entrée « compte » quand le visiteur est connecté. */
+.lienCompte {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+}
+
+.avatarNav {
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: var(--color-accent-200);
+	color: var(--color-accent-800);
+	font-family: var(--font-heading);
+	font-size: 12px;
+	line-height: 1;
+}
+
+/* Le compteur du panier. Purement visuel : le nombre est déjà dans le libellé
+   accessible du lien, le répéter le ferait annoncer deux fois. */
+.pastillePanier {
+	display: inline-grid;
+	place-items: center;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 6px;
+	border-radius: 999px;
+	background: var(--color-bg);
+	color: var(--color-accent-700);
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1;
+}
+
 @media (max-width: 760px) {
 	.nav,
 	.sousBarre {

@@ -1,0 +1,162 @@
+.ligne {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	padding: 14px;
+	box-shadow: var(--shadow-sm);
+	transition: opacity 0.15s ease;
+}
+
+/* Pendant l'enregistrement : la ligne s'estompe et refuse le clic. Le retour du
+   serveur la réveille — c'est lui qui porte la quantité qui fait foi. */
+.ligne[data-occupe] {
+	opacity: 0.55;
+	pointer-events: none;
+}
+
+.visuel {
+	position: relative;
+	flex: none;
+	width: 84px;
+	height: 96px;
+	border-radius: var(--radius-md);
+	overflow: hidden;
+	background: var(--color-bg);
+}
+
+.image {
+	object-fit: cover;
+}
+
+.emplacement {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	font-family: var(--font-heading);
+	font-size: 28px;
+	color: var(--color-accent);
+}
+
+.infos {
+	flex: 1;
+	min-width: 0;
+}
+
+.rayon {
+	font-size: 11.5px;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	font-weight: 600;
+	color: var(--color-accent-2-700);
+}
+
+.nom {
+	font-family: var(--font-heading);
+	font-size: 17px;
+	line-height: 1.16;
+	margin: 3px 0 6px;
+}
+
+.nom a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.nom a:hover {
+	color: var(--color-accent-700);
+}
+
+.variante {
+	display: block;
+	font-size: 13px;
+	margin-bottom: 8px;
+	color: color-mix(in srgb, var(--color-text) 62%, transparent);
+}
+
+.badge {
+	vertical-align: middle;
+}
+
+.cote {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 12px;
+}
+
+.total {
+	font-family: var(--font-heading);
+	font-size: 18px;
+	color: var(--color-accent-700);
+}
+
+.quantite {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	background: var(--color-bg);
+	border-radius: 999px;
+	padding: 4px;
+}
+
+.pas {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	border: none;
+	background: var(--color-surface);
+	color: var(--color-text);
+	font-size: 17px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.pas:hover:not(:disabled) {
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+}
+
+.pas:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.valeur {
+	min-width: 28px;
+	text-align: center;
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.retirer {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	font-family: var(--font-body);
+	font-size: 12.5px;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+}
+
+.retirer:hover {
+	color: var(--color-accent);
+}
+
+@media (max-width: 560px) {
+	.ligne {
+		flex-wrap: wrap;
+	}
+
+	.cote {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+	}
+}

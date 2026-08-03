@@ -42,7 +42,12 @@ function couleurPastille(index) {
 	return index % 2 === 0 ? 'var(--color-accent-100)' : 'var(--color-accent-2-100)';
 }
 
-export default function HeaderClient({rayons, annonce}) {
+export default function HeaderClient({
+	rayons,
+	annonce,
+	articlesAuPanier = 0,
+	compte = null,
+}) {
 	const [menuOuvert, setMenuOuvert] = useState(null);
 	const [mobileOuvert, setMobileOuvert] = useState(false);
 
@@ -98,8 +103,23 @@ export default function HeaderClient({rayons, annonce}) {
 					<Link href='/blog' data-actif={estActif(['/blog'])}>
 						Blog
 					</Link>
-					<Link href='/compte' data-actif={estActif(['/compte'])}>
-						Compte
+					{/* Connecté, l'entrée porte le prénom et une pastille à l'initiale :
+					    l'état de connexion doit se lire d'un coup d'œil, sans avoir à
+					    ouvrir la page. */}
+					<Link
+						href='/compte'
+						data-actif={estActif(['/compte'])}
+						className={compte ? styles.lienCompte : undefined}>
+						{compte ? (
+							<>
+								<span className={styles.avatarNav} aria-hidden='true'>
+									{compte.initiale}
+								</span>
+								{compte.prenom ?? 'Mon compte'}
+							</>
+						) : (
+							'Compte'
+						)}
 					</Link>
 				</nav>
 
@@ -127,9 +147,25 @@ export default function HeaderClient({rayons, annonce}) {
 						<Search size={18} strokeWidth={2.75} />
 					</Link>
 
-					<Link href='/panier' className='btn btn-primary' style={{gap: 8}}>
+					{/* Le compteur est dans le libellé accessible plutôt qu'en simple
+					    pastille : « Panier, 3 articles » se comprend à l'oreille,
+					    « Panier 3 » non. */}
+					<Link
+						href='/panier'
+						className='btn btn-primary'
+						style={{gap: 8}}
+						aria-label={
+							articlesAuPanier > 0
+								? `Panier, ${articlesAuPanier} article${articlesAuPanier > 1 ? 's' : ''}`
+								: 'Panier, vide'
+						}>
 						<ShoppingCart size={18} strokeWidth={2.75} />
 						<span className={styles.panierLibelle}>Panier</span>
+						{articlesAuPanier > 0 && (
+							<span className={styles.pastillePanier} aria-hidden='true'>
+								{articlesAuPanier}
+							</span>
+						)}
 					</Link>
 				</div>
 			</div>
@@ -144,7 +180,7 @@ export default function HeaderClient({rayons, annonce}) {
 							Blog
 						</Link>
 						<Link href='/compte' onClick={fermerMobile}>
-							Compte
+							{compte ? (compte.prenom ? `Mon compte (${compte.prenom})` : 'Mon compte') : 'Compte'}
 						</Link>
 						<Link href='/panier' onClick={fermerMobile} className={styles.mobilePanier}>
 							Panier
