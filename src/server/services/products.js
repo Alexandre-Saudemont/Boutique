@@ -139,6 +139,56 @@ export async function listProducts({rayon, etat, tri} = {}) {
 	return affichables; // nouveautés d'abord : déjà l'ordre de la requête
 }
 
+/* L'inventaire vu du back-office.
+
+   Rien à voir avec `listProducts` malgré la ressemblance : ici on montre
+   justement ce que la vitrine cache — les brouillons, les produits désactivés,
+   les archivés — puisque c'est précisément ce qu'il faut pouvoir retrouver pour
+   le publier ou le corriger.
+
+   Les variantes remontent toutes, avec leur stock : c'est le stock cumulé qui
+   intéresse à l'inventaire, pas celui de la variante la moins chère. */
+export async function listerProduitsAdmin({inclureArchives = false} = {}) {
+	const produits = await prisma.product.findMany({
+		where: inclureArchives ? {} : {archivedAt: null},
+		orderBy: {updatedAt: 'desc'},
+		take: 200,
+		include: {
+			primaryCategory: {select: {name: true}},
+			variants: {
+				where: {archivedAt: null},
+				select: {id: true, name: true, priceCents: true, stock: true, isActive: true},
+			},
+		},
+	});
+
+	return produits.map((produit) => {
+		const prix = produit.variants.map((v) => v.priceCents);
+
+		return {
+			id: produit.id,
+			nom: produit.name,
+			slug: produit.slug,
+			rayon: produit.primaryCategory?.name ?? null,
+			etat: etatProduit(produit),
+			prixMinCents: prix.length > 0 ? Math.min(...prix) : null,
+			prixMaxCents: prix.length > 0 ? Math.max(...prix) : null,
+			stock: produit.variants.reduce((somme, v) => somme + v.stock, 0),
+			nbVariantes: produit.variants.length,
+			/* Trois états distincts, dans cet ordre de priorité : archivé l'emporte
+			   sur désactivé, qui l'emporte sur non publié. C'est l'ordre dans lequel
+			   ils se corrigent. */
+			publication: produit.archivedAt
+				? 'Archivé'
+				: !produit.isActive
+					? 'Désactivé'
+					: !produit.publishedAt || produit.publishedAt > new Date()
+						? 'Brouillon'
+						: 'En ligne',
+		};
+	});
+}
+
 /* Le nombre de pièces par rayon, pour la sidebar de la boutique.
 
    Un groupBy en une requête plutôt qu'un count par rayon : à six rayons la

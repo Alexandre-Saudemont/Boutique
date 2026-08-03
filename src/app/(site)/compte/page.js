@@ -21,13 +21,21 @@ export const metadata = {
 	robots: {index: false},
 };
 
-export default async function Compte() {
-	const utilisateur = await getUtilisateurCourant();
+export default async function Compte({searchParams}) {
+	const [utilisateur, parametres] = await Promise.all([getUtilisateurCourant(), searchParams]);
 
 	if (!utilisateur) {
+		/* `suite` dit où renvoyer le visiteur une fois connecté — le back-office
+		   l'utilise quand quelqu'un ouvre une page d'administration sans session.
+		   Seuls les chemins internes sont acceptés : sans ce filtre, un lien
+		   « connectez-vous » forgé renverrait le client sur un site tiers juste
+		   après avoir tapé son mot de passe. */
+		const suite = String(parametres?.suite ?? '');
+		const suiteSure = /^\/(?!\/)/.test(suite) ? suite : null;
+
 		return (
 			<section className={styles.page}>
-				<AuthPanel />
+				<AuthPanel suite={suiteSure} />
 			</section>
 		);
 	}

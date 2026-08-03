@@ -32,7 +32,7 @@ function Bouton({libelle}) {
 	);
 }
 
-export default function AuthPanel() {
+export default function AuthPanel({suite = null}) {
 	const [onglet, setOnglet] = useState('connexion');
 	const [etatConnexion, actionConnexion] = useActionState(seConnecter, ETAT_INITIAL);
 	const [etatInscription, actionInscription] = useActionState(sInscrire, ETAT_INITIAL);
@@ -83,6 +83,10 @@ export default function AuthPanel() {
 
 			{onglet === 'connexion' ? (
 				<form action={actionConnexion} className={styles.formulaire}>
+					{/* Destination d'après-connexion, quand on arrive d'une page
+					    protégée. Le chemin a déjà été validé côté serveur. */}
+					{suite && <input type='hidden' name='suite' value={suite} />}
+
 					<label className='field'>
 						<span>E-mail</span>
 						<input

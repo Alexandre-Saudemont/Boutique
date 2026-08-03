@@ -69,7 +69,14 @@ export async function seConnecter(_precedent, donnees) {
 
 	await ouvrirSessionEtFusionner(resultat.userId);
 
-	redirect('/compte');
+	/* Retour à la page qui a demandé la connexion, si elle en a passé une. Le
+	   filtre sur le chemin est refait ici : le champ caché vient du navigateur,
+	   et une redirection est exactement ce qu'on ne laisse pas choisir au
+	   client — un `//exemple.com` glissé dans le formulaire enverrait le visiteur
+	   ailleurs juste après sa saisie de mot de passe. */
+	const suite = String(donnees.get('suite') ?? '');
+
+	redirect(/^\/(?!\/)/.test(suite) ? suite : '/compte');
 }
 
 export async function sInscrire(_precedent, donnees) {
