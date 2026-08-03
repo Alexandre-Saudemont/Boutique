@@ -4,6 +4,7 @@ import {getSettings} from '@/server/services/settings';
 import {getModesLivraisonPour} from '@/server/services/checkout';
 import {getCartToken} from '@/server/auth/cart-session';
 import {getBrouillonCommande} from '@/server/auth/checkout-session';
+import {getCodePromo} from '@/server/auth/promo-session';
 import CheckoutSteps from '@/components/CheckoutSteps/CheckoutSteps';
 import ShippingForm from './ShippingForm';
 import styles from '../commande.module.css';
@@ -21,8 +22,9 @@ export const metadata = {
 
 export default async function Livraison() {
 	const jeton = await getCartToken();
+	const code = await getCodePromo();
 	const [panier, reglages, brouillon] = await Promise.all([
-		getCart(jeton),
+		getCart(jeton, code),
 		getSettings(),
 		getBrouillonCommande(),
 	]);
@@ -31,7 +33,11 @@ export default async function Livraison() {
 		redirect('/panier');
 	}
 
-	const modes = await getModesLivraisonPour(panier.sousTotalCents);
+	/* Le franco de port se juge sur le montant après réduction — ce que le
+	   client paie réellement. `totalApresReductionCents` porte cette valeur ;
+	   passer le sous-total brut ici offrirait la livraison sur un panier retombé
+	   sous le seuil. */
+	const modes = await getModesLivraisonPour(panier.totalApresReductionCents);
 
 	return (
 		<section className={styles.page}>

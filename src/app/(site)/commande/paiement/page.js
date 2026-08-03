@@ -5,6 +5,7 @@ import {getModeLivraison} from '@/server/services/checkout';
 import {paiementEnLigneActif} from '@/server/services/payments';
 import {getCartToken} from '@/server/auth/cart-session';
 import {getBrouillonCommande} from '@/server/auth/checkout-session';
+import {getCodePromo} from '@/server/auth/promo-session';
 import CheckoutSteps from '@/components/CheckoutSteps/CheckoutSteps';
 import PaymentForm from './PaymentForm';
 import styles from '../commande.module.css';
@@ -27,8 +28,9 @@ export const metadata = {
 export default async function Paiement({searchParams}) {
 	const parametres = await searchParams;
 	const jeton = await getCartToken();
+	const code = await getCodePromo();
 	const [panier, reglages, brouillon] = await Promise.all([
-		getCart(jeton),
+		getCart(jeton, code),
 		getSettings(),
 		getBrouillonCommande(),
 	]);
@@ -42,7 +44,9 @@ export default async function Paiement({searchParams}) {
 		redirect('/commande/livraison');
 	}
 
-	const mode = await getModeLivraison(brouillon.rateId, panier.sousTotalCents);
+	// Même base que la page précédente et que la création de commande : le
+	// montant après réduction.
+	const mode = await getModeLivraison(brouillon.rateId, panier.totalApresReductionCents);
 
 	if (!mode) {
 		redirect('/commande/livraison');

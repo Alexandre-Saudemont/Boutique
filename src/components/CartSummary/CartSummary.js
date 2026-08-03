@@ -12,14 +12,14 @@ import styles from './CartSummary.module.css';
    `action` est le bouton de l'étape : un lien tant qu'il n'y a rien à valider,
    un vrai bouton quand il déclenchera un paiement. */
 
-export default function CartSummary({panier, livraisonCents = null, action}) {
-	const {sousTotalCents, franco} = panier;
+export default function CartSummary({panier, livraisonCents = null, action, codePromo = null}) {
+	const {sousTotalCents, franco, reductionCents = 0, promo} = panier;
 
 	// Livraison encore inconnue à l'étape panier : elle dépend du mode et de
 	// l'adresse, choisis à l'étape suivante.
 	const livraisonConnue = typeof livraisonCents === 'number';
 	const livraisonOfferte = livraisonConnue && livraisonCents === 0;
-	const totalCents = sousTotalCents + (livraisonConnue ? livraisonCents : 0);
+	const totalCents = sousTotalCents - reductionCents + (livraisonConnue ? livraisonCents : 0);
 
 	return (
 		<aside className={styles.recap} aria-label='Récapitulatif'>
@@ -30,6 +30,20 @@ export default function CartSummary({panier, livraisonCents = null, action}) {
 					<span className={styles.libelle}>Sous-total</span>
 					<span className={styles.valeur}>{formatPrix(sousTotalCents)}</span>
 				</div>
+
+				{/* La réduction s'affiche en négatif, sur sa propre ligne : le client
+				    doit voir ce que son code lui fait gagner, et retrouver ce montant
+				    à l'identique sur sa facture. */}
+				{reductionCents > 0 && (
+					<div className={styles.ligne}>
+						<span className={styles.libelle}>
+							Réduction {promo?.code ? `(${promo.code})` : ''}
+						</span>
+						<span className={`${styles.valeur} ${styles.valeurOfferte}`}>
+							−{formatPrix(reductionCents)}
+						</span>
+					</div>
+				)}
 
 				<div className={styles.ligne}>
 					<span className={styles.libelle}>Livraison</span>
@@ -57,6 +71,8 @@ export default function CartSummary({panier, livraisonCents = null, action}) {
 						</p>
 					)
 				))}
+
+			{codePromo}
 
 			<div className={styles.separateur} />
 

@@ -3,9 +3,11 @@ import {ArrowLeft, Bot, ShoppingCart} from 'lucide-react';
 import {getCart} from '@/server/services/cart';
 import {getSettings} from '@/server/services/settings';
 import {getCartToken} from '@/server/auth/cart-session';
+import {getCodePromo} from '@/server/auth/promo-session';
 import {pluriel} from '@/lib/format';
 import CartLine from '@/components/CartLine/CartLine';
 import CartSummary from '@/components/CartSummary/CartSummary';
+import PromoCode from '@/components/PromoCode/PromoCode';
 import CheckoutSteps from '@/components/CheckoutSteps/CheckoutSteps';
 import styles from './panier.module.css';
 
@@ -25,7 +27,8 @@ export const metadata = {
 
 export default async function Panier() {
 	const jeton = await getCartToken();
-	const [panier, reglages] = await Promise.all([getCart(jeton), getSettings()]);
+	const code = await getCodePromo();
+	const [panier, reglages] = await Promise.all([getCart(jeton, code), getSettings()]);
 
 	const boutiqueOuverte = Boolean(reglages['shop.open']);
 	const vide = panier.lignes.length === 0;
@@ -81,6 +84,7 @@ export default async function Panier() {
 
 					<CartSummary
 						panier={panier}
+						codePromo={<PromoCode promo={panier.promo} />}
 						action={
 							boutiqueOuverte ? (
 								<Link

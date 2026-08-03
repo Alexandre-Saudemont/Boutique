@@ -38,6 +38,7 @@ export const ACTIONS = {
 	AVIS_MODERE: 'review.moderated',
 	AVIS_REPONDU: 'review.replied',
 	ROLE_MODIFIE: 'user.role_changed',
+	PROMO_MODIFIEE: 'discount.updated',
 };
 
 export async function journaliser({utilisateurId, action, type, id, details = null}) {

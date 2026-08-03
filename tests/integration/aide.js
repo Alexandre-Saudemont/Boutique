@@ -26,7 +26,7 @@ export async function viderLaBase() {
 			reviews, wishlist_items, addresses,
 			categories, brands, licences,
 			audit_logs, verification_tokens, sessions, users,
-			newsletter_subscribers, settings, shipping_rates, shipping_zones,
+			discount_codes, newsletter_subscribers, settings, shipping_rates, shipping_zones,
 			posts
 		RESTART IDENTITY CASCADE
 	`);

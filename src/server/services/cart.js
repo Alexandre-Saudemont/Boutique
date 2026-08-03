@@ -2,6 +2,7 @@ import 'server-only';
 import {prisma} from '@/server/db';
 import {getSettings} from '@/server/services/settings';
 import {etatProduit} from '@/server/services/products';
+import {appliquerCodeAuPanier} from '@/server/services/discounts';
 
 /* Le panier.
 
@@ -36,6 +37,9 @@ const PANIER_VIDE = {
 	lignes: [],
 	nombreArticles: 0,
 	sousTotalCents: 0,
+	reductionCents: 0,
+	totalApresReductionCents: 0,
+	promo: null,
 	franco: {seuilCents: 0, atteint: false, resteCents: 0},
 };
 
@@ -90,7 +94,7 @@ function ligneAffichable(ligne) {
    Le franco de port est calculé ici plutôt que dans la page : c'est le même
    calcul pour le récapitulatif du panier, celui du tunnel et l'indice
    « plus que X € ». Le dupliquer, c'est le voir diverger. */
-async function pourAffichage(lignes) {
+async function pourAffichage(lignes, codePromo = null) {
 	const reglages = await getSettings();
 	const seuilCents = Number(reglages['shipping.freeAboveCents']) || 0;
 
@@ -100,14 +104,41 @@ async function pourAffichage(lignes) {
 		0,
 	);
 
+	/* Le code est revérifié à chaque affichage plutôt que cru sur parole : il a
+	   pu expirer, être désactivé ou atteindre son quota depuis qu'il a été saisi.
+	   Un code devenu invalide disparaît simplement du récapitulatif. */
+	const promo =
+		codePromo && sousTotalCents > 0
+			? await appliquerCodeAuPanier(codePromo, sousTotalCents)
+			: null;
+
+	const reductionCents = promo?.ok ? promo.reductionCents : 0;
+
+	/* **Le franco se juge sur ce que le client paie réellement**, donc après
+	   réduction. Décision du client : un code de 10 € sur un panier de 55 € le
+	   fait retomber à 45 €, et la livraison redevient payante. */
+	const baseFrancoCents = sousTotalCents - reductionCents;
+
 	return {
 		lignes: affichables,
 		nombreArticles: affichables.reduce((somme, ligne) => somme + ligne.quantite, 0),
 		sousTotalCents,
+		reductionCents,
+		totalApresReductionCents: baseFrancoCents,
+		promo: promo?.ok
+			? {
+					code: promo.code,
+					description: promo.description,
+					livraisonOfferte: promo.livraisonOfferte,
+				}
+			: null,
 		franco: {
 			seuilCents,
-			atteint: seuilCents > 0 && sousTotalCents >= seuilCents,
-			resteCents: Math.max(0, seuilCents - sousTotalCents),
+			// La livraison offerte par un code court-circuite le seuil.
+			atteint:
+				Boolean(promo?.ok && promo.livraisonOfferte) ||
+				(seuilCents > 0 && baseFrancoCents >= seuilCents),
+			resteCents: Math.max(0, seuilCents - baseFrancoCents),
 		},
 	};
 }
@@ -116,7 +147,7 @@ async function pourAffichage(lignes) {
 
    Lecture seule : afficher une page ne doit jamais créer de ligne en base.
    Sinon le moindre robot qui passe sur /panier laisse un panier derrière lui. */
-export async function getCart(token) {
+export async function getCart(token, codePromo = null) {
 	if (!token) return PANIER_VIDE;
 
 	const panier = await prisma.cart.findUnique({
@@ -126,7 +157,7 @@ export async function getCart(token) {
 
 	if (!panier) return PANIER_VIDE;
 
-	return pourAffichage(panier.items);
+	return pourAffichage(panier.items, codePromo);
 }
 
 /// Le nombre d'articles, pour la pastille du header. Un count plutôt que le

@@ -111,6 +111,16 @@ export default async function FicheCommande({params}) {
 									<span>Articles</span>
 									<span>{formatPrix(commande.subtotalCents)}</span>
 								</div>
+								{commande.discountCents > 0 && (
+									<div className={styles.ligneResume}>
+										<span>
+											Réduction
+											{commande.discountCode ? ` (${commande.discountCode})` : ''}
+										</span>
+										<span>−{formatPrix(commande.discountCents)}</span>
+									</div>
+								)}
+
 								<div className={styles.ligneResume}>
 									<span>{commande.shippingMethod ?? 'Livraison'}</span>
 									<span>

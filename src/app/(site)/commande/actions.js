@@ -8,6 +8,7 @@ import {creerSessionPaiement, paiementEnLigneActif} from '@/server/services/paym
 import {getCartToken} from '@/server/auth/cart-session';
 import {getBrouillonCommande, setBrouillonCommande} from '@/server/auth/checkout-session';
 import {verifierLimite} from '@/server/auth/rate-limit';
+import {effacerCodePromo, getCodePromo} from '@/server/auth/promo-session';
 
 /* Actions du tunnel.
 
@@ -125,11 +126,17 @@ export async function payerCommande(_precedent, donnees) {
 		note: brouillon.note,
 		provider: 'STRIPE',
 		viderPanier: !enLigne,
+		codePromo: await getCodePromo(),
 	});
 
 	if (!resultat.ok) {
 		return {statut: 'erreur', message: resultat.erreur};
 	}
+
+	/* Le code a été consommé par la commande : on le retire du navigateur pour
+	   qu'il ne se réapplique pas au panier suivant. Il reste copié sur la
+	   commande, qui garde la trace de ce qui a été accordé. */
+	await effacerCodePromo();
 
 	let urlPaiement = null;
 

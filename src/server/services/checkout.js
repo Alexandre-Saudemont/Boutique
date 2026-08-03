@@ -3,6 +3,7 @@ import {prisma} from '@/server/db';
 import {getCart} from '@/server/services/cart';
 import {getSettings} from '@/server/services/settings';
 import {getModesLivraison} from '@/server/services/shipping';
+import {appliquerCodeAuPanier, consommerCode} from '@/server/services/discounts';
 
 /* Le tunnel de commande.
 
@@ -136,13 +137,14 @@ export async function creerCommande({
 	note = null,
 	provider = 'STRIPE',
 	viderPanier = true,
+	codePromo = null,
 }) {
 	const reglages = await getSettings();
 	if (!reglages['shop.open']) {
 		return {ok: false, erreur: "La boutique n'est pas encore ouverte."};
 	}
 
-	const panier = await getCart(token);
+	const panier = await getCart(token, codePromo);
 	if (panier.lignes.length === 0) {
 		return {ok: false, erreur: 'Votre panier est vide.'};
 	}
@@ -152,7 +154,11 @@ export async function creerCommande({
 		return {ok: false, erreur: 'Adresse incomplète.', erreurs: controle.erreurs};
 	}
 
-	const mode = await getModeLivraison(rateId, panier.sousTotalCents);
+	/* Le mode de livraison est jugé sur le montant **après réduction** — décision
+	   du client : on regarde ce qu'il paie réellement, pas ce qu'il aurait payé
+	   sans son code. C'est `getCart` qui a déjà fait ce calcul, on ne le refait
+	   pas ici pour être sûr que le panier et la commande disent la même chose. */
+	const mode = await getModeLivraison(rateId, panier.totalApresReductionCents);
 	if (!mode) {
 		return {ok: false, erreur: 'Choisissez un mode de livraison.'};
 	}
@@ -191,7 +197,19 @@ export async function creerCommande({
 	});
 
 	const sousTotalCents = articles.reduce((somme, article) => somme + article.totalCents, 0);
-	const totalCents = sousTotalCents + mode.prixCents;
+
+	/* La réduction est recalculée ici sur les lignes relues, et pas reprise du
+	   panier affiché : c'est le dernier calcul avant l'écriture, et il ne doit
+	   dépendre d'aucune valeur qui a transité par le navigateur. */
+	const promo = codePromo ? await appliquerCodeAuPanier(codePromo, sousTotalCents) : null;
+
+	const reductionCents = promo?.ok ? promo.reductionCents : 0;
+
+	// Un code « livraison offerte » met les frais de port à zéro, quel que soit
+	// le mode choisi.
+	const livraisonCents = promo?.ok && promo.livraisonOfferte ? 0 : mode.prixCents;
+
+	const totalCents = sousTotalCents - reductionCents + livraisonCents;
 
 	const commande = await prisma.$transaction(async (tx) => {
 		const creee = await tx.order.create({
@@ -202,7 +220,11 @@ export async function creerCommande({
 				status: 'PENDING_PAYMENT',
 				vatRegime: reglages['vat.regime'] === 'STANDARD' ? 'STANDARD' : 'FRANCHISE',
 				subtotalCents: sousTotalCents,
-				shippingCents: mode.prixCents,
+				discountCents: reductionCents,
+				// Copie du code utilisé : la commande doit rester lisible même si le
+				// code est supprimé ou modifié plus tard.
+				discountCode: promo?.ok ? promo.code : null,
+				shippingCents: livraisonCents,
 				vatCents: 0,
 				totalCents,
 				customerNote: note,
@@ -245,6 +267,12 @@ export async function creerCommande({
 		   lieu d'un panier vide et d'une commande impayée. C'est la confirmation
 		   du paiement qui s'en charge. */
 		if (viderPanier) await tx.cartItem.deleteMany({where: {cart: {sessionToken: token}}});
+
+		/* Le compteur d'utilisations n'avance qu'ici, à la création de la
+		   commande — jamais à la saisie du code. Sinon un visiteur qui teste un
+		   code puis renonce consommerait une utilisation, et un code limité à
+		   cinquante usages s'épuiserait sans une seule vente. */
+		if (promo?.ok) await consommerCode(promo.code, tx);
 
 		return creee;
 	});
