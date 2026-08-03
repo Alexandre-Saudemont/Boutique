@@ -6,17 +6,18 @@ import {useFormStatus} from 'react-dom';
 import {ArrowLeft, CreditCard, Info, Wallet} from 'lucide-react';
 import {payerCommande} from '@/app/(site)/commande/actions';
 import CartSummary from '@/components/CartSummary/CartSummary';
+import {formatPrix} from '@/lib/format';
 import styles from '../commande.module.css';
 
 /* Choix du moyen de paiement, et validation de la commande.
 
    Aucun champ de carte bancaire n'est demandé, et c'est délibéré : encaisser
-   soi-même un numéro de carte impose la certification PCI-DSS. Stripe et PayPal
-   existent précisément pour que le numéro ne traverse jamais ce site. Quand les
-   clés seront là, ce bouton redirigera vers leur page hébergée.
+   soi-même un numéro de carte impose la certification PCI-DSS. Le bouton
+   emmène sur la page hébergée par Stripe, où le numéro est saisi.
 
-   En attendant, la commande est bien enregistrée — statut « en attente de
-   paiement » — et le visiteur est prévenu à l'écran que rien n'est débité. */
+   Deux états, selon que les clés Stripe sont en place ou non — le texte du
+   bouton et l'avertissement changent, pour que l'écran n'annonce jamais un
+   débit qui n'aura pas lieu, ni l'inverse. */
 
 const ETAT_INITIAL = {statut: 'vierge'};
 
@@ -35,8 +36,10 @@ const MOYENS = [
 	},
 ];
 
-function BoutonValider() {
+function BoutonValider({enLigne, totalCents}) {
 	const {pending} = useFormStatus();
+
+	const libelle = enLigne ? `Payer ${formatPrix(totalCents)}` : 'Valider ma commande';
 
 	return (
 		<button
@@ -44,18 +47,30 @@ function BoutonValider() {
 			disabled={pending}
 			className='btn btn-primary btn-block'
 			style={{padding: 13, fontSize: 15}}>
-			{pending ? 'Enregistrement…' : 'Valider ma commande'}
+			{pending ? (enLigne ? 'Redirection…' : 'Enregistrement…') : libelle}
 		</button>
 	);
 }
 
-export default function PaymentForm({panier, adresse, mode}) {
+export default function PaymentForm({panier, adresse, mode, enLigne, annule}) {
 	const [etat, action] = useActionState(payerCommande, ETAT_INITIAL);
 	const [moyen, setMoyen] = useState('carte');
+
+	const totalCents = panier.sousTotalCents + mode.prixCents;
 
 	return (
 		<form action={action} className={styles.colonnes}>
 			<div className={styles.contenu}>
+				{annule && etat.statut === 'vierge' && (
+					<p className={styles.avertissement} role='status'>
+						<Info size={16} strokeWidth={2.75} className={styles.avertissementIcone} />
+						<span>
+							Paiement interrompu — rien n&apos;a été débité et votre panier est
+							intact. Vous pouvez recommencer quand vous voulez.
+						</span>
+					</p>
+				)}
+
 				<div className={styles.carte}>
 					<h2 className={styles.carteTitre}>Livraison</h2>
 
@@ -115,9 +130,19 @@ export default function PaymentForm({panier, adresse, mode}) {
 					<p className={styles.avertissement}>
 						<Info size={16} strokeWidth={2.75} className={styles.avertissementIcone} />
 						<span>
-							L&apos;encaissement n&apos;est pas encore actif : votre commande sera
-							enregistrée puis mise en attente de paiement, et je vous recontacterai. Aucun
-							montant ne sera débité aujourd&apos;hui.
+							{enLigne ? (
+								<>
+									Le paiement se fait sur la page sécurisée de Stripe : vos
+									coordonnées bancaires ne passent jamais par ce site. Vous revenez
+									ici juste après.
+								</>
+							) : (
+								<>
+									L&apos;encaissement n&apos;est pas encore actif : votre commande sera
+									enregistrée puis mise en attente de paiement, et je vous
+									recontacterai. Aucun montant ne sera débité aujourd&apos;hui.
+								</>
+							)}
 						</span>
 					</p>
 				</fieldset>
@@ -137,7 +162,7 @@ export default function PaymentForm({panier, adresse, mode}) {
 			<CartSummary
 				panier={panier}
 				livraisonCents={mode.prixCents}
-				action={<BoutonValider />}
+				action={<BoutonValider enLigne={enLigne} totalCents={totalCents} />}
 			/>
 		</form>
 	);

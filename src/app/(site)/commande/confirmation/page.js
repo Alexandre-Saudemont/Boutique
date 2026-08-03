@@ -21,7 +21,8 @@ export const metadata = {
 	robots: {index: false},
 };
 
-export default async function Confirmation() {
+export default async function Confirmation({searchParams}) {
+	const parametres = await searchParams;
 	const brouillon = await getBrouillonCommande();
 	const reference = brouillon?.commande;
 
@@ -34,6 +35,18 @@ export default async function Confirmation() {
 	if (!commande) {
 		redirect('/panier');
 	}
+
+	/* Trois situations à distinguer honnêtement.
+
+	   La commande est payée : le webhook est passé, rien à ajouter.
+
+	   Le visiteur revient de Stripe (`?paiement=succes`) mais la commande est
+	   encore en attente : le webhook n'est pas encore arrivé — quelques secondes,
+	   parfois un peu plus. On ne prétend ni que c'est payé ni que ça a échoué.
+
+	   Sinon : aucun encaissement en ligne, règlement à convenir. */
+	const payee = commande.status !== 'PENDING_PAYMENT';
+	const enVerification = !payee && parametres?.paiement === 'succes';
 
 	return (
 		<section className={styles.page}>
@@ -52,11 +65,25 @@ export default async function Confirmation() {
 					récapitulatif part à l&apos;adresse {commande.email}.
 				</p>
 
-				<div className={styles.enAttente}>
-					<strong>Le paiement reste à faire.</strong> L&apos;encaissement en ligne
-					n&apos;est pas encore ouvert : je vous recontacte pour finaliser. Rien
-					n&apos;a été débité.
-				</div>
+				{payee ? (
+					<div className={styles.enAttente}>
+						<strong>Paiement reçu.</strong> Je prépare votre colis et vous préviens
+						dès qu&apos;il part.
+					</div>
+				) : enVerification ? (
+					<div className={styles.enAttente}>
+						<strong>Paiement en cours de vérification.</strong> Votre banque et Stripe
+						finissent de se parler — c&apos;est l&apos;affaire de quelques instants.
+						Vous recevrez la confirmation par e-mail, il n&apos;y a rien à refaire de
+						votre côté.
+					</div>
+				) : (
+					<div className={styles.enAttente}>
+						<strong>Le paiement reste à faire.</strong> L&apos;encaissement en ligne
+						n&apos;est pas encore ouvert : je vous recontacte pour finaliser. Rien
+						n&apos;a été débité.
+					</div>
+				)}
 
 				<dl className={styles.resume}>
 					<div className={styles.resumeLigne}>

@@ -129,7 +129,14 @@ async function prochainNumero(tx) {
    Tout se passe dans une transaction : une commande à moitié écrite — des
    lignes sans adresse, un panier vidé sans commande — serait pire qu'un échec
    franc. */
-export async function creerCommande({token, adresse, rateId, note = null, provider = 'STRIPE'}) {
+export async function creerCommande({
+	token,
+	adresse,
+	rateId,
+	note = null,
+	provider = 'STRIPE',
+	viderPanier = true,
+}) {
 	const reglages = await getSettings();
 	if (!reglages['shop.open']) {
 		return {ok: false, erreur: "La boutique n'est pas encore ouverte."};
@@ -231,8 +238,13 @@ export async function creerCommande({token, adresse, rateId, note = null, provid
 		});
 
 		/* Le panier est vidé, pas supprimé : le visiteur garde son jeton et son
-		   prochain ajout retombe sur le même panier. */
-		await tx.cartItem.deleteMany({where: {cart: {sessionToken: token}}});
+		   prochain ajout retombe sur le même panier.
+
+		   Quand un paiement en ligne suit, on ne le vide pas ici : le visiteur
+		   part chez Stripe et peut renoncer. Il retrouve alors ses articles au
+		   lieu d'un panier vide et d'une commande impayée. C'est la confirmation
+		   du paiement qui s'en charge. */
+		if (viderPanier) await tx.cartItem.deleteMany({where: {cart: {sessionToken: token}}});
 
 		return creee;
 	});

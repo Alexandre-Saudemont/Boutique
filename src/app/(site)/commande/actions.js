@@ -1,14 +1,12 @@
 'use server';
 
 import {redirect} from 'next/navigation';
+import {headers} from 'next/headers';
 import {revalidatePath} from 'next/cache';
 import {creerCommande, validerAdresse} from '@/server/services/checkout';
+import {creerSessionPaiement, paiementEnLigneActif} from '@/server/services/payments';
 import {getCartToken} from '@/server/auth/cart-session';
-import {
-	effacerBrouillonCommande,
-	getBrouillonCommande,
-	setBrouillonCommande,
-} from '@/server/auth/checkout-session';
+import {getBrouillonCommande, setBrouillonCommande} from '@/server/auth/checkout-session';
 
 /* Actions du tunnel.
 
@@ -57,12 +55,35 @@ export async function enregistrerLivraison(_precedent, donnees) {
 	redirect('/commande/paiement');
 }
 
-/* Étape 3 : crée la commande.
+/* L'adresse publique du site, telle que le navigateur l'a demandée.
 
-   Le moyen de paiement est enregistré mais rien n'est débité : ni Stripe ni
-   PayPal ne sont branchés. La commande naît donc en attente de paiement, ce
-   qu'annonce l'écran de confirmation. Quand les clés arriveront, c'est ici que
-   la redirection vers le prestataire s'insérera — le reste ne bouge pas. */
+   Stripe a besoin d'URL absolues pour ramener le visiteur. On les déduit des
+   en-têtes de la requête plutôt que de les coder en dur : le site tourne en
+   local, en préproduction et en production sans qu'on y touche. La variable
+   d'environnement prime quand elle existe — derrière un proxy, `host` peut être
+   celui du conteneur et non le domaine public. */
+async function origineDuSite() {
+	if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+
+	const entetes = await headers();
+	const hote = entetes.get('x-forwarded-host') ?? entetes.get('host');
+	const protocole = entetes.get('x-forwarded-proto') ?? 'http';
+
+	return `${protocole}://${hote}`;
+}
+
+/* Étape 3 : crée la commande, puis envoie payer.
+
+   Deux chemins, selon que les clés Stripe sont renseignées ou non.
+
+   Avec les clés : la commande est créée en attente, une session de paiement
+   s'ouvre et le visiteur part sur la page hébergée par Stripe. Rien d'autre
+   n'est marqué ici — c'est le webhook qui passera la commande en payée.
+
+   Sans les clés : le comportement d'avant, la commande est enregistrée et le
+   règlement se fait à la main. C'est ce qui permet de travailler sur le tunnel
+   sans compte Stripe, et ça reste vrai en production tant que les clés
+   manquent : mieux vaut une commande à rappeler qu'un bouton qui échoue. */
 export async function payerCommande(_precedent, donnees) {
 	const jeton = await getCartToken();
 	const brouillon = await getBrouillonCommande();
@@ -74,26 +95,66 @@ export async function payerCommande(_precedent, donnees) {
 		};
 	}
 
+	if (donnees.get('provider') === 'paypal') {
+		return {
+			statut: 'erreur',
+			message: "PayPal n'est pas encore actif. Choisissez la carte bancaire.",
+		};
+	}
+
+	const enLigne = paiementEnLigneActif();
+
 	const resultat = await creerCommande({
 		token: jeton,
 		adresse: brouillon.adresse,
 		rateId: brouillon.rateId,
 		note: brouillon.note,
-		provider: donnees.get('provider') === 'paypal' ? 'PAYPAL' : 'STRIPE',
+		provider: 'STRIPE',
+		viderPanier: !enLigne,
 	});
 
 	if (!resultat.ok) {
 		return {statut: 'erreur', message: resultat.erreur};
 	}
 
-	/* Le brouillon est remplacé par la référence de la commande : c'est ce qui
-	   permet à l'écran de confirmation de la retrouver sans faire passer le
-	   numéro et l'e-mail par l'URL. */
-	await effacerBrouillonCommande();
-	await setBrouillonCommande({
-		commande: {numero: resultat.numero, email: brouillon.adresse.email},
-	});
+	let urlPaiement = null;
+
+	if (enLigne) {
+		const session = await creerSessionPaiement({
+			commandeId: resultat.id,
+			jetonPanier: jeton,
+			origine: await origineDuSite(),
+		});
+
+		if (!session.ok) {
+			/* La commande existe, le paiement n'a pas pu s'ouvrir. On le dit sans
+			   détour plutôt que de laisser croire à un achat abouti — la commande
+			   porte déjà son numéro et se retrouvera en administration. */
+			return {
+				statut: 'erreur',
+				message: `Votre commande ${resultat.numero} est enregistrée, mais la page de paiement n’a pas pu s’ouvrir. Réessayez dans un instant.`,
+			};
+		}
+
+		urlPaiement = session.url;
+	}
+
+	/* La référence de la commande rejoint le brouillon : c'est ce qui permet à
+	   l'écran de confirmation de la retrouver sans faire passer le numéro et
+	   l'e-mail par l'URL.
+
+	   Quand un paiement en ligne suit, l'adresse et le mode de livraison restent
+	   dans le cookie : le visiteur qui renonce sur la page Stripe revient à
+	   l'étape paiement avec ses informations, pas devant un formulaire vide. */
+	await setBrouillonCommande(
+		enLigne
+			? {...brouillon, commande: {numero: resultat.numero, email: brouillon.adresse.email}}
+			: {commande: {numero: resultat.numero, email: brouillon.adresse.email}},
+	);
 
 	revalidatePath('/', 'layout');
-	redirect('/commande/confirmation');
+
+	// `redirect` lève : rien ne doit s'exécuter après, et l'appel reste hors du
+	// try/catch de la création de session pour ne pas être avalé.
+	redirect(urlPaiement ?? '/commande/confirmation');
 }
