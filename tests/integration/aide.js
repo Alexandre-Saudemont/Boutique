@@ -24,7 +24,7 @@ export async function viderLaBase() {
 			cart_items, carts,
 			product_images, variant_options, product_variants, products,
 			categories, brands, licences,
-			sessions, users,
+			audit_logs, sessions, users,
 			newsletter_subscribers, settings, shipping_rates, shipping_zones,
 			posts
 		RESTART IDENTITY CASCADE

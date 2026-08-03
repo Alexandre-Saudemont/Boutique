@@ -8,6 +8,7 @@ import {
 	enregistrerProduit,
 	restaurerProduit,
 } from '@/server/services/product-admin';
+import {ACTIONS, journaliser} from '@/server/services/audit';
 
 /* Actions du catalogue.
 
@@ -43,7 +44,7 @@ function lireImages(donnees) {
 }
 
 export async function sauvegarderProduit(_precedent, donnees) {
-	await exigerDroit('produits.gerer');
+	const utilisateur = await exigerDroit('produits.gerer');
 
 	const saisie = {
 		id: donnees.get('id') || null,
@@ -67,6 +68,20 @@ export async function sauvegarderProduit(_precedent, donnees) {
 		return {statut: 'erreur', erreurs: resultat.erreurs, message: 'Corrigez les champs signalés.'};
 	}
 
+	/* Le prix et l'état de publication sont journalisés : ce sont les deux
+	   valeurs sur lesquelles on revient quand quelque chose cloche en boutique. */
+	await journaliser({
+		utilisateurId: utilisateur.id,
+		action: saisie.id ? ACTIONS.PRODUIT_MODIFIE : ACTIONS.PRODUIT_CREE,
+		type: 'product',
+		id: resultat.id,
+		details: {
+			nom: saisie.nom,
+			publication: saisie.publication,
+			prix: saisie.variantes.map((variante) => variante.prix),
+		},
+	});
+
 	/* La fiche publique, la liste du catalogue et le tableau de bord affichent
 	   tous ce produit. Le layout de la vitrine porte le menu des rayons, qui
 	   dépend lui aussi du catalogue. */
@@ -79,9 +94,17 @@ export async function sauvegarderProduit(_precedent, donnees) {
 }
 
 export async function archiver(_precedent, donnees) {
-	await exigerDroit('produits.gerer');
+	const utilisateur = await exigerDroit('produits.gerer');
+	const id = String(donnees.get('id'));
 
-	await archiverProduit(String(donnees.get('id')));
+	await archiverProduit(id);
+
+	await journaliser({
+		utilisateurId: utilisateur.id,
+		action: ACTIONS.PRODUIT_ARCHIVE,
+		type: 'product',
+		id,
+	});
 
 	revalidatePath('/admin/produits');
 	revalidatePath('/', 'layout');
@@ -90,9 +113,17 @@ export async function archiver(_precedent, donnees) {
 }
 
 export async function restaurer(_precedent, donnees) {
-	await exigerDroit('produits.gerer');
+	const utilisateur = await exigerDroit('produits.gerer');
+	const id = String(donnees.get('id'));
 
-	await restaurerProduit(String(donnees.get('id')));
+	await restaurerProduit(id);
+
+	await journaliser({
+		utilisateurId: utilisateur.id,
+		action: ACTIONS.PRODUIT_RESTAURE,
+		type: 'product',
+		id,
+	});
 
 	revalidatePath('/admin/produits');
 	revalidatePath('/', 'layout');

@@ -3,6 +3,7 @@ import {notFound} from 'next/navigation';
 import {ArrowLeft} from 'lucide-react';
 import {aLeDroit, exigerDroit} from '@/server/auth/roles';
 import {LIBELLES_STATUT, getCommandeAdmin, statutsSuivants} from '@/server/services/orders';
+import {historique} from '@/server/services/audit';
 import {formatDate, formatPrix} from '@/lib/format';
 import OrderActions from './OrderActions';
 import styles from '../../../admin.module.css';
@@ -19,6 +20,14 @@ export async function generateMetadata({params}) {
 	return {title: `Commande ${numero}`};
 }
 
+/// Les actions du journal, dites en français. Une clé absente s'affiche telle
+/// quelle plutôt que de disparaître : mieux vaut un intitulé technique qu'une
+/// ligne vide dans un historique.
+const LIBELLES_JOURNAL = {
+	'order.status_changed': 'Statut modifié',
+	'order.note_updated': 'Note interne mise à jour',
+};
+
 const LIBELLES_PAIEMENT = {
 	PENDING: 'En attente',
 	SUCCEEDED: 'Réussi',
@@ -32,6 +41,11 @@ export default async function FicheCommande({params}) {
 
 	const commande = await getCommandeAdmin(numero);
 	if (!commande) notFound();
+
+	// L'historique est indexé par le numéro de commande, pas par l'identifiant
+	// interne : c'est ce que les gens lisent et ce qu'on retrouve dans un
+	// journal comme dans un e-mail.
+	const journal = await historique('order', numero);
 
 	const livraison = commande.addresses.find((adresse) => adresse.type === 'SHIPPING');
 	const paiement = commande.payments[0];
@@ -214,6 +228,29 @@ export default async function FicheCommande({params}) {
 								<p className={styles.kpiDetail}>Aucun paiement rattaché.</p>
 							)}
 						</div>
+
+						{journal.length > 0 && (
+							<div className={styles.carte}>
+								<h2 className={styles.carteTitre}>Historique</h2>
+
+								<div className={styles.listeStock}>
+									{journal.map((entree) => (
+										<div key={entree.id} className={styles.ligneResume}>
+											<span>
+												{LIBELLES_JOURNAL[entree.action] ?? entree.action}
+												{entree.metadata?.statut &&
+													` — ${LIBELLES_STATUT[entree.metadata.statut] ?? entree.metadata.statut}`}
+											</span>
+											<span className={styles.celluleDiscrete}>
+												{entree.user?.firstName ?? entree.user?.email ?? 'système'}
+												{' · '}
+												{formatDate(entree.createdAt)}
+											</span>
+										</div>
+									))}
+								</div>
+							</div>
+						)}
 
 						{peutGerer ? (
 							<OrderActions

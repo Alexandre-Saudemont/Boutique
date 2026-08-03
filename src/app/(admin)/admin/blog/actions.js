@@ -4,6 +4,7 @@ import {redirect} from 'next/navigation';
 import {revalidatePath} from 'next/cache';
 import {exigerDroit} from '@/server/auth/roles';
 import {depublierArticle, enregistrerArticle} from '@/server/services/posts';
+import {ACTIONS, journaliser} from '@/server/services/audit';
 
 /* Actions du blog.
 
@@ -29,6 +30,14 @@ export async function sauvegarderArticle(_precedent, donnees) {
 	if (!resultat.ok) {
 		return {statut: 'erreur', erreurs: resultat.erreurs, message: 'Corrigez les champs signalés.'};
 	}
+
+	await journaliser({
+		utilisateurId: utilisateur.id,
+		action: ACTIONS.ARTICLE_ENREGISTRE,
+		type: 'post',
+		id: resultat.id,
+		details: {statut: donnees.get('statut')},
+	});
 
 	revalidatePath('/admin/blog');
 	// L'accueil affiche les derniers articles.
