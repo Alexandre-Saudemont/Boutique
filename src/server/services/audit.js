@@ -31,6 +31,8 @@ export const ACTIONS = {
 	PRODUIT_ARCHIVE: 'product.archived',
 	PRODUIT_RESTAURE: 'product.restored',
 	REGLAGES_MODIFIES: 'settings.updated',
+	LIVRAISON_MODIFIEE: 'shipping.updated',
+	RAYON_MODIFIE: 'category.updated',
 	ARTICLE_ENREGISTRE: 'post.saved',
 	ABONNE_RETIRE: 'subscriber.unsubscribed',
 };

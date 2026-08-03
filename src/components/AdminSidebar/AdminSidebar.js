@@ -11,6 +11,8 @@ import {
 	ScrollText,
 	Settings,
 	SquareArrowOutUpRight,
+	Tags,
+	Truck,
 } from 'lucide-react';
 import styles from './AdminSidebar.module.css';
 
@@ -26,6 +28,8 @@ const ICONES = {
 	tableau: LayoutDashboard,
 	commandes: ScrollText,
 	produits: Package,
+	classement: Tags,
+	livraison: Truck,
 	blog: BookOpen,
 	abonnes: Mail,
 	reglages: Settings,
