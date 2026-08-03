@@ -15,6 +15,7 @@ Document de travail, **à relire et valider avant migration**. Rien n'est appliq
 | Suppression | `archivedAt`, pas `DELETE` | Supprimer un produit lié à une commande détruit l'historique de facturation. |
 | Commande invité | `userId` optionnel + `email` obligatoire | Le compte obligatoire fait chuter la conversion. Décision à confirmer côté métier. |
 | Snapshots | Adresses et lignes de commande **copiées**, jamais référencées | Un client qui change d'adresse ou un prix qui bouge ne doivent pas réécrire une commande passée. Obligation comptable. |
+| Sessions | Table `Session` + jeton opaque en cookie, plutôt qu'un jeton auto-porté (JWT) | Un JWT reste valable jusqu'à son expiration quoi qu'on fasse : ni déconnexion réelle, ni coupure d'un compte compromis. La lecture en base coûte un index. *(Ajoutée après la validation initiale — migration `20260730175918_ajoute_sessions`.)* |
 
 ---
 
@@ -138,6 +139,7 @@ model User {
   addresses       Address[]
   orders          Order[]
   cart            Cart?
+  sessions        Session[]
   wishlistItems   WishlistItem[]
   reviews         Review[]
   posts           Post[]
@@ -145,6 +147,25 @@ model User {
   auditLogs       AuditLog[]
 
   @@map("users")
+}
+
+/// Session de connexion. Le cookie ne porte que `token` : l'identité vit en
+/// base, ce qui permet de révoquer une session sans attendre son expiration
+/// (déconnexion, compte compromis, « déconnecter tous mes appareils »).
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  userAgent String?  // pour que l'utilisateur reconnaisse ses appareils
+  ip        String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 model Address {

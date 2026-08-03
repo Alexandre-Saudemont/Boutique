@@ -117,6 +117,7 @@ model User {
   addresses      Address[]
   orders         Order[]
   cart           Cart?
+  sessions       Session[]
   wishlistItems  WishlistItem[]
   reviews        Review[]
   posts          Post[]
@@ -124,6 +125,25 @@ model User {
   auditLogs      AuditLog[]
 
   @@map("users")
+}
+
+/// Session de connexion. Le cookie ne porte que `token` : l'identité vit en
+/// base, ce qui permet de révoquer une session sans attendre son expiration
+/// (déconnexion, compte compromis, « déconnecter tous mes appareils »).
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  userAgent String? // pour que l'utilisateur reconnaisse ses appareils
+  ip        String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 model Address {
