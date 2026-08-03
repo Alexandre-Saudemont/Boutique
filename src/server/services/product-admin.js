@@ -92,6 +92,35 @@ export async function getProduitPourEdition(id) {
 const KINDS = ['PHYSICAL', 'DIGITAL'];
 const CONDITIONS = ['NEW', 'USED'];
 
+/* Une adresse d'image que le site acceptera d'aller chercher.
+
+   Deux garde-fous. Le schéma d'abord : `https` et rien d'autre — ni `javascript:`
+   (qui deviendrait exécutable si l'URL atterrissait un jour dans un attribut de
+   lien), ni `data:` (qui contourne toute vérification d'origine), ni `http`, qui
+   ferait afficher un cadenas cassé sur la fiche produit.
+
+   L'hôte ensuite : l'optimiseur d'images tourne côté serveur, et une URL pointant
+   vers `localhost` ou une adresse interne lui ferait relayer une requête au
+   réseau privé de l'hébergeur. Next refuse déjà les domaines non déclarés dans
+   `next.config.mjs` ; ce contrôle-ci le double au moment de la saisie, pour que
+   l'erreur soit dite au vendeur plutôt que découverte sur la fiche publique. */
+const HOTES_INTERNES =
+	/^(localhost$|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1\]?$)/i;
+
+export function urlImageAcceptable(valeur) {
+	try {
+		const url = new URL(String(valeur).trim());
+
+		if (url.protocol !== 'https:') return false;
+		if (HOTES_INTERNES.test(url.hostname)) return false;
+
+		return true;
+	} catch {
+		// URL illisible : ce n'est pas une adresse, donc pas une image.
+		return false;
+	}
+}
+
 /* Valide la saisie et la met en forme.
 
    Les messages sont rendus champ par champ : « le prix est invalide » en haut
@@ -112,6 +141,13 @@ export function validerProduit(saisie) {
 
 		if (!/^\d+$/.test(String(variante.stock ?? ''))) {
 			erreurs[`variante.${index}.stock`] = 'Le stock est un nombre entier.';
+		}
+	});
+
+	saisie.images?.forEach((image, index) => {
+		if (image.url?.trim() && !urlImageAcceptable(image.url)) {
+			erreurs[`image.${index}`] =
+				'L’adresse doit commencer par https:// et pointer vers une image publique.';
 		}
 	});
 

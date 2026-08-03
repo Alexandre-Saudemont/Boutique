@@ -7,6 +7,7 @@ import {creerCommande, validerAdresse} from '@/server/services/checkout';
 import {creerSessionPaiement, paiementEnLigneActif} from '@/server/services/payments';
 import {getCartToken} from '@/server/auth/cart-session';
 import {getBrouillonCommande, setBrouillonCommande} from '@/server/auth/checkout-session';
+import {verifierLimite} from '@/server/auth/rate-limit';
 
 /* Actions du tunnel.
 
@@ -92,6 +93,19 @@ export async function payerCommande(_precedent, donnees) {
 		return {
 			statut: 'erreur',
 			message: 'Vos informations de livraison ont expiré. Reprenez à l’étape précédente.',
+		};
+	}
+
+	/* Une commande créée est une ligne en base et une session de paiement chez
+	   Stripe. Rejouer l'action en boucle remplirait la table de commandes
+	   fantômes et consommerait le quota d'API. La limite porte sur le panier —
+	   c'est le seul identifiant stable d'un visiteur non connecté. */
+	const limite = verifierLimite(`commande:${jeton}`, {max: 10, fenetreMs: 10 * 60 * 1000});
+
+	if (!limite.autorise) {
+		return {
+			statut: 'erreur',
+			message: 'Trop de tentatives de paiement. Reprenez dans quelques minutes.',
 		};
 	}
 

@@ -302,6 +302,12 @@ export default function ProductForm({produit, referentiels}) {
 								style={{padding: 10}}>
 								<Trash2 size={16} strokeWidth={2.75} />
 							</button>
+
+							{erreurs[`image.${index}`] && (
+								<span className={styles.erreur} style={{gridColumn: '1 / -1'}}>
+									{erreurs[`image.${index}`]}
+								</span>
+							)}
 						</div>
 					))}
 

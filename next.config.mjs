@@ -46,8 +46,29 @@ const enTetesSecurite = [
 	},
 ];
 
+/* Les domaines d'où l'on accepte de charger des images.
+
+   Next refuse par défaut toute image distante non déclarée, et c'est une bonne
+   chose : son optimiseur va chercher l'URL depuis le serveur. Tout autoriser
+   reviendrait à offrir un relais de requêtes — on lui ferait appeler une adresse
+   interne (`http://169.254.169.254`, un service voisin) et lire la réponse.
+
+   La liste vient de l'environnement pour ne pas avoir à redéployer à chaque
+   nouvel hébergeur d'images. Format : `images.exemple.fr,cdn.autre.com`. */
+const hotesImages = (process.env.NEXT_PUBLIC_IMAGE_HOSTS ?? '')
+	.split(',')
+	.map((hote) => hote.trim())
+	.filter(Boolean)
+	.map((hostname) => ({protocol: 'https', hostname}));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+	// Rien ne sert d'annoncer la technologie et sa version : c'est la première
+	// chose que cherche un scan automatisé pour choisir ses exploits.
+	poweredByHeader: false,
+
+	images: {remotePatterns: hotesImages},
+
 	async headers() {
 		return [{source: '/:path*', headers: enTetesSecurite}];
 	},

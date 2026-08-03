@@ -1,6 +1,7 @@
 'use server';
 
 import {subscribe} from '@/server/services/newsletter';
+import {verifierLimite} from '@/server/auth/rate-limit';
 
 /* Actions serveur de la vitrine.
 
@@ -15,6 +16,24 @@ import {subscribe} from '@/server/services/newsletter';
 export async function inscrireNewsletter(_precedent, donnees) {
 	const email = donnees.get('email');
 	const source = donnees.get('source') ?? null;
+
+	/* Le formulaire est public et sans compte : sans limite, il sert à remplir la
+	   liste de milliers d'adresses inventées, ou à inscrire de force celle de
+	   quelqu'un d'autre en boucle.
+
+	   La limite porte sur l'adresse visée, comme pour la connexion. Elle est
+	   large — cinq inscriptions par heure sur la même adresse — parce qu'un
+	   visiteur qui doute et reclique ne doit jamais s'y heurter. */
+	const limite = verifierLimite(`newsletter:${String(email ?? '').trim().toLowerCase()}`, {
+		max: 5,
+		fenetreMs: 60 * 60 * 1000,
+	});
+
+	if (!limite.autorise) {
+		// Message volontairement identique au succès : distinguer les deux
+		// dirait à un curieux que l'adresse a déjà été soumise.
+		return {statut: 'inscrit'};
+	}
 
 	const resultat = await subscribe(email, source);
 

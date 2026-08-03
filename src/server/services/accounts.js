@@ -156,13 +156,15 @@ export async function fusionnerPanier(sessionToken, userId) {
 
 	const panierCompte = await prisma.cart.findUnique({where: {userId}});
 
-	// Aucun panier côté compte : le panier invité devient le sien, rien à
-	// recopier.
+	/* Aucun panier côté compte : le panier invité devient le sien, rien à
+	   recopier.
+
+	   Le `sessionToken` est conservé, et c'est essentiel : tout le reste du site
+	   — l'affichage du panier, la pastille du header, la création de commande —
+	   retrouve le panier par ce jeton, jamais par `userId`. L'effacer rendrait le
+	   panier invisible juste après la connexion, au pire moment. */
 	if (!panierCompte) {
-		await prisma.cart.update({
-			where: {id: panierInvite.id},
-			data: {userId, sessionToken: null},
-		});
+		await prisma.cart.update({where: {id: panierInvite.id}, data: {userId}});
 		return;
 	}
 
@@ -188,6 +190,14 @@ export async function fusionnerPanier(sessionToken, userId) {
 		}
 
 		await tx.cart.delete({where: {id: panierInvite.id}});
+
+		/* Le jeton du cookie suit le panier conservé. Sans ce transfert, le
+		   cookie du visiteur désignerait un panier qui vient d'être supprimé : il
+		   verrait un panier vide alors que ses articles ont bien été fusionnés.
+
+		   L'ordre compte — `sessionToken` est unique en base, il ne peut être
+		   posé qu'après la suppression de la ligne qui le portait. */
+		await tx.cart.update({where: {id: panierCompte.id}, data: {sessionToken}});
 	});
 }
 
