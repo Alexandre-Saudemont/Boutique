@@ -21,6 +21,21 @@ const DROITS = {
 	'abonnes.voir': ['ADMIN'],
 	'reglages.gerer': ['ADMIN'],
 	'finances.voir': ['ADMIN'],
+
+	/* La modération des avis va au service client : c'est la même conversation
+	   que répondre à un e-mail mécontent, et ça n'a rien à voir avec la
+	   préparation des colis. */
+	'avis.moderer': ['ADMIN', 'STAFF_SUPPORT'],
+
+	/* Consulter la fiche d'un client — ses commandes, son adresse de contact —
+	   sert à répondre au téléphone. Le préparateur n'en a pas besoin : il
+	   travaille sur les commandes, qui portent déjà l'adresse d'expédition. */
+	'clients.voir': ['ADMIN', 'STAFF_SUPPORT'],
+
+	/* Donner ou retirer un rôle est l'action la plus lourde du back-office :
+	   elle décide de qui peut faire quoi. Elle reste à l'administrateur seul,
+	   même si l'équipe grandit. */
+	'personnel.gerer': ['ADMIN'],
 };
 
 /// Tous les rôles qui ouvrent le back-office, quel qu'en soit le périmètre.

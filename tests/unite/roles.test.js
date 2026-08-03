@@ -41,6 +41,9 @@ describe('aLeDroit', () => {
 			'abonnes.voir',
 			'reglages.gerer',
 			'finances.voir',
+			'avis.moderer',
+			'clients.voir',
+			'personnel.gerer',
 		]) {
 			expect(aLeDroit(admin, droit), droit).toBe(true);
 		}
@@ -65,6 +68,26 @@ describe('aLeDroit', () => {
 		expect(aLeDroit(serviceClient, 'commandes.voir')).toBe(true);
 		expect(aLeDroit(serviceClient, 'commandes.gerer')).toBe(false);
 		expect(aLeDroit(serviceClient, 'produits.voir')).toBe(false);
+	});
+
+	it('confie au service client la modération des avis et les fiches clients', () => {
+		// Répondre à un avis mécontent, c'est la même conversation que répondre
+		// à un e-mail : ça revient à qui parle déjà aux clients.
+		expect(aLeDroit(serviceClient, 'avis.moderer')).toBe(true);
+		expect(aLeDroit(serviceClient, 'clients.voir')).toBe(true);
+	});
+
+	it('n’ouvre l’attribution des rôles qu’à l’administrateur', () => {
+		/* C'est le droit qui donne tous les autres : quiconque peut nommer un
+		   administrateur peut se donner tous les droits par un compte complice. */
+		expect(aLeDroit(admin, 'personnel.gerer')).toBe(true);
+		expect(aLeDroit(serviceClient, 'personnel.gerer')).toBe(false);
+		expect(aLeDroit(preparateur, 'personnel.gerer')).toBe(false);
+	});
+
+	it('tient le préparateur à l’écart des avis et des fiches clients', () => {
+		expect(aLeDroit(preparateur, 'avis.moderer')).toBe(false);
+		expect(aLeDroit(preparateur, 'clients.voir')).toBe(false);
 	});
 
 	it('ne donne aucun droit à un client', () => {

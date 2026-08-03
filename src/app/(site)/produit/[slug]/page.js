@@ -4,12 +4,15 @@ import {Check, PackageCheck, RotateCcw, Truck} from 'lucide-react';
 import {getProductBySlug, getRelatedProducts} from '@/server/services/products';
 import {getModesLivraison} from '@/server/services/shipping';
 import {getSettings} from '@/server/services/settings';
+import {aDejaDonneSonAvis, getAvisPublics} from '@/server/services/reviews';
+import {getUtilisateurCourant} from '@/server/auth/session';
 import {formatPrix, formatPrixCompact, pluriel} from '@/lib/format';
 import {ETATS} from '@/lib/catalogue';
 import ProductGallery from '@/components/ProductGallery/ProductGallery';
 import ProductPurchase from '@/components/ProductPurchase/ProductPurchase';
 import ProductTabs from '@/components/ProductTabs/ProductTabs';
 import ProductCard from '@/components/ProductCard/ProductCard';
+import ProductReviews from '@/components/ProductReviews/ProductReviews';
 import styles from './produit.module.css';
 
 /* Fiche produit.
@@ -75,11 +78,17 @@ export default async function FicheProduit({params}) {
 
 	if (!produit) notFound();
 
-	const [lies, modesLivraison, reglages] = await Promise.all([
+	const [lies, modesLivraison, reglages, avis, utilisateur] = await Promise.all([
 		getRelatedProducts(produit.id, produit.rayonId),
 		getModesLivraison(),
 		getSettings(),
+		getAvisPublics(produit.id),
+		getUtilisateurCourant(),
 	]);
+
+	// Question posée seulement si quelqu'un est connecté : inutile d'interroger
+	// la base pour un visiteur qui ne peut de toute façon pas déposer d'avis.
+	const dejaDonne = utilisateur ? await aDejaDonneSonAvis(produit.id, utilisateur.id) : false;
 
 	const boutiqueOuverte = Boolean(reglages['shop.open']);
 	const franco = reglages['shipping.freeAboveCents'];
@@ -197,6 +206,13 @@ export default async function FicheProduit({params}) {
 					/>
 				</div>
 			</div>
+
+			<ProductReviews
+				produit={produit}
+				avis={avis}
+				utilisateur={utilisateur}
+				dejaDonne={dejaDonne}
+			/>
 
 			{lies.length > 0 && (
 				<>

@@ -1,5 +1,6 @@
 import {aLeDroit, exigerStaff} from '@/server/auth/roles';
 import {compterCommandesATraiter} from '@/server/services/orders';
+import {compterAvisEnAttente} from '@/server/services/reviews';
 import {seDeconnecter} from '@/app/(site)/compte/actions';
 import AdminSidebar from '@/components/AdminSidebar/AdminSidebar';
 import styles from './admin.module.css';
@@ -28,6 +29,8 @@ const ENTREES = [
 	{cle: 'produits', libelle: 'Produits', href: '/admin/produits', droit: 'produits.voir'},
 	{cle: 'classement', libelle: 'Classement', href: '/admin/classement', droit: 'produits.voir'},
 	{cle: 'livraison', libelle: 'Livraison', href: '/admin/livraison', droit: 'reglages.gerer'},
+	{cle: 'avis', libelle: 'Avis', href: '/admin/avis', droit: 'avis.moderer'},
+	{cle: 'clients', libelle: 'Comptes', href: '/admin/clients', droit: 'clients.voir'},
 	{cle: 'blog', libelle: 'Blog', href: '/admin/blog', droit: 'reglages.gerer'},
 	{cle: 'abonnes', libelle: 'Abonnés', href: '/admin/abonnes', droit: 'abonnes.voir'},
 	{cle: 'reglages', libelle: 'Réglages', href: '/admin/reglages', droit: 'reglages.gerer'},
@@ -38,13 +41,20 @@ export default async function AdminLayout({children}) {
 
 	// Le préparateur voit la pastille, le service client aussi : elle dit ce
 	// qu'il reste à faire, pas ce que ça rapporte.
-	const aTraiter = aLeDroit(utilisateur, 'commandes.voir') ? await compterCommandesATraiter() : 0;
+	const [aTraiter, avisEnAttente] = await Promise.all([
+		aLeDroit(utilisateur, 'commandes.voir') ? compterCommandesATraiter() : 0,
+		// Un avis qui attend sa relecture est invisible du client qui l'a écrit :
+		// la pastille est le seul rappel qu'il existe.
+		aLeDroit(utilisateur, 'avis.moderer') ? compterAvisEnAttente() : 0,
+	]);
+
+	const pastilles = {commandes: aTraiter, avis: avisEnAttente};
 
 	const entrees = ENTREES.filter((e) => !e.droit || aLeDroit(utilisateur, e.droit)).map((e) => ({
 		cle: e.cle,
 		libelle: e.libelle,
 		href: e.href,
-		pastille: e.cle === 'commandes' ? aTraiter : 0,
+		pastille: pastilles[e.cle] ?? 0,
 	}));
 
 	return (

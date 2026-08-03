@@ -35,6 +35,9 @@ export const ACTIONS = {
 	RAYON_MODIFIE: 'category.updated',
 	ARTICLE_ENREGISTRE: 'post.saved',
 	ABONNE_RETIRE: 'subscriber.unsubscribed',
+	AVIS_MODERE: 'review.moderated',
+	AVIS_REPONDU: 'review.replied',
+	ROLE_MODIFIE: 'user.role_changed',
 };
 
 export async function journaliser({utilisateurId, action, type, id, details = null}) {
