@@ -1,21 +1,21 @@
 import Link from 'next/link';
-import {exigerDroit} from '@/server/auth/roles';
+import {Plus} from 'lucide-react';
+import {aLeDroit, exigerDroit} from '@/server/auth/roles';
 import {listerProduitsAdmin} from '@/server/services/products';
 import {formatPrix, pluriel} from '@/lib/format';
 import styles from '../../admin.module.css';
 
 /* Inventaire.
 
-   Écran de lecture pour l'instant : voir ce qui est en ligne, ce qui dort en
-   brouillon et ce qui va manquer. La saisie et la modification d'un produit
-   viendront ensuite — c'est un formulaire à part entière (photos, variantes,
-   options) qui mérite son propre chantier plutôt qu'un champ ajouté à la
-   va-vite dans un tableau. */
+   Ce qui est en ligne, ce qui dort en brouillon, ce qui va manquer. Chaque nom
+   ouvre la fiche d'édition — pour qui a le droit d'y toucher ; le préparateur,
+   lui, consulte l'inventaire sans pouvoir modifier les prix. */
 
 export const metadata = {title: 'Produits'};
 
 export default async function Produits({searchParams}) {
-	await exigerDroit('produits.voir');
+	const utilisateur = await exigerDroit('produits.voir');
+	const peutGerer = aLeDroit(utilisateur, 'produits.gerer');
 
 	const parametres = await searchParams;
 	const inclureArchives = parametres?.archives === '1';
@@ -32,6 +32,15 @@ export default async function Produits({searchParams}) {
 						{inclureArchives ? ', archives comprises' : ''}
 					</p>
 				</div>
+
+				{peutGerer && (
+					<div className={styles.actionsTitre}>
+						<Link href='/admin/produits/nouveau' className='btn btn-primary' style={{gap: 8}}>
+							<Plus size={17} strokeWidth={2.75} />
+							Ajouter un produit
+						</Link>
+					</div>
+				)}
 			</div>
 
 			<div className={styles.contenu}>
@@ -71,10 +80,15 @@ export default async function Produits({searchParams}) {
 									{produits.map((produit) => (
 										<tr key={produit.id}>
 											<td className={styles.cellulePrincipale}>
-												{/* Vers la fiche publique : c'est ce que voit le
-												    client, et le seul écran de détail existant. */}
+												{/* Vers l'édition pour qui peut modifier, vers la
+												    fiche publique pour les autres — un lien qui
+												    mène à une page interdite n'apprend rien. */}
 												<Link
-													href={`/produit/${produit.slug}`}
+													href={
+														peutGerer
+															? `/admin/produits/${produit.id}`
+															: `/produit/${produit.slug}`
+													}
 													className={styles.lienLigne}>
 													{produit.nom}
 												</Link>

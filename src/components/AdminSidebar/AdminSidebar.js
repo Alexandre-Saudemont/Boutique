@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {
+	BookOpen,
 	LayoutDashboard,
 	LogOut,
 	Mail,
@@ -25,6 +26,7 @@ const ICONES = {
 	tableau: LayoutDashboard,
 	commandes: ScrollText,
 	produits: Package,
+	blog: BookOpen,
 	abonnes: Mail,
 	reglages: Settings,
 };

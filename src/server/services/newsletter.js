@@ -48,6 +48,74 @@ export async function subscribe(email, source = null) {
 	return {ok: true};
 }
 
+/// La liste, pour le back-office. Les désinscrits restent consultables : la
+/// preuve du retrait fait partie de ce que le RGPD demande de pouvoir montrer.
+export async function listerAbonnes({inclureDesinscrits = false} = {}) {
+	return prisma.newsletterSubscriber.findMany({
+		where: inclureDesinscrits ? {} : {unsubscribedAt: null},
+		orderBy: {consentAt: 'desc'},
+		take: 500,
+		select: {
+			id: true,
+			email: true,
+			consentAt: true,
+			confirmedAt: true,
+			unsubscribedAt: true,
+			source: true,
+		},
+	});
+}
+
+/// Retrait déclenché depuis le back-office — un client qui écrit « retirez-moi »
+/// plutôt que de cliquer sur le lien. Même effet que la désinscription en ligne.
+export async function desinscrireAbonne(id) {
+	await prisma.newsletterSubscriber.update({
+		where: {id},
+		data: {unsubscribedAt: new Date()},
+	});
+
+	return {ok: true};
+}
+
+/* Échappe une cellule pour un fichier CSV.
+
+   Deux problèmes distincts. Le premier est le format : guillemets doublés,
+   cellule entourée dès qu'elle contient un séparateur ou un retour à la ligne.
+
+   Le second est une faille connue des tableurs : une cellule commençant par
+   `=`, `+`, `-` ou `@` est interprétée comme une formule à l'ouverture. Une
+   adresse e-mail forgée à l'inscription pourrait ainsi exécuter quelque chose
+   sur le poste de qui ouvre l'export. On préfixe donc ces cellules d'une
+   apostrophe, qui force le tableur à les lire comme du texte. */
+function celluleCsv(valeur) {
+	const texte = String(valeur ?? '');
+	const sur = /^[=+\-@]/.test(texte) ? `'${texte}` : texte;
+
+	return /[",;\n]/.test(sur) ? `"${sur.replace(/"/g, '""')}"` : sur;
+}
+
+/* L'export de la liste, au format CSV.
+
+   Séparateur point-virgule et BOM UTF-8 en tête : c'est ce qu'attend Excel en
+   configuration française. Sans le BOM, les accents s'affichent en charabia ;
+   avec une virgule, tout atterrit dans une seule colonne. */
+export async function abonnesEnCsv() {
+	const abonnes = await listerAbonnes({inclureDesinscrits: true});
+
+	const lignes = [
+		['E-mail', 'Consentement', 'Confirmé le', 'Désinscrit le', 'Source'],
+		...abonnes.map((abonne) => [
+			abonne.email,
+			abonne.consentAt.toISOString(),
+			abonne.confirmedAt?.toISOString() ?? '',
+			abonne.unsubscribedAt?.toISOString() ?? '',
+			abonne.source ?? '',
+		]),
+	];
+
+	return `﻿${lignes.map((ligne) => ligne.map(celluleCsv).join(';')).join('\r\n')}`;
+}
+
 /// Retire une adresse de la liste, depuis le lien du bas des e-mails.
 export async function unsubscribeByToken(token) {
 	const abonne = await prisma.newsletterSubscriber.findUnique({where: {token}});

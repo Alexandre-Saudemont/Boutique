@@ -26,6 +26,9 @@ const ENTREES = [
 	{cle: 'tableau', libelle: 'Tableau de bord', href: '/admin', droit: null},
 	{cle: 'commandes', libelle: 'Commandes', href: '/admin/commandes', droit: 'commandes.voir'},
 	{cle: 'produits', libelle: 'Produits', href: '/admin/produits', droit: 'produits.voir'},
+	{cle: 'blog', libelle: 'Blog', href: '/admin/blog', droit: 'reglages.gerer'},
+	{cle: 'abonnes', libelle: 'Abonnés', href: '/admin/abonnes', droit: 'abonnes.voir'},
+	{cle: 'reglages', libelle: 'Réglages', href: '/admin/reglages', droit: 'reglages.gerer'},
 ];
 
 export default async function AdminLayout({children}) {
