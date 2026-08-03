@@ -21,7 +21,15 @@ export default async function Abonnes({searchParams}) {
 	const inclureDesinscrits = parametres?.tous === '1';
 
 	const abonnes = await listerAbonnes({inclureDesinscrits});
-	const actifs = abonnes.filter((abonne) => !abonne.unsubscribedAt).length;
+
+	// Seuls les confirmés comptent : c'est le nombre de personnes que la lettre
+	// atteindra réellement.
+	const confirmes = abonnes.filter(
+		(abonne) => abonne.confirmedAt && !abonne.unsubscribedAt,
+	).length;
+	const enAttente = abonnes.filter(
+		(abonne) => !abonne.confirmedAt && !abonne.unsubscribedAt,
+	).length;
 
 	return (
 		<>
@@ -29,7 +37,8 @@ export default async function Abonnes({searchParams}) {
 				<div>
 					<h1 className={styles.titre}>Abonnés</h1>
 					<p className={styles.sousTitre}>
-						{actifs} {pluriel(actifs, 'inscrit actif', 'inscrits actifs')}
+						{confirmes} {pluriel(confirmes, 'inscrit confirmé', 'inscrits confirmés')}
+						{enAttente > 0 && ` · ${enAttente} en attente de confirmation`}
 					</p>
 				</div>
 
@@ -81,9 +90,14 @@ export default async function Abonnes({searchParams}) {
 												{abonne.source ?? '—'}
 											</td>
 											<td className={styles.celluleDiscrete}>
+												{/* Trois états, pas deux : une adresse inscrite mais
+												    non confirmée ne recevra aucune lettre, et il
+												    faut le voir d'un coup d'œil. */}
 												{abonne.unsubscribedAt
 													? `Désinscrit le ${formatDate(abonne.unsubscribedAt)}`
-													: 'Actif'}
+													: abonne.confirmedAt
+														? 'Confirmé'
+														: 'En attente de confirmation'}
 											</td>
 											<td className={styles.celluleActions}>
 												{!abonne.unsubscribedAt && (

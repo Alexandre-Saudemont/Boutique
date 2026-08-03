@@ -72,7 +72,11 @@ export async function getChiffresTableauDeBord({avecFinances = true} = {}) {
 					product: {select: {name: true, slug: true}},
 				},
 			}),
-			prisma.newsletterSubscriber.count({where: {unsubscribedAt: null}}),
+			// Confirmés seulement : c'est le nombre de personnes que la lettre
+			// atteindra, pas celui des adresses saisies.
+			prisma.newsletterSubscriber.count({
+				where: {unsubscribedAt: null, confirmedAt: {not: null}},
+			}),
 		]);
 
 	return {

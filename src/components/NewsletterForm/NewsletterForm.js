@@ -50,7 +50,11 @@ export default function NewsletterForm({
 					variante === 'accent' ? styles.confirmationSombre : ''
 				}`}
 				role='status'>
-				Merci ! Vous êtes sur la liste — on se retrouve à l&apos;ouverture. 🎉
+				{/* Le message parle d'un e-mail à confirmer, jamais d'une inscription
+				    aboutie : sans le clic sur le lien, l'adresse ne recevra rien. Le
+				    dire ici évite qu'on attende une lettre qui ne viendra pas. */}
+				Presque ! Ouvrez votre boîte mail et confirmez d&apos;un clic — c&apos;est la
+				dernière étape. 🎉
 			</p>
 		);
 	}

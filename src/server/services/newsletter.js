@@ -1,6 +1,7 @@
 import 'server-only';
 import {randomUUID} from 'node:crypto';
 import {prisma} from '@/server/db';
+import {envoyerConfirmationNewsletter} from '@/server/email/messages';
 
 /* Liste d'attente et lettre de l'antre.
 
@@ -37,7 +38,7 @@ export async function subscribe(email, source = null) {
 		return {ok: false, erreur: 'Cette adresse e-mail ne semble pas valide.'};
 	}
 
-	await prisma.newsletterSubscriber.upsert({
+	const abonne = await prisma.newsletterSubscriber.upsert({
 		where: {email: adresse},
 		// Une réinscription après désinscription : on efface le retrait et on
 		// réhorodate le consentement, c'est lui qui fait foi.
@@ -45,7 +46,54 @@ export async function subscribe(email, source = null) {
 		create: {email: adresse, source, token: randomUUID()},
 	});
 
+	/* Double opt-in : tant que le lien reçu par e-mail n'a pas été suivi,
+	   l'inscription n'est pas confirmée et l'adresse ne recevra aucune lettre.
+
+	   Deux raisons, et la seconde compte autant que la première. D'abord le
+	   RGPD : sans confirmation, rien ne prouve que le titulaire de l'adresse a
+	   consenti. Ensuite le respect élémentaire — sans cette étape, n'importe qui
+	   peut inscrire l'adresse de quelqu'un d'autre, et c'est le Vieux geek qui
+	   passe pour un spammeur.
+
+	   Une adresse déjà confirmée ne reçoit pas de second message : ce serait le
+	   moyen le plus simple de la harceler depuis le formulaire public. */
+	if (!abonne.confirmedAt) {
+		await envoyerConfirmationNewsletter(abonne);
+	}
+
 	return {ok: true};
+}
+
+/* Confirme une inscription à partir du jeton reçu par e-mail.
+
+   Le jeton est un UUID tiré au hasard : il ne se devine pas et n'apprend rien
+   sur l'adresse qu'il désigne. C'est aussi lui qui sert à la désinscription —
+   un seul lien à faire figurer dans les messages. */
+export async function confirmerInscription(token) {
+	if (!token) return {ok: false};
+
+	const abonne = await prisma.newsletterSubscriber.findUnique({where: {token}});
+	if (!abonne) return {ok: false};
+
+	// Déjà confirmé : on répond que tout va bien. Cliquer deux fois sur le même
+	// lien ne doit pas ressembler à une erreur.
+	if (abonne.confirmedAt) return {ok: true, email: abonne.email};
+
+	await prisma.newsletterSubscriber.update({
+		where: {token},
+		data: {confirmedAt: new Date(), unsubscribedAt: null},
+	});
+
+	return {ok: true, email: abonne.email};
+}
+
+/// Les adresses à qui une lettre peut légitimement être envoyée : confirmées et
+/// non désinscrites. C'est cette liste qui fera foi le jour d'un envoi.
+export async function listerDestinataires() {
+	return prisma.newsletterSubscriber.findMany({
+		where: {confirmedAt: {not: null}, unsubscribedAt: null},
+		select: {email: true, token: true},
+	});
 }
 
 /// La liste, pour le back-office. Les désinscrits restent consultables : la
