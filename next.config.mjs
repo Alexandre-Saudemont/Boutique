@@ -4,11 +4,9 @@
    du navigateur, qui limitent les dégâts si une faille passe. Ils coûtent une
    ligne de configuration et se posent avant la mise en ligne, pas après.
 
-   Volontairement pas de Content-Security-Policy pour l'instant : une CSP posée
-   à la va-vite casse silencieusement les scripts de Next, et une CSP qui
-   autorise `unsafe-inline` ne protège de rien. Elle demande des `nonce` par
-   requête, donc un middleware — à faire avant la mise en production, avec de
-   quoi la tester. */
+   La Content-Security-Policy n'est pas ici : elle porte un `nonce` différent à
+   chaque réponse et vit donc dans `src/middleware.js`, seul endroit capable de
+   la reconstruire par requête. */
 const enTetesSecurite = [
 	{
 		/* Empêche le site d'être chargé dans une iframe : sans ça, une page
