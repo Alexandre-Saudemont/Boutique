@@ -1,4 +1,5 @@
 import 'server-only';
+import {randomUUID} from 'node:crypto';
 import {prisma} from '@/server/db';
 import {hashPassword, needsRehash, verifyPassword} from '@/server/auth/password';
 import {consommerJeton, creerJeton} from '@/server/auth/tokens';
@@ -311,6 +312,74 @@ export async function mettreAJourProfil(userId, {prenom, nom, telephone, optInNe
 		},
 		select: {id: true},
 	});
+}
+
+/* Droit à l'effacement (RGPD, art. 17).
+
+   Le compte est **anonymisé**, pas supprimé, et il faut savoir pourquoi : les
+   commandes passées sont des pièces comptables que la loi oblige à conserver
+   dix ans. Supprimer la ligne du client emporterait ses factures avec elle.
+
+   Ce qui disparaît : l'adresse e-mail, le nom, le téléphone, le mot de passe,
+   les sessions, les jetons, le panier, la liste d'envies, les avis. Ce qui
+   reste : les commandes et leurs adresses de livraison figées, parce qu'une
+   facture doit rester lisible telle qu'elle a été émise.
+
+   L'adresse est remplacée par une valeur unique et non réversible plutôt que
+   vidée : la colonne est unique en base, et deux comptes anonymisés doivent
+   pouvoir coexister.
+
+   Le mot de passe est exigé pour lancer l'opération : c'est irréversible, et
+   une session laissée ouverte sur un poste partagé ne doit pas suffire à
+   effacer le compte de quelqu'un. */
+export async function anonymiserCompte(userId, motDePasse) {
+	const utilisateur = await prisma.user.findUnique({where: {id: userId}});
+
+	if (!utilisateur || utilisateur.anonymizedAt) {
+		return {ok: false, erreur: 'Compte introuvable.'};
+	}
+
+	if (!utilisateur.passwordHash || !(await verifyPassword(String(motDePasse ?? ''), utilisateur.passwordHash))) {
+		return {ok: false, erreur: 'Mot de passe incorrect.'};
+	}
+
+	const marqueur = `anonyme-${randomUUID()}@supprime.invalid`;
+
+	await prisma.$transaction([
+		prisma.user.update({
+			where: {id: userId},
+			data: {
+				email: marqueur,
+				passwordHash: null,
+				firstName: null,
+				lastName: null,
+				phone: null,
+				marketingOptIn: null,
+				emailVerifiedAt: null,
+				anonymizedAt: new Date(),
+			},
+		}),
+		prisma.session.deleteMany({where: {userId}}),
+		prisma.verificationToken.deleteMany({where: {userId}}),
+		prisma.address.deleteMany({where: {userId}}),
+		prisma.wishlistItem.deleteMany({where: {userId}}),
+		prisma.cart.deleteMany({where: {userId}}),
+		/* Les avis sont détachés plutôt que supprimés : ils informent les autres
+		   clients, et le texte n'appartient plus à personne une fois le lien
+		   coupé. `authorName` est réécrit dans le même geste — il porte le prénom
+		   affiché sous l'avis, et l'oublier laisserait le nom en vitrine. */
+		prisma.review.updateMany({
+			where: {userId},
+			data: {userId: null, authorName: 'Client de l’antre'},
+		}),
+		// La lettre d'information n'a plus de raison de partir à cette adresse.
+		prisma.newsletterSubscriber.updateMany({
+			where: {email: utilisateur.email},
+			data: {unsubscribedAt: new Date()},
+		}),
+	]);
+
+	return {ok: true};
 }
 
 /// Les commandes d'un compte, pour « Mes commandes ».

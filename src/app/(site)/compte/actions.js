@@ -4,6 +4,7 @@ import {redirect} from 'next/navigation';
 import {headers} from 'next/headers';
 import {revalidatePath} from 'next/cache';
 import {
+	anonymiserCompte,
 	connecter,
 	demanderReinitialisation,
 	demanderVerificationEmail,
@@ -187,6 +188,29 @@ export async function choisirNouveauMotDePasse(_precedent, donnees) {
 	   personne était connectée : elle se reconnecte avec son nouveau mot de
 	   passe, ce qui confirme au passage qu'il fonctionne. */
 	redirect('/compte?motdepasse=change');
+}
+
+/* Suppression du compte.
+
+   Le mot de passe est redemandé : l'opération est irréversible, et une session
+   laissée ouverte sur un poste partagé ne doit pas suffire à effacer le compte
+   de quelqu'un.
+
+   La session est fermée juste après — le compte n'existe plus sous cette
+   identité, y rester connecté n'aurait aucun sens. */
+export async function supprimerMonCompte(_precedent, donnees) {
+	const utilisateur = await getUtilisateurCourant();
+
+	if (!utilisateur) redirect('/compte');
+
+	const resultat = await anonymiserCompte(utilisateur.id, donnees.get('motDePasse'));
+
+	if (!resultat.ok) return {statut: 'erreur', message: resultat.erreur};
+
+	await fermerSession();
+	revalidatePath('/', 'layout');
+
+	redirect('/?compte=supprime');
 }
 
 export async function seDeconnecter() {

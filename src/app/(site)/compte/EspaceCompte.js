@@ -3,8 +3,8 @@
 import {useActionState, useState} from 'react';
 import Link from 'next/link';
 import {useFormStatus} from 'react-dom';
-import {Heart, LogOut, MapPin, Package, User} from 'lucide-react';
-import {enregistrerProfil, seDeconnecter} from './actions';
+import {Heart, LogOut, MapPin, Package, ShieldCheck, User} from 'lucide-react';
+import {enregistrerProfil, seDeconnecter, supprimerMonCompte} from './actions';
 import {formatDate, formatPrix} from '@/lib/format';
 import styles from './compte.module.css';
 
@@ -36,6 +36,7 @@ const SECTIONS = [
 	{cle: 'infos', nom: 'Mes informations', Icone: User},
 	{cle: 'adresses', nom: 'Mes adresses', Icone: MapPin},
 	{cle: 'favoris', nom: 'Mes favoris', Icone: Heart},
+	{cle: 'confidentialite', nom: 'Mes données', Icone: ShieldCheck},
 ];
 
 function BoutonEnregistrer() {
@@ -48,6 +49,70 @@ function BoutonEnregistrer() {
 			className='btn btn-primary'
 			style={{padding: '11px 22px', fontSize: 14.5, marginTop: 8}}>
 			{pending ? 'Enregistrement…' : 'Enregistrer'}
+		</button>
+	);
+}
+
+/* Suppression du compte (droit à l'effacement).
+
+   Deux choses sont dites avant le bouton, parce qu'elles surprennent si on les
+   découvre après : les commandes passées sont conservées — la loi comptable
+   l'impose — et l'opération ne se défait pas.
+
+   Le mot de passe est redemandé : c'est irréversible, et une session ouverte
+   sur un poste partagé ne doit pas suffire. */
+function SuppressionCompte() {
+	const [etat, action] = useActionState(supprimerMonCompte, ETAT_INITIAL);
+
+	return (
+		<div className={styles.carteSection}>
+			<h2 className={styles.titreSection}>Mes données</h2>
+
+			<p className={styles.texteVide} style={{textAlign: 'left', marginBottom: 18}}>
+				Vous pouvez faire supprimer votre compte à tout moment. Votre adresse, votre
+				nom, vos préférences et vos favoris sont effacés définitivement.
+			</p>
+
+			<p className={styles.texteVide} style={{textAlign: 'left', marginBottom: 18}}>
+				Vos <strong>commandes passées sont conservées</strong> : ce sont des pièces
+				comptables que je suis tenu de garder dix ans. Elles ne seront plus reliées à
+				votre compte, qui n’existera plus.
+			</p>
+
+			<form action={action} className={styles.formulaire}>
+				<label className='field'>
+					<span>Votre mot de passe, pour confirmer</span>
+					<input
+						className={`input ${styles.champ}`}
+						type='password'
+						name='motDePasse'
+						required
+						autoComplete='current-password'
+					/>
+				</label>
+
+				{etat.statut === 'erreur' && (
+					<p className={styles.erreur} role='alert'>
+						{etat.message}
+					</p>
+				)}
+
+				<BoutonSupprimer />
+			</form>
+		</div>
+	);
+}
+
+function BoutonSupprimer() {
+	const {pending} = useFormStatus();
+
+	return (
+		<button
+			type='submit'
+			disabled={pending}
+			className='btn btn-secondary'
+			style={{padding: '11px 22px', fontSize: 14.5, marginTop: 8}}>
+			{pending ? 'Suppression…' : 'Supprimer définitivement mon compte'}
 		</button>
 	);
 }
@@ -234,6 +299,8 @@ export default function EspaceCompte({utilisateur, commandes}) {
 							</p>
 						</div>
 					)}
+
+					{section === 'confidentialite' && <SuppressionCompte />}
 				</div>
 			</div>
 		</>

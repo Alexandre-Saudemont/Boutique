@@ -23,6 +23,7 @@ export async function viderLaBase() {
 			order_items, order_addresses, payments, orders,
 			cart_items, carts,
 			product_images, variant_options, product_variants, products,
+			reviews, wishlist_items, addresses,
 			categories, brands, licences,
 			audit_logs, verification_tokens, sessions, users,
 			newsletter_subscribers, settings, shipping_rates, shipping_zones,
