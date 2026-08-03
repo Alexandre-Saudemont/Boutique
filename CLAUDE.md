@@ -64,6 +64,26 @@ elles n'apparaissent pas dans l'URL, elles servent à donner deux layouts distin
 - **Français partout** : interface, contenu, commentaires. Ton chaleureux et
   personnel, à la première personne (« le Vieux geek » parle au visiteur).
 
+## Tests
+
+`npm test` (Vitest). Deux familles, dans `tests/` :
+
+- **`tests/unite/`** — sans base : hachage, droits, limitation de tentatives,
+  validation, conversion des prix, export CSV. Tourne partout, en quelques
+  secondes.
+- **`tests/integration/`** — contre un vrai PostgreSQL : isolation des paniers,
+  tunnel de commande, transitions de statut, catalogue. **Ils se sautent tout
+  seuls** si `TEST_DATABASE_URL` est absente.
+
+Pour les activer une première fois : `npm run test:preparer` crée
+`<base>_test`, y applique les migrations et affiche la ligne à coller dans
+`.env`. Aucun test n'écrit jamais dans la base de développement — `tests/setup.js`
+détourne `DATABASE_URL`, et les tests d'intégration vérifient que la cible se
+termine par `_test` avant de vider quoi que ce soit.
+
+**Tout garde-fou de sécurité se double d'un test.** C'est ce qui empêche qu'une
+modification distraite retire un contrôle sans que rien ne proteste.
+
 ## Références
 
 - `docs/MODELE-DONNEES.md` — schéma de données commenté et décisions structurantes.
