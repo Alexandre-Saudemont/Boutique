@@ -35,7 +35,7 @@ export default async function Avis({searchParams}) {
 				<div>
 					<h1 className={styles.titre}>Avis</h1>
 					<p className={styles.sousTitre}>
-						{avis.length} {pluriel(avis.length, 'avis', 'avis')}
+						{pluriel(avis.length, 'avis', 'avis')}
 						{statut !== 'TOUS' && ` · ${LIBELLES_MODERATION[statut].toLowerCase()}`}
 					</p>
 				</div>

@@ -38,7 +38,7 @@ export default function ProductReviews({produit, avis, utilisateur, dejaDonne}) 
 				{avis.length > 0 && (
 					<span className={styles.moyenne}>
 						<Etoiles note={produit.note ?? 0} />
-						{produit.note} sur 5 · {avis.length} {pluriel(avis.length, 'avis', 'avis')}
+						{produit.note} sur 5 · {pluriel(avis.length, 'avis', 'avis')}
 					</span>
 				)}
 			</div>

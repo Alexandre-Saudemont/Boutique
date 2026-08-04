@@ -28,7 +28,7 @@ export default async function Produits({searchParams}) {
 				<div>
 					<h1 className={styles.titre}>Produits</h1>
 					<p className={styles.sousTitre}>
-						{produits.length} {pluriel(produits.length, 'référence', 'références')}
+						{pluriel(produits.length, 'référence', 'références')}
 						{inclureArchives ? ', archives comprises' : ''}
 					</p>
 				</div>

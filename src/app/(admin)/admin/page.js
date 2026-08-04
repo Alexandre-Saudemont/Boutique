@@ -35,14 +35,14 @@ export default async function TableauDeBord() {
 			Icone: Euro,
 			label: "Encaissé aujourd'hui",
 			valeur: formatPrix(chiffres.caJourCents),
-			detail: `${chiffres.commandesJour} ${pluriel(chiffres.commandesJour, 'commande', 'commandes')}`,
+			detail: pluriel(chiffres.commandesJour, 'commande', 'commandes'),
 		},
 		finances && {
 			cle: 'semaine',
 			Icone: Euro,
 			label: 'Encaissé sur 7 jours',
 			valeur: formatPrix(chiffres.caSemaineCents),
-			detail: `${chiffres.commandesSemaine} ${pluriel(chiffres.commandesSemaine, 'commande', 'commandes')}`,
+			detail: pluriel(chiffres.commandesSemaine, 'commande', 'commandes'),
 		},
 		{
 			cle: 'preparer',

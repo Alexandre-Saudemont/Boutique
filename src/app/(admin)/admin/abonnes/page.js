@@ -37,7 +37,7 @@ export default async function Abonnes({searchParams}) {
 				<div>
 					<h1 className={styles.titre}>Abonnés</h1>
 					<p className={styles.sousTitre}>
-						{confirmes} {pluriel(confirmes, 'inscrit confirmé', 'inscrits confirmés')}
+						{pluriel(confirmes, 'inscrit confirmé', 'inscrits confirmés')}
 						{enAttente > 0 && ` · ${enAttente} en attente de confirmation`}
 					</p>
 				</div>

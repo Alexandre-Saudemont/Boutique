@@ -40,7 +40,7 @@ export default async function Commandes({searchParams}) {
 				<div>
 					<h1 className={styles.titre}>Commandes</h1>
 					<p className={styles.sousTitre}>
-						{total} {pluriel(total, 'commande', 'commandes')}
+						{pluriel(total, 'commande', 'commandes')}
 						{statut ? ` · ${LIBELLES_STATUT[statut].toLowerCase()}` : ''}
 					</p>
 				</div>

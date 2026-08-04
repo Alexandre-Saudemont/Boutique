@@ -25,7 +25,7 @@ export default async function Blog() {
 				<div>
 					<h1 className={styles.titre}>Blog</h1>
 					<p className={styles.sousTitre}>
-						{publies} {pluriel(publies, 'article publié', 'articles publiés')} ·{' '}
+						{pluriel(publies, 'article publié', 'articles publiés')} ·{' '}
 						{articles.length - publies} en brouillon
 					</p>
 				</div>

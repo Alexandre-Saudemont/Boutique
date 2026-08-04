@@ -30,7 +30,7 @@ export default async function Clients({searchParams}) {
 				<div>
 					<h1 className={styles.titre}>{staffSeulement ? 'L’équipe' : 'Comptes'}</h1>
 					<p className={styles.sousTitre}>
-						{comptes.length} {pluriel(comptes.length, 'compte', 'comptes')}
+						{pluriel(comptes.length, 'compte', 'comptes')}
 					</p>
 				</div>
 

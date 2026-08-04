@@ -129,7 +129,7 @@ export default function TaxonomyTable({type, libelle, entrees}) {
 			<div className={styles.tableauCadre}>
 				<div className={styles.filtres}>
 					<span className={styles.celluleDiscrete} style={{fontSize: 13}}>
-						{entrees.length} {pluriel(entrees.length, 'entrée', 'entrées')}
+						{pluriel(entrees.length, 'entrée', 'entrées')}
 					</span>
 
 					<button
