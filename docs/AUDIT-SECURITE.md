@@ -220,7 +220,7 @@ le téléphone, le mot de passe, les sessions, les jetons, le panier, les adress
 enregistrées et le nom affiché sous les avis. Le mot de passe est redemandé —
 une session ouverte sur un poste partagé ne doit pas suffire.
 
-**Tests.** 187 tests (`npm test`). Les unitaires couvrent scrypt et ses
+**Tests.** 264 tests (`npm test`). Les unitaires couvrent scrypt et ses
 paramètres, la matrice des droits, la limitation glissante, la validation, la
 conversion des prix, la neutralisation des formules CSV, le refus des clés de
 réglage inventées, chaque directive de la CSP. Les tests d'intégration, contre
@@ -231,19 +231,54 @@ manière connue de détourner un jeton échoue.
 
 ### Ajouté depuis, à traiter
 
-**Vérification au navigateur.** La CSP a été validée par inspection du HTML
-rendu (aucun script sans nonce sur cinq pages), pas dans un vrai navigateur :
-l'extension Chrome n'était pas connectée. Une passe console sur les écrans
-interactifs — panier, tunnel, formulaire produit — reste à faire avant
-l'ouverture.
-
 **`connect-src 'self'`** interdit tout appel sortant. C'est volontaire
 aujourd'hui, puisque le paiement se fait sur une page hébergée par Stripe. Le
 jour où un paiement intégré arriverait, cette directive devra s'ouvrir aux
 domaines de Stripe — et à eux seuls.
 
-**Purge des jetons.** `purgerJetons()` existe et est testée, mais rien ne
-l'appelle : il n'y a pas de travail programmé. Sans conséquence de sécurité —
-les jetons expirés sont refusés — mais la table grossit lentement.
-
 **Limitation toujours en mémoire.** Inchangé : mono-instance. Voir plus haut.
+
+---
+
+## 6. Suites données — 4 août 2026
+
+**CSP vérifiée au navigateur.** Passe faite sur le build de production, dans
+Chrome : accueil, boutique, fiche produit, panier, étape livraison, espace
+client. Les menus déroulants s'ouvrent, l'ajout au panier passe (donc les
+Server Actions et l'hydratation fonctionnent sous la politique), le champ de
+code promo s'ouvre, les modes de livraison se sélectionnent. **Aucun message
+dans la console.** L'en-tête est présent sur chaque réponse, y compris les 404
+et les redirections, et les 140 balises `<script>` servies sur ces écrans
+portent toutes un nonce.
+
+*Ce que cette passe ne prouve pas :* on ne peut pas fabriquer une violation
+depuis l'extension pour vérifier que le navigateur la refuserait — un script
+injecté par une extension s'exécute dans un monde isolé, hors de portée de la
+CSP de la page. La preuve que la politique bloque reste celle des tests
+unitaires sur les directives ; ce qui est démontré ici, c'est qu'elle ne casse
+rien.
+
+**Ménage programmé** (`/api/cron/menage`, `services/maintenance.js`). Jetons,
+sessions expirées et paniers d'invités abandonnés sont purgés par un appel
+quotidien de l'ordonnanceur. Rien ici n'est un garde-fou — ces lignes sont déjà
+refusées partout — le motif est de ne pas conserver indéfiniment des données
+dont on n'a plus l'usage, ce que le RGPD demande.
+
+Le panier d'un **compte** n'est jamais touché, quel que soit son âge : son
+propriétaire le retrouve en se connectant. Un test le verrouille, parce que le
+défaut le plus coûteux trouvé pendant l'audit était déjà un panier effacé au
+mauvais moment.
+
+La route est fermée par un secret (`CRON_SECRET`) comparé à temps constant, et
+**refuse tout si le secret n'est pas configuré** — un oubli de variable
+d'environnement ne doit pas laisser une route d'écriture ouverte alors que le
+site continue de marcher. Elle répond 404, pas 401 : à un appelant non
+autorisé, elle n'a pas à confirmer qu'elle existe.
+
+### Hors sécurité, relevé au passage
+
+Onze liens de la page d'accueil et du pied de page mènent à des pages qui
+n'existent pas encore : `/a-propos`, `/blog`, `/box`, `/contact`,
+`/ichiban-kuji`, `/recherche` et les quatre ancres de `/legal`. Ce sont des
+écrans de contenu restant à construire, pas des régressions — mais ils sont
+cliquables aujourd'hui et mènent à une page d'erreur.
