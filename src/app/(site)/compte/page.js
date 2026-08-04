@@ -41,12 +41,11 @@ export default async function Compte({searchParams}) {
 		);
 	}
 
-	/* Les fichiers sont retrouvés par le compte **et** par l'adresse : quelqu'un
-	   qui a acheté en invité puis créé son compte avec la même adresse retrouve
-	   ses ouvrages sans avoir à écrire. */
+	/* Les achats faits en invité sur la même adresse rejoignent le compte — mais
+	   seulement si l'adresse a été vérifiée. Le service porte cette règle. */
 	const [commandes, fichiers] = await Promise.all([
 		getCommandesUtilisateur(utilisateur.id),
-		getTelechargementsDuCompte(utilisateur.id, utilisateur.email),
+		getTelechargementsDuCompte(utilisateur),
 	]);
 
 	return (

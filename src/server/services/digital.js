@@ -97,6 +97,22 @@ const TYPES_ACCEPTES = new Set([
 	'text/plain',
 ]);
 
+/* Le type renvoyé au navigateur.
+
+   La même liste blanche, appliquée une seconde fois — à la sortie cette fois.
+   Le type stocké a été déclaré par le navigateur du vendeur au moment de
+   l'envoi : ce n'est pas une preuve, et une ligne créée avant ce contrôle ou
+   modifiée en base directement pourrait porter n'importe quoi. Renvoyer
+   `text/html` depuis notre propre domaine serait le point de départ d'une
+   injection de script ; `attachment` et `nosniff` l'empêchent déjà, mais rien
+   n'oblige à s'en remettre à eux seuls.
+
+   Tout ce qui n'est pas reconnu part en flux d'octets : le fichier se télécharge
+   pareil, aucun navigateur ne cherche à l'interpréter. */
+export function typeSur(mimeType) {
+	return TYPES_ACCEPTES.has(mimeType) ? mimeType : 'application/octet-stream';
+}
+
 /* Enregistre un fichier et le rattache à un produit.
 
    Le nom d'origine est conservé en base pour être proposé au téléchargement,
@@ -334,15 +350,34 @@ export async function consommerTelechargement(jetonBrut) {
 	return droit.digitalAsset;
 }
 
-/* Les fichiers auxquels un compte a droit.
+/* Ce qu'un compte a le droit de retélécharger.
 
-   Ni compteur ni expiration : c'est l'accès « à vie depuis le compte » promis
-   au client. Le rattachement se fait par `userId` **ou** par l'adresse de la
-   commande — quelqu'un qui a commandé en invité puis créé son compte avec la
-   même adresse retrouve ses achats. */
-export async function getTelechargementsDuCompte(userId, email) {
+   Deux rattachements possibles, et le second est celui qui demande de la
+   prudence.
+
+   Par `userId` : la commande a été passée en étant connecté, il n'y a rien à
+   prouver.
+
+   Par l'adresse : la commande a été passée en invité, et le compte a été créé
+   ensuite avec la même adresse. C'est un vrai cas — on ne veut pas répondre
+   « écrivez-moi » à un client qui a simplement créé son compte après coup —
+   **mais il exige une adresse vérifiée**. Sans cette condition, il suffirait de
+   créer un compte sur l'adresse de quelqu'un d'autre pour récupérer ses achats :
+   l'inscription n'a jamais prouvé que l'adresse saisie vous appartient, c'est
+   précisément le rôle du lien de vérification. */
+function rattachements({id, email, emailVerifiedAt}) {
+	const par = [{userId: id}];
+
+	if (emailVerifiedAt && email) par.push({email: String(email).toLowerCase()});
+
+	return par;
+}
+
+/// Les fichiers auxquels un compte a droit. Ni compteur ni expiration : c'est
+/// l'accès « à vie depuis le compte » promis au client.
+export async function getTelechargementsDuCompte(utilisateur) {
 	const droits = await prisma.downloadGrant.findMany({
-		where: {OR: [{userId}, {email: String(email ?? '').toLowerCase()}]},
+		where: {OR: rattachements(utilisateur)},
 		include: {
 			digitalAsset: true,
 			orderItem: {select: {productName: true, order: {select: {orderNumber: true, paidAt: true}}}},
@@ -367,12 +402,9 @@ export async function getTelechargementsDuCompte(userId, email) {
    L'identifiant du droit vient de l'URL : il est donc revérifié contre le
    compte qui le demande, sinon deviner un identifiant suffirait à télécharger
    l'ouvrage de quelqu'un d'autre. */
-export async function getFichierDuCompte(grantId, userId, email) {
+export async function getFichierDuCompte(grantId, utilisateur) {
 	const droit = await prisma.downloadGrant.findFirst({
-		where: {
-			id: grantId,
-			OR: [{userId}, {email: String(email ?? '').toLowerCase()}],
-		},
+		where: {id: grantId, OR: rattachements(utilisateur)},
 		include: {digitalAsset: true},
 	});
 

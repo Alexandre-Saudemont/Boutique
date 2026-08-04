@@ -116,6 +116,65 @@ describe.skipIf(!baseDisponible)('anonymisation d’un compte', () => {
 		expect(conservee.addresses).toHaveLength(1);
 	});
 
+	it('supprime les droits de téléchargement, y compris ceux d’un achat invité', async () => {
+		/* Deux choses à la fois : une adresse e-mail en clair qui survivrait à
+		   l'effacement, et des liens envoyés qui continueraient de fonctionner
+		   pour un compte qui n'existe plus. La commande, elle, reste. */
+		const produit = await prisma.product.create({
+			data: {
+				name: 'Carnet',
+				slug: 'carnet-effacement',
+				kind: 'DIGITAL',
+				digitalAssets: {
+					create: {
+						fileKey: 'cle-de-test',
+						fileName: 'carnet.pdf',
+						mimeType: 'application/pdf',
+						sizeBytes: 10,
+					},
+				},
+			},
+			include: {digitalAssets: true},
+		});
+
+		const commande = await prisma.order.create({
+			data: {
+				orderNumber: 'AVGF-2026-000500',
+				// Achat fait en invité : rattaché par l'adresse seulement.
+				email: IDENTIFIANTS.email,
+				status: 'PAID',
+				subtotalCents: 900,
+				totalCents: 900,
+				items: {
+					create: {
+						productName: 'Carnet',
+						variantName: 'Standard',
+						sku: 'NUM-1',
+						kind: 'DIGITAL',
+						unitPriceCents: 900,
+						quantity: 1,
+						totalCents: 900,
+					},
+				},
+			},
+			include: {items: true},
+		});
+
+		await prisma.downloadGrant.create({
+			data: {
+				digitalAssetId: produit.digitalAssets[0].id,
+				orderItemId: commande.items[0].id,
+				email: IDENTIFIANTS.email,
+				token: 'jeton-de-test',
+			},
+		});
+
+		await anonymiserCompte(utilisateur.id, IDENTIFIANTS.motDePasse);
+
+		expect(await prisma.downloadGrant.count()).toBe(0);
+		expect(await prisma.order.count({where: {id: commande.id}})).toBe(1);
+	});
+
 	it('détache les avis et retire le nom affiché', async () => {
 		const produit = await creerProduit();
 		await prisma.review.create({

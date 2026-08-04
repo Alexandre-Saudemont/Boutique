@@ -1,5 +1,5 @@
 import {estRequeteDuSite} from '@/server/auth/origine';
-import {consommerTelechargement, ouvrirFichier} from '@/server/services/digital';
+import {consommerTelechargement, ouvrirFichier, typeSur} from '@/server/services/digital';
 
 /* Le flux du fichier.
 
@@ -52,7 +52,7 @@ export async function POST(requete, {params}) {
 
 	return new Response(flux, {
 		headers: {
-			'Content-Type': asset.mimeType,
+			'Content-Type': typeSur(asset.mimeType),
 			'Content-Length': String(asset.sizeBytes),
 			/* Le nom d'origine est proposé au client. Encodé selon la RFC 5987 : un
 			   nom accentué ou porteur d'un guillemet casserait sinon l'en-tête, et un

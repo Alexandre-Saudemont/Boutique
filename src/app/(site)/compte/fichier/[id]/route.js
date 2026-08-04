@@ -1,6 +1,6 @@
 import {getUtilisateurCourant} from '@/server/auth/session';
 import {estRequeteDuSite} from '@/server/auth/origine';
-import {getFichierDuCompte, ouvrirFichier} from '@/server/services/digital';
+import {getFichierDuCompte, ouvrirFichier, typeSur} from '@/server/services/digital';
 
 /* Le téléchargement depuis le compte.
 
@@ -25,7 +25,7 @@ export async function POST(requete, {params}) {
 
 	const {id} = await params;
 
-	const asset = await getFichierDuCompte(id, utilisateur.id, utilisateur.email);
+	const asset = await getFichierDuCompte(id, utilisateur);
 
 	// Droit inexistant ou appartenant à quelqu'un d'autre : même réponse. Le
 	// second cas n'a pas à se distinguer du premier.
@@ -42,7 +42,7 @@ export async function POST(requete, {params}) {
 
 	return new Response(flux, {
 		headers: {
-			'Content-Type': asset.mimeType,
+			'Content-Type': typeSur(asset.mimeType),
 			'Content-Length': String(asset.sizeBytes),
 			'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(asset.fileName)}`,
 			'Cache-Control': 'private, no-store',

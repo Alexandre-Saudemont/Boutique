@@ -19,7 +19,14 @@ import {prisma} from '@/server/db';
    prochain tour. C'est aussi pour ça qu'il ne lève jamais : appelé par un
    travail programmé, il rend un compte-rendu plutôt qu'une exception. */
 
-/* Délais de conservation. Généreux volontairement : le but est de borner la
+/* **Ce qu'on ne purge pas, et pourquoi.** Les droits de téléchargement
+   (`DownloadGrant`) portent une date d'expiration et ressemblent donc à un bon
+   candidat. Ils n'en sont pas : cette date ne borne que le lien envoyé par
+   e-mail, alors que la ligne elle-même est le support de l'accès « à vie depuis
+   le compte » promis à l'acheteur. Les supprimer retirerait au client ce qu'il a
+   payé. Ils partent à l'anonymisation du compte, et là seulement.
+
+   Délais de conservation. Généreux volontairement : le but est de borner la
    croissance, pas de faire de la place. Un panier récupéré trois semaines plus
    tard fait plaisir à son propriétaire. */
 const JOURS_JETONS = 30;

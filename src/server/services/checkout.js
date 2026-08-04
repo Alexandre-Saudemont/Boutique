@@ -149,6 +149,14 @@ export async function creerCommande({
 	provider = 'STRIPE',
 	viderPanier = true,
 	codePromo = null,
+	/* Le compte qui commande, s'il y en a un. Il vient de l'appelant et jamais du
+	   formulaire : c'est l'action serveur qui lit la session, un service ne
+	   connaît pas les cookies.
+
+	   Sans lui, une commande passée en étant connecté n'était rattachée à aucun
+	   compte — l'espace client ne la retrouvait que par l'adresse, et les
+	   ouvrages achetés n'apparaissaient pas chez leur acheteur. */
+	userId = null,
 }) {
 	const reglages = await getSettings();
 	if (!reglages['shop.open']) {
@@ -232,6 +240,7 @@ export async function creerCommande({
 		const creee = await tx.order.create({
 			data: {
 				orderNumber: await prochainNumero(tx),
+				userId,
 				email: String(adresse.email).trim().toLowerCase(),
 				phone: adresse.phone ? String(adresse.phone).trim() : null,
 				status: 'PENDING_PAYMENT',

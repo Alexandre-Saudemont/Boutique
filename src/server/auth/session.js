@@ -82,6 +82,9 @@ export async function getUtilisateurCourant() {
 					lastName: true,
 					phone: true,
 					role: true,
+					// Sert à décider si l'on peut rattacher au compte des achats faits
+					// en invité sur la même adresse. Voir `services/digital.js`.
+					emailVerifiedAt: true,
 					marketingOptIn: true,
 					anonymizedAt: true,
 					createdAt: true,

@@ -372,6 +372,17 @@ export async function anonymiserCompte(userId, motDePasse) {
 			where: {userId},
 			data: {userId: null, authorName: 'Client de l’antre'},
 		}),
+		/* Les droits de téléchargement partent aussi, par le compte **et** par
+		   l'adresse — un achat fait en invité en porte une copie en clair.
+
+		   Ils ne sont pas des pièces comptables, contrairement aux commandes : ce
+		   sont des accès, au même titre qu'une session. Les garder laisserait une
+		   adresse e-mail en base après un effacement, et surtout laisserait les
+		   liens envoyés continuer de fonctionner pour un compte qui n'existe plus.
+		   La commande, elle, reste et dit toujours ce qui a été acheté. */
+		prisma.downloadGrant.deleteMany({
+			where: {OR: [{userId}, {email: utilisateur.email}]},
+		}),
 		// La lettre d'information n'a plus de raison de partir à cette adresse.
 		prisma.newsletterSubscriber.updateMany({
 			where: {email: utilisateur.email},

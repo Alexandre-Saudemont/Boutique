@@ -7,6 +7,7 @@ import {creerCommande, validerAdresse} from '@/server/services/checkout';
 import {getCart} from '@/server/services/cart';
 import {creerSessionPaiement, paiementEnLigneActif} from '@/server/services/payments';
 import {getCartToken} from '@/server/auth/cart-session';
+import {getUtilisateurCourant} from '@/server/auth/session';
 import {getBrouillonCommande, setBrouillonCommande} from '@/server/auth/checkout-session';
 import {verifierLimite} from '@/server/auth/rate-limit';
 import {effacerCodePromo, getCodePromo} from '@/server/auth/promo-session';
@@ -130,6 +131,11 @@ export async function payerCommande(_precedent, donnees) {
 
 	const enLigne = paiementEnLigneActif();
 
+	/* Le compte, s'il y en a un : c'est ce qui rattache la commande à l'espace
+	   client. La session est lue ici et pas dans le service — un service ne
+	   connaît pas les cookies. */
+	const utilisateur = await getUtilisateurCourant();
+
 	const resultat = await creerCommande({
 		token: jeton,
 		adresse: brouillon.adresse,
@@ -138,6 +144,7 @@ export async function payerCommande(_precedent, donnees) {
 		provider: 'STRIPE',
 		viderPanier: !enLigne,
 		codePromo: await getCodePromo(),
+		userId: utilisateur?.id ?? null,
 	});
 
 	if (!resultat.ok) {

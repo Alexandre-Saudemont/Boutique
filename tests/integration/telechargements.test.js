@@ -270,25 +270,47 @@ describe.skipIf(!baseDisponible)('ouvrages numériques', () => {
 
 		for (let essai = 0; essai < 5; essai += 1) await consommerTelechargement(liens[0].jeton);
 
-		const fichiers = await getTelechargementsDuCompte(utilisateur.id, utilisateur.email);
+		const fichiers = await getTelechargementsDuCompte(utilisateur);
 		expect(fichiers).toHaveLength(1);
 		expect(fichiers[0].digitalAsset.id).toBe(asset.id);
 
-		const servi = await getFichierDuCompte(fichiers[0].id, utilisateur.id, utilisateur.email);
+		const servi = await getFichierDuCompte(fichiers[0].id, utilisateur);
 		expect(servi.id).toBe(asset.id);
 	});
 
-	it('retrouve les achats faits en invité sur la même adresse', async () => {
+	it('retrouve les achats faits en invité une fois l’adresse vérifiée', async () => {
 		const {variante} = await creerOuvrage();
 		const commande = await creerCommandePayee({variante, email: 'camille@exemple.fr'});
 		await delivrerTelechargements(commande.id);
 
 		const utilisateur = await prisma.user.create({
+			data: {
+				email: 'camille@exemple.fr',
+				passwordHash: 'x',
+				emailVerifiedAt: new Date(),
+			},
+		});
+
+		expect(await getTelechargementsDuCompte(utilisateur)).toHaveLength(1);
+	});
+
+	it('ne donne rien à un compte dont l’adresse n’est pas vérifiée', async () => {
+		/* Le scénario redouté : quelqu'un crée un compte sur l'adresse d'un client
+		   qui a commandé en invité, et récupère ses achats. Créer un compte ne
+		   prouve rien sur l'adresse saisie — c'est le lien de vérification qui le
+		   prouve, et lui seul ouvre ce rattachement. */
+		const {variante} = await creerOuvrage();
+		const commande = await creerCommandePayee({variante, email: 'camille@exemple.fr'});
+		await delivrerTelechargements(commande.id);
+
+		const usurpateur = await prisma.user.create({
 			data: {email: 'camille@exemple.fr', passwordHash: 'x'},
 		});
 
-		const fichiers = await getTelechargementsDuCompte(utilisateur.id, utilisateur.email);
-		expect(fichiers).toHaveLength(1);
+		expect(await getTelechargementsDuCompte(usurpateur)).toHaveLength(0);
+
+		const droit = await prisma.downloadGrant.findFirst();
+		expect(await getFichierDuCompte(droit.id, usurpateur)).toBeNull();
 	});
 
 	it('ne donne pas le fichier d’un autre compte', async () => {
@@ -299,7 +321,11 @@ describe.skipIf(!baseDisponible)('ouvrages numériques', () => {
 			data: {email: 'camille@exemple.fr', passwordHash: 'x'},
 		});
 		const curieux = await prisma.user.create({
-			data: {email: 'autre@exemple.fr', passwordHash: 'x'},
+			data: {
+				email: 'autre@exemple.fr',
+				passwordHash: 'x',
+				emailVerifiedAt: new Date(),
+			},
 		});
 
 		const commande = await creerCommandePayee({variante, userId: acheteur.id});
@@ -307,9 +333,9 @@ describe.skipIf(!baseDisponible)('ouvrages numériques', () => {
 
 		const droit = await prisma.downloadGrant.findFirst();
 
-		expect(await getFichierDuCompte(droit.id, acheteur.id, acheteur.email)).not.toBeNull();
-		expect(await getFichierDuCompte(droit.id, curieux.id, curieux.email)).toBeNull();
-		expect(await getTelechargementsDuCompte(curieux.id, curieux.email)).toHaveLength(0);
+		expect(await getFichierDuCompte(droit.id, acheteur)).not.toBeNull();
+		expect(await getFichierDuCompte(droit.id, curieux)).toBeNull();
+		expect(await getTelechargementsDuCompte(curieux)).toHaveLength(0);
 	});
 
 	it('refuse de supprimer un fichier déjà vendu', async () => {

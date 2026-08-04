@@ -220,7 +220,7 @@ le téléphone, le mot de passe, les sessions, les jetons, le panier, les adress
 enregistrées et le nom affiché sous les avis. Le mot de passe est redemandé —
 une session ouverte sur un poste partagé ne doit pas suffire.
 
-**Tests.** 264 tests (`npm test`). Les unitaires couvrent scrypt et ses
+**Tests.** 288 tests (`npm test`). Les unitaires couvrent scrypt et ses
 paramètres, la matrice des droits, la limitation glissante, la validation, la
 conversion des prix, la neutralisation des formules CSV, le refus des clés de
 réglage inventées, chaque directive de la CSP. Les tests d'intégration, contre
@@ -275,6 +275,93 @@ d'environnement ne doit pas laisser une route d'écriture ouverte alors que le
 site continue de marcher. Elle répond 404, pas 401 : à un appelant non
 autorisé, elle n'a pas à confirmer qu'elle existe.
 
+---
+
+## 7. Audit des ouvrages numériques — 4 août 2026
+
+Revue de la surface ajoutée par la vente de fichiers : stockage, délivrance des
+droits, deux chemins de téléchargement, téléversement en back-office.
+
+### Ce qui tient
+
+**Le fichier n'est jamais joignable.** Il vit hors du dossier servi, sous un nom
+de seize octets aléatoires et sans extension. La seule fonction qui transforme
+une clé en chemin disque vérifie que le résultat reste dans le dossier — une clé
+contenant `..` échoue, même si l'on ne voit pas comment elle y arriverait.
+
+**Le jeton du lien est stocké haché** (SHA-256), comme ceux des e-mails. Une
+copie de la base ne permet pas de rejouer les téléchargements de tous les
+clients. Il ne vit en clair que dans le message envoyé.
+
+**La page d'atterrissage ne consomme rien.** Les clients de messagerie et les
+antivirus d'entreprise préchargent les liens : si l'ouverture de l'URL décomptait
+un téléchargement, un client perdrait ses cinq essais sans avoir cliqué. Seul le
+bouton, en POST, consomme — et le compteur avance dans la clause `where`, donc
+deux requêtes simultanées sur le dernier téléchargement ne passent pas toutes les
+deux.
+
+**Un site tiers ne peut pas déclencher un téléchargement** depuis le navigateur
+d'un visiteur : les deux routes refusent une requête `Sec-Fetch-Site:
+cross-site`. Il ne pourrait rien lire de la réponse, mais il pourrait brûler les
+cinq essais d'un lien.
+
+**Un fichier déjà vendu ne peut plus être retiré du catalogue.** C'est ce qui
+tient la promesse d'accès à vie : sans ce refus, un clic en back-office
+couperait l'accès de tous ceux qui ont payé, sans que rien ne le signale.
+
+### Trois défauts trouvés et corrigés
+
+**1. Un compte non vérifié récupérait les achats d'un homonyme d'adresse.**
+Les fichiers achetés en invité se rattachent au compte créé ensuite sur la même
+adresse — un vrai besoin, on ne veut pas répondre « écrivez-moi ». Mais rien ne
+prouve à l'inscription que l'adresse saisie vous appartient : il suffisait donc
+de créer un compte sur l'adresse d'un client pour récupérer ses ouvrages.
+Le rattachement par adresse exige désormais `emailVerifiedAt`. Le rattachement
+par compte, lui, n'a rien à prouver.
+
+**2. Les commandes n'étaient rattachées à aucun compte.** `creerCommande`
+n'écrivait jamais `userId`, y compris pour un client connecté. Défaut
+antérieur à ce chantier, révélé par lui : l'espace client ne retrouvait ses
+commandes que par l'adresse, et l'accès « à vie » reposait entièrement sur la
+vérification d'adresse. Corrigé — l'action lit la session et passe le compte au
+service.
+
+**3. Le droit à l'effacement laissait des adresses e-mail derrière lui.**
+`DownloadGrant` porte l'adresse de la commande en clair. Après anonymisation,
+elle survivait en base et les liens envoyés continuaient de fonctionner pour un
+compte qui n'existait plus. Les droits sont maintenant supprimés à
+l'anonymisation, par compte **et** par adresse. Ils ne sont pas des pièces
+comptables — ce sont des accès, comme une session. La commande, elle, reste.
+
+### Durci par précaution
+
+**Le type de contenu est filtré à la sortie.** Le type MIME stocké vient d'une
+déclaration du navigateur au téléversement, jamais vérifiée. Tout ce qui n'est
+pas dans la liste blanche est servi en `application/octet-stream`. Un fichier
+enregistré comme `text/html` et servi depuis notre domaine serait le point de
+départ d'une injection de script ; `Content-Disposition: attachment` et
+`nosniff` l'empêchent déjà, mais rien n'oblige à s'en remettre au navigateur.
+
+**Le nom de fichier est encodé selon la RFC 5987** dans l'en-tête. Vérifié avec
+un nom contenant guillemets et espaces : il ressort échappé, aucune injection
+d'en-tête n'est possible.
+
+### Limites assumées
+
+**Le jeton voyage dans l'URL.** Il apparaît donc dans les journaux du serveur et
+l'historique du navigateur. C'est inhérent à un lien de téléchargement envoyé
+par e-mail ; `Referrer-Policy: strict-origin-when-cross-origin` empêche au moins
+qu'il parte chez un tiers. Sa portée est limitée à un fichier, trente jours et
+cinq usages.
+
+**Le contenu du fichier n'est pas analysé.** Seul un compte du personnel
+téléverse, et le fichier n'est jamais exécuté ni interprété — il n'y a pas
+d'antivirus dans la boucle, et il n'y en aura pas.
+
+**Les droits ne sont pas purgés par le ménage programmé**, volontairement : leur
+date d'expiration ne borne que le lien e-mail, la ligne porte l'accès à vie.
+C'est écrit dans `maintenance.js`, pour qu'on ne l'ajoute pas par distraction.
+
 ### Hors sécurité, relevé au passage
 
 Onze liens de la page d'accueil et du pied de page mènent à des pages qui
@@ -282,3 +369,16 @@ n'existent pas encore : `/a-propos`, `/blog`, `/box`, `/contact`,
 `/ichiban-kuji`, `/recherche` et les quatre ancres de `/legal`. Ce sont des
 écrans de contenu restant à construire, pas des régressions — mais ils sont
 cliquables aujourd'hui et mènent à une page d'erreur.
+
+Un ouvrage numérique était en rupture de stock dès sa mise en vente, donc
+impossible à mettre au panier : le stock d'un fichier vaut zéro et n'a aucune
+raison de bouger. Corrigé avec le chantier.
+
+Next annonce au build que la convention `middleware` est dépréciée au profit de
+`proxy`. Sans effet aujourd'hui — c'est un renommage — mais c'est le fichier qui
+porte la CSP, donc une migration à faire posément, pas la veille de l'ouverture.
+
+Les conditions générales de vente devront mentionner l'absence de droit de
+rétractation sur les fichiers téléchargés (art. L221-28 du code de la
+consommation). La fiche produit le dit déjà, le document contractuel doit le
+dire aussi. C'est un point à signaler au juriste qui relira les CGV.
