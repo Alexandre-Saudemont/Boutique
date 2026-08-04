@@ -425,60 +425,35 @@
 	margin: 0 0 var(--space-2);
 }
 
-.listePieces {
-	list-style: none;
-	margin: 0 0 var(--space-3);
-	padding: 0;
+/* La date de saisie accompagne le titre sans le concurrencer : elle répond à
+   « c'est à jour ? », pas à « qu'est-ce que c'est ? ». */
+.boxDate {
+	font-weight: 400;
+	font-size: 12.5px;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.formulaireBox {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-}
-
-.piece {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-3);
-	background: var(--color-surface-2);
-	border-radius: var(--radius-sm);
-	padding: 8px var(--space-3);
-	font-size: 14px;
-}
-
-.pieceNote {
-	color: color-mix(in srgb, var(--color-text) 58%, transparent);
-}
-
-.retirerPiece {
-	display: grid;
-	place-items: center;
-	width: 26px;
-	height: 26px;
-	border: none;
-	border-radius: 50%;
-	background: transparent;
-	color: color-mix(in srgb, var(--color-text) 55%, transparent);
-	cursor: pointer;
-}
-
-.retirerPiece:hover {
-	background: var(--color-accent-100);
-	color: var(--color-accent-700);
-}
-
-/* Le champ principal prend la place restante : c'est celui où l'on tape, les
-   deux autres éléments gardent leur largeur. */
-.formulairePiece {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
 	gap: var(--space-2);
 }
 
-.formulairePiece input:first-of-type {
-	flex: 2 1 220px;
+.zoneBox {
+	width: 100%;
+	resize: vertical;
+	font-family: inherit;
+	line-height: 1.5;
 }
 
-.formulairePiece input:last-of-type {
-	flex: 1 1 150px;
+/* Sans droit d'écriture, la note se lit telle qu'elle a été tapée — retours à
+   la ligne compris, puisque c'est du texte libre. */
+.contenuBox {
+	white-space: pre-wrap;
+	font-size: 14px;
+	line-height: 1.6;
+	background: var(--color-surface-2);
+	border-radius: var(--radius-sm);
+	padding: var(--space-3);
+	margin: 0;
 }

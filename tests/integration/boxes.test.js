@@ -1,9 +1,8 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import {
-	ajouterPieceBox,
+	enregistrerContenuBox,
 	getBoxesDeLaCommande,
 	getContenuBoxes,
-	retirerPieceBox,
 } from '@/server/services/boxes';
 import {addItem} from '@/server/services/cart';
 import {creerCommande} from '@/server/services/checkout';
@@ -82,82 +81,74 @@ describe.skipIf(!baseDisponible)('box surprises', () => {
 		expect(relue.isMysteryBox).toBe(true);
 	});
 
-	it('ouvre autant de listes que de box commandées', async () => {
+	it('ouvre autant de cadres que de box commandées', async () => {
 		/* Deux box identiques dans une commande n'ont pas le même contenu : sans
-		   liste séparée, on ne pourrait pas dire laquelle contenait quoi. */
+		   cadre séparé, on ne pourrait pas dire laquelle contenait quoi. */
 		const {ligne} = await commanderBoxes(3);
 
 		const contenu = await getContenuBoxes(ligne.id);
 
 		expect(contenu).toHaveLength(3);
 		expect(contenu.map((box) => box.numero)).toEqual([1, 2, 3]);
-		expect(contenu.every((box) => box.pieces.length === 0)).toBe(true);
+		expect(contenu.every((box) => box.contenu === '')).toBe(true);
 	});
 
-	it('garde les pièces dans l’ordre de saisie, box par box', async () => {
+	it('garde une note par box, sans mélanger les exemplaires', async () => {
 		const {ligne} = await commanderBoxes(2);
 
-		await ajouterPieceBox({orderItemId: ligne.id, boxNumber: 1, label: 'Figurine Chopper'});
-		await ajouterPieceBox({orderItemId: ligne.id, boxNumber: 2, label: 'Tome 1 de Berserk'});
-		await ajouterPieceBox({
+		await enregistrerContenuBox({
 			orderItemId: ligne.id,
 			boxNumber: 1,
-			label: 'Porte-clés',
-			note: 'léger défaut de peinture',
+			contenu: 'Tome 1 de Berserk, figurine Chopper',
+		});
+		await enregistrerContenuBox({
+			orderItemId: ligne.id,
+			boxNumber: 2,
+			contenu: 'Artbook + 3 stickers',
 		});
 
 		const contenu = await getContenuBoxes(ligne.id);
 
-		expect(contenu[0].pieces.map((piece) => piece.label)).toEqual([
-			'Figurine Chopper',
-			'Porte-clés',
-		]);
-		expect(contenu[0].pieces[1].note).toBe('léger défaut de peinture');
-		expect(contenu[1].pieces.map((piece) => piece.label)).toEqual(['Tome 1 de Berserk']);
+		expect(contenu[0].contenu).toBe('Tome 1 de Berserk, figurine Chopper');
+		expect(contenu[1].contenu).toBe('Artbook + 3 stickers');
+		expect(contenu[0].modifieLe).toBeInstanceOf(Date);
 	});
 
-	it('refuse une box qui n’existe pas dans la commande', async () => {
-		/* Le formulaire n'affiche que les box vendues, mais une action serveur est
-		   appelable sans passer par sa page. */
-		const {ligne} = await commanderBoxes(2);
-
-		expect((await ajouterPieceBox({orderItemId: ligne.id, boxNumber: 3, label: 'x'})).ok).toBe(
-			false,
-		);
-		expect((await ajouterPieceBox({orderItemId: ligne.id, boxNumber: 0, label: 'x'})).ok).toBe(
-			false,
-		);
-		expect(await prisma.boxContentItem.count()).toBe(0);
-	});
-
-	it('refuse d’ajouter du contenu à une ligne qui n’est pas une box', async () => {
-		const mode = await creerModeLivraison();
-		const figurine = await creerProduit();
-
-		await addItem('jeton-simple', figurine.variants[0].id, 1);
-		const commande = await creerCommande({
-			token: 'jeton-simple',
-			adresse: ADRESSE,
-			rateId: mode.id,
-		});
-
-		const ligne = await prisma.orderItem.findFirst({where: {orderId: commande.id}});
-
-		expect((await ajouterPieceBox({orderItemId: ligne.id, boxNumber: 1, label: 'x'})).ok).toBe(
-			false,
-		);
-		expect(await getContenuBoxes(ligne.id)).toEqual([]);
-	});
-
-	it('refuse un intitulé vide ou démesuré', async () => {
+	it('réécrit la note plutôt que d’en empiler une seconde', async () => {
+		// C'est un bloc-notes : on corrige une faute de frappe en réécrivant.
 		const {ligne} = await commanderBoxes(1);
 
-		expect((await ajouterPieceBox({orderItemId: ligne.id, boxNumber: 1, label: '   '})).ok).toBe(
-			false,
-		);
-		expect(
-			(await ajouterPieceBox({orderItemId: ligne.id, boxNumber: 1, label: 'x'.repeat(201)})).ok,
-		).toBe(false);
+		await enregistrerContenuBox({orderItemId: ligne.id, boxNumber: 1, contenu: 'Fugurine'});
+		await enregistrerContenuBox({orderItemId: ligne.id, boxNumber: 1, contenu: 'Figurine'});
+
+		expect((await getContenuBoxes(ligne.id))[0].contenu).toBe('Figurine');
+		expect(await prisma.boxContent.count()).toBe(1);
+	});
+
+	it('efface la note quand le champ est vidé', async () => {
+		/* Garder une ligne vide en base laisserait croire qu'un contenu a été
+		   saisi, et le « noté le… » s'afficherait sur une note inexistante. */
+		const {ligne} = await commanderBoxes(1);
+
+		await enregistrerContenuBox({orderItemId: ligne.id, boxNumber: 1, contenu: 'Un truc'});
+		await enregistrerContenuBox({orderItemId: ligne.id, boxNumber: 1, contenu: '   '});
+
+		expect((await getContenuBoxes(ligne.id))[0].contenu).toBe('');
+		expect((await getContenuBoxes(ligne.id))[0].modifieLe).toBeNull();
+		expect(await prisma.boxContent.count()).toBe(0);
+	});
+
+	it('refuse une note démesurée', async () => {
+		const {ligne} = await commanderBoxes(1);
+
+		const resultat = await enregistrerContenuBox({
+			orderItemId: ligne.id,
+			boxNumber: 1,
+			contenu: 'x'.repeat(2001),
+		});
+
+		expect(resultat.ok).toBe(false);
+		expect(await prisma.boxContent.count()).toBe(0);
 	});
 
 	it('ne décompte rien du stock de la boutique', async () => {
@@ -166,7 +157,11 @@ describe.skipIf(!baseDisponible)('box surprises', () => {
 		   comme pour tout le reste. */
 		const {box, ligne} = await commanderBoxes(1);
 
-		await ajouterPieceBox({orderItemId: ligne.id, boxNumber: 1, label: 'Figurine rare'});
+		await enregistrerContenuBox({
+			orderItemId: ligne.id,
+			boxNumber: 1,
+			contenu: 'Figurine rare',
+		});
 
 		const variante = await prisma.productVariant.findUnique({where: {id: box.variants[0].id}});
 
@@ -174,31 +169,18 @@ describe.skipIf(!baseDisponible)('box surprises', () => {
 		expect(variante.stock).toBe(5);
 	});
 
-	it('retire une pièce mal notée', async () => {
-		const {ligne} = await commanderBoxes(1);
-
-		const ajout = await ajouterPieceBox({
-			orderItemId: ligne.id,
-			boxNumber: 1,
-			label: 'Fugurine Chopper',
-		});
-
-		expect((await retirerPieceBox(ajout.piece.id)).ok).toBe(true);
-		expect((await getContenuBoxes(ligne.id))[0].pieces).toHaveLength(0);
-		expect((await retirerPieceBox(ajout.piece.id)).ok).toBe(false);
-	});
-
 	it('remonte les box d’une commande pour la fiche du back-office', async () => {
 		const {commandeId, ligne} = await commanderBoxes(2);
 
-		await ajouterPieceBox({orderItemId: ligne.id, boxNumber: 2, label: 'Sticker'});
+		await enregistrerContenuBox({orderItemId: ligne.id, boxNumber: 2, contenu: 'Sticker'});
 
 		const boxes = await getBoxesDeLaCommande(commandeId);
 
 		expect(boxes).toHaveLength(1);
 		expect(boxes[0].nom).toBe('Box Manga');
 		expect(boxes[0].exemplaires).toHaveLength(2);
-		expect(boxes[0].exemplaires[1].pieces[0].label).toBe('Sticker');
+		expect(boxes[0].exemplaires[0].contenu).toBe('');
+		expect(boxes[0].exemplaires[1].contenu).toBe('Sticker');
 	});
 
 	it('ne remonte aucune box sur une commande ordinaire', async () => {
@@ -213,5 +195,46 @@ describe.skipIf(!baseDisponible)('box surprises', () => {
 		});
 
 		expect(await getBoxesDeLaCommande(commande.id)).toEqual([]);
+	});
+
+	it('refuse une box qui n’existe pas dans la commande', async () => {
+		/* Le formulaire n'affiche que les box vendues, mais une action serveur est
+		   appelable sans passer par sa page. */
+		const {ligne} = await commanderBoxes(2);
+
+		for (const boxNumber of [3, 0, -1, 'deux']) {
+			const resultat = await enregistrerContenuBox({
+				orderItemId: ligne.id,
+				boxNumber,
+				contenu: 'x',
+			});
+
+			expect(resultat.ok).toBe(false);
+		}
+
+		expect(await prisma.boxContent.count()).toBe(0);
+	});
+
+	it('refuse de noter une ligne qui n’est pas une box', async () => {
+		const mode = await creerModeLivraison();
+		const figurine = await creerProduit();
+
+		await addItem('jeton-simple', figurine.variants[0].id, 1);
+		const commande = await creerCommande({
+			token: 'jeton-simple',
+			adresse: ADRESSE,
+			rateId: mode.id,
+		});
+
+		const ligne = await prisma.orderItem.findFirst({where: {orderId: commande.id}});
+
+		const resultat = await enregistrerContenuBox({
+			orderItemId: ligne.id,
+			boxNumber: 1,
+			contenu: 'x',
+		});
+
+		expect(resultat.ok).toBe(false);
+		expect(await getContenuBoxes(ligne.id)).toEqual([]);
 	});
 });

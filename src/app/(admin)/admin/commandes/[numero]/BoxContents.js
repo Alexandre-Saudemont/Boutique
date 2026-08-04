@@ -2,24 +2,26 @@
 
 import {useActionState} from 'react';
 import {useFormStatus} from 'react-dom';
-import {Package, Plus, X} from 'lucide-react';
-import {ajouterPiece, retirerPiece} from '../actions';
+import {Package} from 'lucide-react';
+import {noterContenuBox} from '../actions';
+import {formatDate} from '@/lib/format';
 import styles from '../../../admin.module.css';
 
 /* Le contenu des box, noté à la préparation.
 
-   Un bloc par exemplaire vendu : commander deux box identiques donne deux
-   listes distinctes, parce que leur contenu diffère — c'est tout l'intérêt
-   d'une box surprise, et c'est ce qui permet de répondre plus tard à « moi
-   j'avais quoi dedans ? ».
+   Un cadre de texte par exemplaire vendu : commander trois box donne trois
+   cadres, parce que leur contenu diffère — c'est tout l'intérêt d'une box
+   surprise, et c'est ce qui permet de répondre plus tard à « moi j'avais quoi
+   dedans ? ».
 
-   Le formulaire se remet à zéro tout seul après chaque ajout (`key` sur la
-   valeur d'état) : on emballe en enchaînant les pièces, sans repasser par la
-   souris pour vider le champ. */
+   Rien de tout ça ne sert à préparer la commande : celui qui emballe sait ce
+   qu'il met dans le carton. C'est une note pour plus tard, écrite en dix
+   secondes — d'où le texte libre plutôt qu'un inventaire ligne par ligne, qui
+   serait plus propre à relire mais qu'on n'écrirait jamais. */
 
 const ETAT_INITIAL = {statut: 'vierge'};
 
-function BoutonAjouter() {
+function BoutonNoter() {
 	const {pending} = useFormStatus();
 
 	return (
@@ -27,31 +29,14 @@ function BoutonAjouter() {
 			type='submit'
 			disabled={pending}
 			className='btn btn-secondary'
-			style={{padding: '9px 16px', fontSize: 14}}>
-			<Plus size={15} strokeWidth={2.75} />
-			{pending ? 'Ajout…' : 'Ajouter'}
-		</button>
-	);
-}
-
-function BoutonRetirer() {
-	const {pending} = useFormStatus();
-
-	return (
-		<button
-			type='submit'
-			disabled={pending}
-			className={styles.retirerPiece}
-			title='Retirer cette pièce'
-			aria-label='Retirer cette pièce'>
-			<X size={14} strokeWidth={2.75} />
+			style={{padding: '9px 16px', fontSize: 14, alignSelf: 'flex-start'}}>
+			{pending ? 'Enregistrement…' : 'Enregistrer'}
 		</button>
 	);
 }
 
 export default function BoxContents({numero, boxes, modifiable}) {
-	const [ajout, actionAjout] = useActionState(ajouterPiece, ETAT_INITIAL);
-	const [retrait, actionRetrait] = useActionState(retirerPiece, ETAT_INITIAL);
+	const [etat, action] = useActionState(noterContenuBox, ETAT_INITIAL);
 
 	return (
 		<div className={styles.carte}>
@@ -60,14 +45,14 @@ export default function BoxContents({numero, boxes, modifiable}) {
 			</h2>
 
 			<p className={styles.aide}>
-				Notez ce que vous mettez dans chaque box en l’emballant. C’est la seule
-				façon de répondre, des mois plus tard, à un client qui demande ce qu’il a
-				reçu.
+				Notez en deux mots ce que vous mettez dans chaque box en l’emballant. Ça ne
+				sert pas à préparer la commande — c’est pour pouvoir répondre, des mois plus
+				tard, à un client qui demande ce qu’il a reçu.
 			</p>
 
-			{(ajout.statut === 'erreur' || retrait.statut === 'erreur') && (
+			{etat.statut === 'erreur' && (
 				<p className={styles.erreur} role='alert'>
-					{ajout.message ?? retrait.message}
+					{etat.message}
 				</p>
 			)}
 
@@ -78,60 +63,33 @@ export default function BoxContents({numero, boxes, modifiable}) {
 							{ligne.nom}
 							{ligne.variante && ligne.variante !== 'Standard' && ` — ${ligne.variante}`}
 							{ligne.exemplaires.length > 1 && ` · box ${box.numero}`}
+							{box.modifieLe && (
+								<span className={styles.boxDate}> · noté le {formatDate(box.modifieLe)}</span>
+							)}
 						</h3>
 
-						{box.pieces.length === 0 ? (
-							<p className={styles.aide}>Rien de noté pour l’instant.</p>
-						) : (
-							<ul className={styles.listePieces}>
-								{box.pieces.map((piece) => (
-									<li key={piece.id} className={styles.piece}>
-										<span>
-											{piece.label}
-											{piece.note && (
-												<span className={styles.pieceNote}> — {piece.note}</span>
-											)}
-										</span>
-
-										{modifiable && (
-											<form action={actionRetrait}>
-												<input type='hidden' name='pieceId' value={piece.id} />
-												<input type='hidden' name='numero' value={numero} />
-												<BoutonRetirer />
-											</form>
-										)}
-									</li>
-								))}
-							</ul>
-						)}
-
-						{modifiable && (
-							<form
-								action={actionAjout}
-								className={styles.formulairePiece}
-								key={box.pieces.length}>
+						{modifiable ? (
+							<form action={action} className={styles.formulaireBox}>
 								<input type='hidden' name='ligneId' value={ligne.id} />
 								<input type='hidden' name='boxNumber' value={box.numero} />
 								<input type='hidden' name='numero' value={numero} />
 
-								<input
-									className='input'
-									name='label'
-									required
-									maxLength={200}
-									placeholder='Figurine Chopper 10 cm, neuve'
-									aria-label='Pièce mise dans la box'
-								/>
-								<input
-									className='input'
-									name='note'
-									maxLength={500}
-									placeholder='Précision (facultatif)'
-									aria-label='Précision'
+								<textarea
+									className={`input ${styles.zoneBox}`}
+									name='contenu'
+									rows={3}
+									maxLength={2000}
+									defaultValue={box.contenu}
+									placeholder='Tome 1 de Berserk (occasion), figurine Chopper 10 cm, 3 stickers…'
+									aria-label={`Contenu de la box ${box.numero}`}
 								/>
 
-								<BoutonAjouter />
+								<BoutonNoter />
 							</form>
+						) : box.contenu ? (
+							<p className={styles.contenuBox}>{box.contenu}</p>
+						) : (
+							<p className={styles.aide}>Rien de noté.</p>
 						)}
 					</section>
 				)),

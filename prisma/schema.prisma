@@ -583,7 +583,7 @@ model OrderItem {
   order          Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
   variant        ProductVariant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
   downloadGrants DownloadGrant[]
-  boxContents    BoxContentItem[]
+  boxContents    BoxContent[]
 
   @@index([orderId])
   @@index([variantId])
@@ -592,32 +592,34 @@ model OrderItem {
 
 /// Ce qui a été mis dans une box surprise, exemplaire par exemplaire.
 ///
-/// **Du texte libre, pas une référence au catalogue.** Le contenu des box vient
-/// d'un stock à part — déstockage, lots, chines — qui n'est pas en vente sur le
-/// site. Forcer une référence produit obligerait à créer une fiche pour chaque
-/// pièce jamais vendue à l'unité, pour le seul plaisir d'avoir une clé
-/// étrangère.
+/// **Un seul bloc de texte libre par box.** Pas une liste de pièces, pas une
+/// référence au catalogue. Le contenu vient d'un stock à part — déstockage,
+/// lots, chines — qui n'est pas en vente sur le site : forcer une référence
+/// produit obligerait à créer une fiche pour chaque pièce jamais vendue à
+/// l'unité.
 ///
-/// À quoi ça sert : répondre à « qu'est-ce qu'il y avait dans ma box ? » six
-/// mois après. Rien n'oblige légalement à le transmettre, mais sans la trace il
-/// n'y a même pas le choix.
-model BoxContentItem {
+/// Et pas une ligne par pièce non plus : cette note ne sert pas à préparer la
+/// commande — celui qui emballe sait ce qu'il met dedans. Elle sert à répondre
+/// à « qu'est-ce qu'il y avait dans ma box ? » des mois plus tard. Une note
+/// jetée en dix secondes le permet aussi bien qu'un inventaire en bonne et due
+/// forme, et elle, elle sera écrite.
+model BoxContent {
   id          String @id @default(cuid())
   orderItemId String
 
   /// De quelle box il s'agit quand la ligne en porte plusieurs : 1, 2, 3…
   /// Deux box identiques dans la même commande n'ont pas le même contenu.
   boxNumber Int    @default(1)
-  label     String
-  note      String?
-  position  Int    @default(0)
+  content   String
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
+  @@unique([orderItemId, boxNumber])
   @@index([orderItemId])
-  @@map("box_content_items")
+  @@map("box_contents")
 }
 
 model Payment {
