@@ -63,3 +63,25 @@ body {
 .skip-link:focus-visible {
 	transform: translateY(0);
 }
+
+/* Arrondi des champs de saisie.
+
+   Le design system termine par un bloc « rounded frame » qui met tous les
+   petits contrôles en pilule — `.btn`, `.tag`, `.seg` et `.input` passent à
+   `border-radius: 999px`. Sur un bouton, c'est l'identité du site et ça marche.
+   Sur un champ où l'on écrit, beaucoup moins : le texte se colle aux bords
+   arrondis, et un `textarea` de trois lignes devient un ovale.
+
+   On rétablit donc un rayon sobre pour ce qui se remplit — champs, zones de
+   texte, listes déroulantes — et on laisse les boutons en pilule. La règle vit
+   ici et non dans `organic.css`, qui est le handoff du designer et ne se
+   retouche pas : le jour où il livre une nouvelle version, elle s'écrase sans
+   emporter nos décisions.
+
+   Un seul endroit pour toute l'application : la vitrine et le back-office
+   utilisent la même classe `.input`, donc les champs se ressemblent partout. */
+.input,
+textarea.input,
+select.input {
+	border-radius: var(--radius-sm);
+}
