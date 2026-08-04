@@ -67,6 +67,13 @@ const nextConfig = {
 
 	images: {remotePatterns: hotesImages},
 
+	/* Les ouvrages numériques sont téléversés par une action serveur, dont le
+	   corps est limité à 1 Mo par défaut — de quoi refuser le premier PDF venu.
+	   La borne reste basse volontairement : elle est ce qui empêche un envoi
+	   énorme d'occuper la mémoire du serveur, et `enregistrerFichier` refuse de
+	   toute façon au-delà. */
+	experimental: {serverActions: {bodySizeLimit: '50mb'}},
+
 	async headers() {
 		return [{source: '/:path*', headers: enTetesSecurite}];
 	},

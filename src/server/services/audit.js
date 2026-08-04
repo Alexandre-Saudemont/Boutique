@@ -39,6 +39,8 @@ export const ACTIONS = {
 	AVIS_REPONDU: 'review.replied',
 	ROLE_MODIFIE: 'user.role_changed',
 	PROMO_MODIFIEE: 'discount.updated',
+	FICHIER_AJOUTE: 'digital_asset.added',
+	FICHIER_RETIRE: 'digital_asset.removed',
 };
 
 export async function journaliser({utilisateurId, action, type, id, details = null}) {

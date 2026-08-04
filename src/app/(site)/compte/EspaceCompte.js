@@ -3,7 +3,7 @@
 import {useActionState, useState} from 'react';
 import Link from 'next/link';
 import {useFormStatus} from 'react-dom';
-import {Heart, LogOut, MapPin, Package, ShieldCheck, User} from 'lucide-react';
+import {FileDown, Heart, LogOut, MapPin, Package, ShieldCheck, User} from 'lucide-react';
 import {enregistrerProfil, seDeconnecter, supprimerMonCompte} from './actions';
 import {formatDate, formatPrix} from '@/lib/format';
 import styles from './compte.module.css';
@@ -33,6 +33,7 @@ const LIBELLES_STATUT = {
 
 const SECTIONS = [
 	{cle: 'commandes', nom: 'Mes commandes', Icone: Package},
+	{cle: 'fichiers', nom: 'Mes fichiers', Icone: FileDown},
 	{cle: 'infos', nom: 'Mes informations', Icone: User},
 	{cle: 'adresses', nom: 'Mes adresses', Icone: MapPin},
 	{cle: 'favoris', nom: 'Mes favoris', Icone: Heart},
@@ -117,7 +118,72 @@ function BoutonSupprimer() {
 	);
 }
 
-export default function EspaceCompte({utilisateur, commandes}) {
+function poidsLisible(octets) {
+	const mo = octets / (1024 * 1024);
+	return mo >= 1 ? `${mo.toFixed(1)} Mo` : `${Math.max(1, Math.round(octets / 1024))} Ko`;
+}
+
+/* Les ouvrages numériques achetés.
+
+   Sans compteur ni date limite, contrairement au lien reçu par e-mail : c'est
+   ce qui a été promis au client — le lien est une commodité, le compte est le
+   vrai dépôt.
+
+   Un formulaire par fichier, jamais un lien : le téléchargement s'écrit en POST
+   pour qu'aucun préchargement de navigateur n'aille chercher des fichiers de
+   deux cents mégaoctets à l'ouverture de la page. */
+function MesFichiers({fichiers}) {
+	if (fichiers.length === 0) {
+		return (
+			<div className={styles.sectionVide}>
+				<h2 className={styles.titreSection}>Aucun fichier pour l&apos;instant</h2>
+				<p className={styles.texteVide}>
+					Les ouvrages numériques que vous achetez apparaissent ici, à retélécharger
+					autant de fois que vous voulez.
+				</p>
+				<Link href='/boutique' className='btn btn-primary' style={{padding: '11px 22px'}}>
+					Voir les ouvrages du geek
+				</Link>
+			</div>
+		);
+	}
+
+	return (
+		<div className={styles.carteSection}>
+			<h2 className={styles.titreSection}>Mes fichiers</h2>
+
+			<p className={styles.texteVide} style={{textAlign: 'left', marginBottom: 18}}>
+				Ils restent ici sans limite de temps ni de nombre de téléchargements.
+			</p>
+
+			<div className={styles.listeCommandes}>
+				{fichiers.map((fichier) => (
+					<article key={fichier.id} className={styles.commande}>
+						<div>
+							<span className={styles.numeroCommande}>{fichier.produit}</span>
+							<p className={styles.metaCommande}>
+								{fichier.nom} · {poidsLisible(fichier.octets)}
+								{fichier.date ? ` · acheté le ${formatDate(fichier.date)}` : ''}
+							</p>
+						</div>
+
+						<form action={`/compte/fichier/${fichier.id}`} method='post'>
+							<button
+								type='submit'
+								className='btn btn-secondary'
+								style={{padding: '9px 18px', fontSize: 14}}>
+								<FileDown size={16} strokeWidth={2.75} />
+								Télécharger
+							</button>
+						</form>
+					</article>
+				))}
+			</div>
+		</div>
+	);
+}
+
+export default function EspaceCompte({utilisateur, commandes, fichiers = []}) {
 	const [section, setSection] = useState('commandes');
 	const [etat, action] = useActionState(enregistrerProfil, ETAT_INITIAL);
 
@@ -206,6 +272,8 @@ export default function EspaceCompte({utilisateur, commandes}) {
 								))}
 							</div>
 						))}
+
+					{section === 'fichiers' && <MesFichiers fichiers={fichiers} />}
 
 					{section === 'infos' && (
 						<form action={action} className={styles.carteSection}>

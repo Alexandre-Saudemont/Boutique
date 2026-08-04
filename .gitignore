@@ -2,3 +2,7 @@
 node_modules
 .cursor
 .env
+
+# Fichiers des ouvrages numériques. Hors du dossier servi, et hors du dépôt :
+# ce sont les créations vendues, elles n'ont rien à faire dans un clone.
+.stockage

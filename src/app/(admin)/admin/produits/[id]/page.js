@@ -6,6 +6,7 @@ import {getProduitPourEdition, getReferentiels} from '@/server/services/product-
 import {formatDate} from '@/lib/format';
 import ProductForm from '../ProductForm';
 import ArchiveButton from './ArchiveButton';
+import DigitalFiles from './DigitalFiles';
 import styles from '../../../admin.module.css';
 
 /* Modification d'un produit.
@@ -65,6 +66,21 @@ export default async function ModifierProduit({params, searchParams}) {
 				)}
 
 				<ProductForm produit={produit} referentiels={referentiels} />
+
+				{/* Seulement sur un ouvrage numérique : sur une figurine, ce bloc n'a
+				    rien à dire et ferait douter de ce qu'on est en train de vendre. */}
+				{produit.kind === 'DIGITAL' && (
+					<DigitalFiles
+						produitId={produit.id}
+						fichiers={produit.digitalAssets.map((asset) => ({
+							id: asset.id,
+							fileName: asset.fileName,
+							sizeBytes: asset.sizeBytes,
+							createdAt: asset.createdAt,
+							ventes: asset._count.grants,
+						}))}
+					/>
+				)}
 			</div>
 		</>
 	);

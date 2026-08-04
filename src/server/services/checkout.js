@@ -83,14 +83,25 @@ const CHAMPS_OBLIGATOIRES = {
 	city: 'La ville est obligatoire.',
 };
 
-export function validerAdresse(donnees) {
-	const erreurs = {};
+/* Une commande entièrement dématérialisée n'a pas d'adresse à valider : demander
+   un code postal pour livrer un fichier fait abandonner des clients, et nous
+   ferait conserver des données dont nous n'avons aucun usage. Restent le nom —
+   la facture doit dire à qui elle est émise — et l'adresse e-mail, qui est ici
+   le vrai canal de livraison. */
+const CHAMPS_DEMATERIALISE = {
+	firstName: CHAMPS_OBLIGATOIRES.firstName,
+	lastName: CHAMPS_OBLIGATOIRES.lastName,
+};
 
-	for (const [champ, message] of Object.entries(CHAMPS_OBLIGATOIRES)) {
+export function validerAdresse(donnees, {dematerialise = false} = {}) {
+	const erreurs = {};
+	const obligatoires = dematerialise ? CHAMPS_DEMATERIALISE : CHAMPS_OBLIGATOIRES;
+
+	for (const [champ, message] of Object.entries(obligatoires)) {
 		if (!String(donnees[champ] ?? '').trim()) erreurs[champ] = message;
 	}
 
-	if (donnees.postalCode && !/^\d{5}$/.test(String(donnees.postalCode).trim())) {
+	if (!dematerialise && donnees.postalCode && !/^\d{5}$/.test(String(donnees.postalCode).trim())) {
 		erreurs.postalCode = 'Le code postal doit faire cinq chiffres.';
 	}
 
@@ -149,17 +160,23 @@ export async function creerCommande({
 		return {ok: false, erreur: 'Votre panier est vide.'};
 	}
 
-	const controle = validerAdresse(adresse);
+	/* Le caractère dématérialisé est relu du panier en base, jamais reçu du
+	   formulaire : sinon un champ caché forgé ferait sauter les frais de port
+	   d'une commande de figurines. */
+	const {dematerialise} = panier;
+
+	const controle = validerAdresse(adresse, {dematerialise});
 	if (!controle.valide) {
-		return {ok: false, erreur: 'Adresse incomplète.', erreurs: controle.erreurs};
+		return {ok: false, erreur: 'Coordonnées incomplètes.', erreurs: controle.erreurs};
 	}
 
 	/* Le mode de livraison est jugé sur le montant **après réduction** — décision
 	   du client : on regarde ce qu'il paie réellement, pas ce qu'il aurait payé
 	   sans son code. C'est `getCart` qui a déjà fait ce calcul, on ne le refait
 	   pas ici pour être sûr que le panier et la commande disent la même chose. */
-	const mode = await getModeLivraison(rateId, panier.totalApresReductionCents);
-	if (!mode) {
+	const mode = dematerialise ? null : await getModeLivraison(rateId, panier.totalApresReductionCents);
+
+	if (!dematerialise && !mode) {
 		return {ok: false, erreur: 'Choisissez un mode de livraison.'};
 	}
 
@@ -205,9 +222,9 @@ export async function creerCommande({
 
 	const reductionCents = promo?.ok ? promo.reductionCents : 0;
 
-	// Un code « livraison offerte » met les frais de port à zéro, quel que soit
-	// le mode choisi.
-	const livraisonCents = promo?.ok && promo.livraisonOfferte ? 0 : mode.prixCents;
+	/* Un code « livraison offerte » met les frais de port à zéro, quel que soit le
+	   mode choisi — et une commande dématérialisée n'en a jamais eu. */
+	const livraisonCents = dematerialise || (promo?.ok && promo.livraisonOfferte) ? 0 : mode.prixCents;
 
 	const totalCents = sousTotalCents - reductionCents + livraisonCents;
 
@@ -228,8 +245,10 @@ export async function creerCommande({
 				vatCents: 0,
 				totalCents,
 				customerNote: note,
-				carrier: mode.transporteur,
-				shippingMethod: mode.nom,
+				carrier: mode?.transporteur ?? null,
+				// Dit franchement sur la commande qu'il n'y a rien à expédier : c'est
+				// la première chose que le back-office lit sur une fiche.
+				shippingMethod: mode?.nom ?? 'Téléchargement',
 				placedAt: new Date(),
 				items: {create: articles},
 				/* Le paiement est créé en attente dès la commande : c'est lui que le
@@ -243,19 +262,26 @@ export async function creerCommande({
 						amountCents: totalCents,
 					},
 				},
-				addresses: {
-					create: {
-						type: 'SHIPPING',
-						firstName: String(adresse.firstName).trim(),
-						lastName: String(adresse.lastName).trim(),
-						line1: String(adresse.line1).trim(),
-						line2: adresse.line2 ? String(adresse.line2).trim() : null,
-						postalCode: String(adresse.postalCode).trim(),
-						city: String(adresse.city).trim(),
-						country: 'FR',
-						phone: adresse.phone ? String(adresse.phone).trim() : null,
-					},
-				},
+				/* Pas d'adresse du tout sur une commande dématérialisée : nous n'en
+				   avons pas demandé, et en inventer une vide ferait croire à une
+				   expédition en attente sur la fiche de commande. */
+				...(dematerialise
+					? {}
+					: {
+							addresses: {
+								create: {
+									type: 'SHIPPING',
+									firstName: String(adresse.firstName).trim(),
+									lastName: String(adresse.lastName).trim(),
+									line1: String(adresse.line1).trim(),
+									line2: adresse.line2 ? String(adresse.line2).trim() : null,
+									postalCode: String(adresse.postalCode).trim(),
+									city: String(adresse.city).trim(),
+									country: 'FR',
+									phone: adresse.phone ? String(adresse.phone).trim() : null,
+								},
+							},
+						}),
 			},
 		});
 

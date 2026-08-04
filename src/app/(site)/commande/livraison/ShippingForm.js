@@ -72,11 +72,28 @@ export default function ShippingForm({panier, modes, brouillon}) {
 		</label>
 	);
 
+	/* Un panier entièrement dématérialisé n'a ni mode d'expédition ni adresse
+	   postale : demander un code postal pour livrer un fichier fait abandonner
+	   des clients, et nous ferait garder des données sans usage. Le serveur
+	   revérifie cette condition sur le panier en base — ce que le navigateur
+	   affiche ne décide de rien. */
+	const {dematerialise} = panier;
+
 	return (
 		<form action={action} className={styles.colonnes}>
 			<div className={styles.contenu}>
-				<fieldset className={styles.carte}>
-					<legend className={styles.carteTitre}>Mode de livraison</legend>
+				{dematerialise ? (
+					<div className={styles.carte}>
+						<p className={styles.carteTitre}>Livraison par e-mail</p>
+						<p className={styles.mentionDonnees} style={{marginTop: 8}}>
+							Votre panier ne contient que des ouvrages numériques : rien ne part
+							par la poste. Vos fichiers vous attendent dès le paiement confirmé,
+							par e-mail et dans votre compte.
+						</p>
+					</div>
+				) : (
+					<fieldset className={styles.carte}>
+						<legend className={styles.carteTitre}>Mode de livraison</legend>
 
 					<div className={styles.modes}>
 						{modes.map((candidat) => (
@@ -111,18 +128,21 @@ export default function ShippingForm({panier, modes, brouillon}) {
 						))}
 					</div>
 
-					{erreurs.rateId && <p className={styles.erreurChamp}>{erreurs.rateId}</p>}
+						{erreurs.rateId && <p className={styles.erreurChamp}>{erreurs.rateId}</p>}
 
-					{mode?.pointRelais && (
-						<p className={styles.noteRelais}>
-							Le choix du point relais se fera après le paiement, par e-mail — la carte
-							Mondial Relay n&apos;est pas encore branchée.
-						</p>
-					)}
-				</fieldset>
+						{mode?.pointRelais && (
+							<p className={styles.noteRelais}>
+								Le choix du point relais se fera après le paiement, par e-mail — la
+								carte Mondial Relay n&apos;est pas encore branchée.
+							</p>
+						)}
+					</fieldset>
+				)}
 
 				<fieldset className={styles.carte}>
-					<legend className={styles.carteTitre}>Adresse de livraison</legend>
+					<legend className={styles.carteTitre}>
+						{dematerialise ? 'Vos coordonnées' : 'Adresse de livraison'}
+					</legend>
 
 					<div className={styles.grilleChamps}>
 						{champ('firstName', 'Prénom', {
@@ -130,37 +150,50 @@ export default function ShippingForm({panier, modes, brouillon}) {
 							placeholder: 'Camille',
 						})}
 						{champ('lastName', 'Nom', {autoComplete: 'family-name', placeholder: 'Renaud'})}
-						{champ('line1', 'Adresse', {
-							large: true,
-							autoComplete: 'address-line1',
-							placeholder: '12 rue des Trouvailles',
-						})}
-						{champ('line2', 'Complément (facultatif)', {
-							large: true,
-							autoComplete: 'address-line2',
-							placeholder: 'Bâtiment B, 3e étage',
-						})}
-						{champ('postalCode', 'Code postal', {
-							autoComplete: 'postal-code',
-							placeholder: '69001',
-						})}
-						{champ('city', 'Ville', {autoComplete: 'address-level2', placeholder: 'Lyon'})}
+
+						{!dematerialise && (
+							<>
+								{champ('line1', 'Adresse', {
+									large: true,
+									autoComplete: 'address-line1',
+									placeholder: '12 rue des Trouvailles',
+								})}
+								{champ('line2', 'Complément (facultatif)', {
+									large: true,
+									autoComplete: 'address-line2',
+									placeholder: 'Bâtiment B, 3e étage',
+								})}
+								{champ('postalCode', 'Code postal', {
+									autoComplete: 'postal-code',
+									placeholder: '69001',
+								})}
+								{champ('city', 'Ville', {
+									autoComplete: 'address-level2',
+									placeholder: 'Lyon',
+								})}
+							</>
+						)}
+
 						{champ('email', 'E-mail', {
 							large: true,
 							type: 'email',
 							autoComplete: 'email',
 							placeholder: 'vous@exemple.fr',
 						})}
-						{champ('phone', 'Téléphone (facultatif)', {
-							large: true,
-							type: 'tel',
-							autoComplete: 'tel',
-							placeholder: '06 12 34 56 78',
-						})}
+
+						{!dematerialise &&
+							champ('phone', 'Téléphone (facultatif)', {
+								large: true,
+								type: 'tel',
+								autoComplete: 'tel',
+								placeholder: '06 12 34 56 78',
+							})}
 					</div>
 
 					<p className={styles.mentionDonnees}>
-						Ces informations ne servent qu&apos;à préparer et suivre votre commande.
+						{dematerialise
+							? 'C’est à cette adresse e-mail que partent vos fichiers. Votre nom ne sert qu’à établir la facture.'
+							: 'Ces informations ne servent qu’à préparer et suivre votre commande.'}
 					</p>
 				</fieldset>
 
@@ -183,7 +216,7 @@ export default function ShippingForm({panier, modes, brouillon}) {
 
 			<CartSummary
 				panier={panier}
-				livraisonCents={mode?.prixCents ?? null}
+				livraisonCents={dematerialise ? 0 : (mode?.prixCents ?? null)}
 				action={<BoutonContinuer />}
 			/>
 		</form>

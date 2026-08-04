@@ -45,20 +45,31 @@ export default function CartSummary({panier, livraisonCents = null, action, code
 					</div>
 				)}
 
-				<div className={styles.ligne}>
-					<span className={styles.libelle}>Livraison</span>
-					<span
-						className={`${styles.valeur} ${livraisonOfferte ? styles.valeurOfferte : ''}`}>
-						{livraisonConnue
-							? livraisonOfferte
-								? 'Offerte'
-								: formatPrix(livraisonCents)
-							: 'À l’étape suivante'}
-					</span>
-				</div>
+				{/* Un panier entièrement dématérialisé n'a pas de ligne de livraison :
+				    écrire « Offerte » sur des fichiers laisserait croire qu'un colis
+				    est en route, et « plus que 12 € pour la livraison offerte » n'a
+				    aucun sens sur un PDF. */}
+				{!panier.dematerialise && (
+					<div className={styles.ligne}>
+						<span className={styles.libelle}>Livraison</span>
+						<span
+							className={`${styles.valeur} ${livraisonOfferte ? styles.valeurOfferte : ''}`}>
+							{livraisonConnue
+								? livraisonOfferte
+									? 'Offerte'
+									: formatPrix(livraisonCents)
+								: 'À l’étape suivante'}
+						</span>
+					</div>
+				)}
 			</div>
 
-			{franco.seuilCents > 0 &&
+			{panier.dematerialise && (
+				<p className={styles.indice}>Livraison par e-mail — rien ne part par la poste.</p>
+			)}
+
+			{!panier.dematerialise &&
+				franco.seuilCents > 0 &&
 				(franco.atteint ? (
 					<p className={styles.indice}>
 						Livraison offerte — vous avez dépassé{' '}

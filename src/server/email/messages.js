@@ -95,8 +95,29 @@ function articlesEnTexte(commande) {
 /* Confirmation de commande, envoyée quand le paiement est confirmé — jamais
    avant. Un « merci pour votre commande » envoyé sur un paiement qui échoue
    ensuite oblige à écrire un second message pour se dédire. */
-export async function envoyerConfirmationCommande(commande) {
+export async function envoyerConfirmationCommande(commande, liensTelechargement = []) {
 	const sujet = `Votre commande ${commande.orderNumber} est confirmée`;
+
+	/* Une commande peut être entièrement dématérialisée : dans ce cas il n'y a
+	   pas de colis à annoncer, et promettre un envoi ferait attendre le client
+	   pour rien. */
+	const aDesFichiers = liensTelechargement.length > 0;
+	const toutEstNumerique = commande.items.every((ligne) => ligne.kind === 'DIGITAL');
+
+	const suite = toutEstNumerique
+		? 'Vos fichiers vous attendent, rien d’autre ne partira par la poste.'
+		: 'Je prépare votre colis et je vous préviens dès qu’il part.';
+
+	const lienDe = (lien) =>
+		`${adresseDuSite()}/telechargement/${encodeURIComponent(lien.jeton)}`;
+
+	const blocTexte = aDesFichiers
+		? `\nÀ télécharger :\n${liensTelechargement
+				.map((lien) => `- ${lien.fileName} : ${lienDe(lien)}`)
+				.join('\n')}\n
+Ces liens sont valables trente jours et cinq téléchargements. Passé ce délai,
+vos fichiers restent disponibles depuis votre compte, sans limite.\n`
+		: '';
 
 	const texte = `Merci !
 
@@ -106,8 +127,8 @@ ${articlesEnTexte(commande)}
 
 Livraison : ${commande.shippingCents === 0 ? 'offerte' : formatPrix(commande.shippingCents)}
 Total : ${formatPrix(commande.totalCents)}
-
-Je prépare votre colis et je vous préviens dès qu'il part.
+${blocTexte}
+${suite}
 
 Le Vieux geek`;
 
@@ -123,7 +144,19 @@ Le Vieux geek`;
 <tr><td style="padding:6px 0;font-weight:bold;">Total</td><td style="padding:6px 0;text-align:right;font-weight:bold;">${formatPrix(
 			commande.totalCents,
 		)}</td></tr></table>
-<p style="font-size:15px;line-height:1.6;">Je prépare votre colis et je vous préviens dès qu'il part.</p>`,
+${
+	aDesFichiers
+		? `<p style="font-size:15px;line-height:1.6;margin-top:22px;"><strong>À télécharger</strong></p>
+<ul style="font-size:15px;line-height:1.8;padding-left:18px;">${liensTelechargement
+				.map(
+					(lien) =>
+						`<li><a href="${lienDe(lien)}" style="color:#a4502a;">${echapper(lien.fileName)}</a></li>`,
+				)
+				.join('')}</ul>
+<p style="font-size:13px;color:#6b6459;line-height:1.6;">Ces liens sont valables trente jours et cinq téléchargements. Passé ce délai, vos fichiers restent disponibles depuis votre compte, sans limite.</p>`
+		: ''
+}
+<p style="font-size:15px;line-height:1.6;">${echapper(suite)}</p>`,
 	);
 
 	return envoyerEmail({destinataire: commande.email, sujet, texte, html});

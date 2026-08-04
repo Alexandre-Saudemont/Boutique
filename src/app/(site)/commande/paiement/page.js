@@ -39,16 +39,19 @@ export default async function Paiement({searchParams}) {
 		redirect('/panier');
 	}
 
-	// Sans adresse en brouillon, on ne peut rien facturer : retour à l'étape 2.
-	if (!brouillon?.adresse || !brouillon?.rateId) {
+	// Sans coordonnées en brouillon, on ne peut rien facturer : retour à l'étape 2.
+	// Le mode de livraison n'est exigé que s'il y a quelque chose à expédier.
+	if (!brouillon?.adresse || (!panier.dematerialise && !brouillon?.rateId)) {
 		redirect('/commande/livraison');
 	}
 
 	// Même base que la page précédente et que la création de commande : le
 	// montant après réduction.
-	const mode = await getModeLivraison(brouillon.rateId, panier.totalApresReductionCents);
+	const mode = panier.dematerialise
+		? null
+		: await getModeLivraison(brouillon.rateId, panier.totalApresReductionCents);
 
-	if (!mode) {
+	if (!panier.dematerialise && !mode) {
 		redirect('/commande/livraison');
 	}
 

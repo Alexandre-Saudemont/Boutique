@@ -4,6 +4,7 @@ import {redirect} from 'next/navigation';
 import {headers} from 'next/headers';
 import {revalidatePath} from 'next/cache';
 import {creerCommande, validerAdresse} from '@/server/services/checkout';
+import {getCart} from '@/server/services/cart';
 import {creerSessionPaiement, paiementEnLigneActif} from '@/server/services/payments';
 import {getCartToken} from '@/server/auth/cart-session';
 import {getBrouillonCommande, setBrouillonCommande} from '@/server/auth/checkout-session';
@@ -37,13 +38,19 @@ export async function enregistrerLivraison(_precedent, donnees) {
 	const adresse = lireAdresse(donnees);
 	const rateId = donnees.get('rateId');
 
-	const controle = validerAdresse(adresse);
+	/* Relu du panier en base, pas du formulaire : le formulaire masque les champs
+	   d'adresse quand tout est dématérialisé, mais un envoi forgé pourrait
+	   prétendre l'être pour éviter les frais de port. */
+	const panier = await getCart(await getCartToken(), await getCodePromo());
+	const {dematerialise} = panier;
+
+	const controle = validerAdresse(adresse, {dematerialise});
 
 	if (!controle.valide) {
 		return {statut: 'erreur', erreurs: controle.erreurs, adresse, rateId};
 	}
 
-	if (!rateId) {
+	if (!dematerialise && !rateId) {
 		return {
 			statut: 'erreur',
 			erreurs: {rateId: 'Choisissez un mode de livraison.'},
@@ -52,7 +59,11 @@ export async function enregistrerLivraison(_precedent, donnees) {
 		};
 	}
 
-	await setBrouillonCommande({adresse, rateId, note: donnees.get('note') || null});
+	await setBrouillonCommande({
+		adresse,
+		rateId: dematerialise ? null : rateId,
+		note: donnees.get('note') || null,
+	});
 
 	redirect('/commande/paiement');
 }

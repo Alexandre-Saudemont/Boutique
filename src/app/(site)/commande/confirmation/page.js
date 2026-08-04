@@ -48,6 +48,10 @@ export default async function Confirmation({searchParams}) {
 	const payee = commande.status !== 'PENDING_PAYMENT';
 	const enVerification = !payee && parametres?.paiement === 'succes';
 
+	/* Rien à expédier : l'écran ne doit pas parler de colis. Relu des lignes
+	   figées de la commande, la seule source qui ne bougera plus. */
+	const dematerialisee = commande.items.every((ligne) => ligne.kind === 'DIGITAL');
+
 	return (
 		<section className={styles.page}>
 			<CheckoutSteps courante='confirmation' />
@@ -67,8 +71,18 @@ export default async function Confirmation({searchParams}) {
 
 				{payee ? (
 					<div className={styles.enAttente}>
-						<strong>Paiement reçu.</strong> Je prépare votre colis et vous préviens
-						dès qu&apos;il part.
+						{dematerialisee ? (
+							<>
+								<strong>Paiement reçu.</strong> Vos fichiers partent par e-mail à
+								l&apos;instant, et vous les retrouverez dans votre compte quand vous
+								voudrez.
+							</>
+						) : (
+							<>
+								<strong>Paiement reçu.</strong> Je prépare votre colis et vous préviens
+								dès qu&apos;il part.
+							</>
+						)}
 					</div>
 				) : enVerification ? (
 					<div className={styles.enAttente}>
@@ -90,14 +104,19 @@ export default async function Confirmation({searchParams}) {
 						<dt>Articles</dt>
 						<dd>{formatPrix(commande.subtotalCents)}</dd>
 					</div>
-					<div className={styles.resumeLigne}>
-						<dt>{commande.shippingMethod}</dt>
-						<dd>
-							{commande.shippingCents === 0
-								? 'Offerte'
-								: formatPrix(commande.shippingCents)}
-						</dd>
-					</div>
+					{/* Pas de ligne de livraison sur une commande dématérialisée :
+					    « Téléchargement — Offerte » se lit comme un cadeau qu'on
+					    n'a pas fait, alors qu'il n'y a simplement rien à expédier. */}
+					{!dematerialisee && (
+						<div className={styles.resumeLigne}>
+							<dt>{commande.shippingMethod}</dt>
+							<dd>
+								{commande.shippingCents === 0
+									? 'Offerte'
+									: formatPrix(commande.shippingCents)}
+							</dd>
+						</div>
+					)}
 					<div className={`${styles.resumeLigne} ${styles.resumeTotal}`}>
 						<dt>Total</dt>
 						<dd>{formatPrix(commande.totalCents)}</dd>

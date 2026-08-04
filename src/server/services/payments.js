@@ -2,6 +2,7 @@ import 'server-only';
 import Stripe from 'stripe';
 import {prisma} from '@/server/db';
 import {envoyerConfirmationCommande} from '@/server/email/messages';
+import {delivrerTelechargements} from '@/server/services/digital';
 
 /* L'encaissement.
 
@@ -59,6 +60,10 @@ export async function creerSessionPaiement({commandeId, jetonPanier, origine}) {
 	const paiement = commande.payments[0];
 	if (!paiement) return {ok: false, erreur: 'Aucun paiement en attente sur cette commande.'};
 
+	// Relu des lignes figées de la commande : c'est la seule source qui ne peut
+	// plus bouger entre la validation et le paiement.
+	const dematerialise = commande.items.every((ligne) => ligne.kind === 'DIGITAL');
+
 	const articles = commande.items.map((ligne) => ({
 		quantity: ligne.quantity,
 		price_data: {
@@ -89,16 +94,24 @@ export async function creerSessionPaiement({commandeId, jetonPanier, origine}) {
 			},
 			/* La livraison passe par `shipping_options` plutôt que par une ligne
 			   d'article : elle apparaît ainsi comme frais de port sur la page de
-			   paiement et sur le reçu Stripe, pas comme un produit acheté. */
-			shipping_options: [
-				{
-					shipping_rate_data: {
-						type: 'fixed_amount',
-						display_name: commande.shippingMethod ?? 'Livraison',
-						fixed_amount: {amount: commande.shippingCents, currency: 'eur'},
-					},
-				},
-			],
+			   paiement et sur le reçu Stripe, pas comme un produit acheté.
+
+			   Une commande entièrement dématérialisée n'en a aucune : afficher
+			   « Livraison — 0,00 € » sur l'achat d'un fichier ferait chercher un
+			   colis qui n'existe pas. */
+			...(dematerialise
+				? {}
+				: {
+						shipping_options: [
+							{
+								shipping_rate_data: {
+									type: 'fixed_amount',
+									display_name: commande.shippingMethod ?? 'Livraison',
+									fixed_amount: {amount: commande.shippingCents, currency: 'eur'},
+								},
+							},
+						],
+					}),
 			/* Une heure pour payer. Passé ce délai la session expire : la commande
 			   reste en attente et le visiteur peut en repasser une. */
 			expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
@@ -215,11 +228,20 @@ export async function confirmerPaiement(session) {
 		if (jeton) await tx.cartItem.deleteMany({where: {cart: {sessionToken: jeton}}});
 	});
 
+	/* Les droits de téléchargement sont délivrés après la transaction et avant
+	   l'e-mail, parce que les liens partent dedans. La fonction est idempotente :
+	   un rejeu du webhook ne délivre pas un second jeu de liens.
+
+	   Une commande sans ouvrage numérique n'y passe qu'une requête de lecture, ce
+	   qui vaut mieux qu'un `if` sur le type des lignes ici — la règle de « qu'est-ce
+	   qui donne droit à quoi » vit dans un seul fichier. */
+	const {liens} = await delivrerTelechargements(commande.id);
+
 	/* L'e-mail part après la transaction, jamais dedans : un envoi lent
 	   tiendrait la transaction ouverte, et un envoi raté annulerait
 	   l'encaissement. `envoyerConfirmationCommande` ne lève pas — au pire, le
 	   message manque et la commande, elle, est bien enregistrée. */
-	await envoyerConfirmationCommande(commande);
+	await envoyerConfirmationCommande(commande, liens);
 
 	return {ok: true};
 }

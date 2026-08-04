@@ -85,6 +85,12 @@ export async function getProduitPourEdition(id) {
 		include: {
 			variants: {where: {archivedAt: null}, orderBy: {position: 'asc'}},
 			images: {orderBy: {position: 'asc'}},
+			/* Le nombre de ventes accompagne chaque fichier : c'est ce qui explique
+			   au vendeur pourquoi un fichier déjà acheté ne peut plus être retiré. */
+			digitalAssets: {
+				orderBy: {createdAt: 'asc'},
+				include: {_count: {select: {grants: true}}},
+			},
 		},
 	});
 }

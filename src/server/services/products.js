@@ -1,6 +1,6 @@
 import 'server-only';
 import {prisma} from '@/server/db';
-import {ETATS, LIBELLES_ETAT, TRIS} from '@/lib/catalogue';
+import {ETAT_NUMERIQUE, ETATS, LIBELLES_ETAT, TRIS} from '@/lib/catalogue';
 
 /* Catalogue.
 
@@ -45,6 +45,9 @@ function conditionsVitrine() {
    La précommande l'emporte sur la condition : pour l'acheteur, savoir que
    l'article n'est pas encore sorti prime sur son état neuf ou d'occasion. */
 export function etatProduit(produit) {
+	// « Neuf » sur un fichier ne veut rien dire, et « occasion » encore moins.
+	if (produit.kind === 'DIGITAL') return ETAT_NUMERIQUE;
+
 	const cle = produit.allowPreorder
 		? ETATS.PRECOMMANDE
 		: produit.condition === 'USED'
@@ -82,7 +85,12 @@ function pourAffichage(produit) {
 		prixCents: variante?.priceCents ?? null,
 		prixBarreCents: variante?.compareAtPriceCents ?? null,
 		aPartirDe: nbVariantes > 1,
-		enStock: (variante?.stock ?? 0) > 0 || Boolean(variante?.allowBackorder),
+		/* Un ouvrage numérique est toujours disponible : un fichier ne s'épuise
+		   pas, et son stock vaut zéro sans que ça veuille dire quoi que ce soit. */
+		enStock:
+			produit.kind === 'DIGITAL' ||
+			(variante?.stock ?? 0) > 0 ||
+			Boolean(variante?.allowBackorder),
 		image: produit.images[0] ?? null,
 	};
 }
@@ -242,6 +250,9 @@ export async function getProductBySlug(slug) {
 		rayonId: produit.primaryCategory?.id ?? null,
 		dateSortie: produit.releaseDate,
 		enPrecommande: produit.allowPreorder,
+		// La fiche doit pouvoir parler de téléchargement plutôt que de stock et
+		// de colis : c'est le même écran pour une figurine et pour un fichier.
+		numerique: produit.kind === 'DIGITAL',
 		note: produit.averageRating,
 		nombreAvis: produit.reviewCount,
 		images: produit.images,

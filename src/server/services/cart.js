@@ -41,6 +41,7 @@ const PANIER_VIDE = {
 	totalApresReductionCents: 0,
 	promo: null,
 	franco: {seuilCents: 0, atteint: false, resteCents: 0},
+	dematerialise: false,
 };
 
 /* Ce qu'il faut charger pour afficher une ligne : le nom et l'image viennent du
@@ -60,9 +61,19 @@ const INCLUSION_LIGNE = {
 	},
 };
 
-/// Le stock encore disponible sur une variante — `Infinity` si la vente à
-/// découvert est autorisée (précommande, réassort permanent).
+/* Le stock encore disponible sur une variante.
+
+   `Infinity` dans deux cas : la vente à découvert est autorisée (précommande,
+   réassort permanent), ou le produit est un ouvrage numérique — un fichier ne
+   s'épuise pas. Sans cette seconde règle, un ouvrage serait « en rupture » dès
+   sa mise en vente, puisque son stock vaut zéro et n'a aucune raison de bouger.
+
+   La variante ne porte pas toujours son produit : les appelants qui n'en ont pas
+   besoin ne le chargent pas. On ne conclut donc au numérique que lorsqu'il est
+   là — et l'ajout au panier, lui, le charge toujours. */
 function disponible(variante) {
+	if (variante.product?.kind === 'DIGITAL') return Infinity;
+
 	return variante.allowBackorder ? Infinity : Math.max(0, variante.stock);
 }
 
@@ -83,6 +94,9 @@ function ligneAffichable(ligne) {
 		variante: variant.options.map((option) => option.value).join(' · ') || null,
 		image: produit.images[0] ?? null,
 		prixCents: variant.priceCents,
+		// Un ouvrage numérique ne s'expédie pas : c'est ce qui décide, plus haut,
+		// si le tunnel demande une adresse postale et des frais de port.
+		numerique: produit.kind === 'DIGITAL',
 		quantite: ligne.quantity,
 		totalLigneCents: variant.priceCents * ligne.quantity,
 		maximum: Math.min(QUANTITE_MAX, disponible(variant)),
@@ -119,8 +133,15 @@ async function pourAffichage(lignes, codePromo = null) {
 	   fait retomber à 45 €, et la livraison redevient payante. */
 	const baseFrancoCents = sousTotalCents - reductionCents;
 
+	/* Un panier **entièrement** dématérialisé saute l'adresse postale et les frais
+	   de port. Un seul article physique suffit à faire basculer la commande en
+	   colis : il faut bien l'envoyer quelque part, et le client paiera le port de
+	   ce qu'il expédie. */
+	const dematerialise = affichables.length > 0 && affichables.every((ligne) => ligne.numerique);
+
 	return {
 		lignes: affichables,
+		dematerialise,
 		nombreArticles: affichables.reduce((somme, ligne) => somme + ligne.quantite, 0),
 		sousTotalCents,
 		reductionCents,
@@ -194,6 +215,9 @@ export async function addItem(token, varianteId, quantite = 1) {
 			archivedAt: null,
 			product: {isActive: true, archivedAt: null, publishedAt: {not: null, lte: new Date()}},
 		},
+		// Le produit est chargé pour son type : un ouvrage numérique ne connaît
+		// pas la rupture de stock.
+		include: {product: {select: {kind: true}}},
 	});
 
 	if (!variante) {
@@ -239,7 +263,7 @@ export async function setQuantity(token, ligneId, quantite) {
 
 	const ligne = await prisma.cartItem.findFirst({
 		where: {id: ligneId, cart: {sessionToken: token}},
-		include: {variant: true},
+		include: {variant: {include: {product: {select: {kind: true}}}}},
 	});
 
 	if (!ligne) return {ok: false, erreur: 'Cette ligne n’est plus au panier.'};

@@ -56,7 +56,9 @@ export default function PaymentForm({panier, adresse, mode, enLigne, annule}) {
 	const [etat, action] = useActionState(payerCommande, ETAT_INITIAL);
 	const [moyen, setMoyen] = useState('carte');
 
-	const totalCents = panier.sousTotalCents + mode.prixCents;
+	/* `mode` est nul quand la commande est entièrement dématérialisée : il n'y a
+	   pas de transporteur à rappeler, et rien à ajouter au total. */
+	const totalCents = panier.sousTotalCents + (mode?.prixCents ?? 0);
 
 	return (
 		<form action={action} className={styles.colonnes}>
@@ -72,27 +74,34 @@ export default function PaymentForm({panier, adresse, mode, enLigne, annule}) {
 				)}
 
 				<div className={styles.carte}>
-					<h2 className={styles.carteTitre}>Livraison</h2>
+					<h2 className={styles.carteTitre}>
+						{panier.dematerialise ? 'Livraison par e-mail' : 'Livraison'}
+					</h2>
 
 					<address className={styles.adresse}>
 						{adresse.firstName} {adresse.lastName}
-						<br />
-						{adresse.line1}
-						{adresse.line2 && (
+						{!panier.dematerialise && (
 							<>
 								<br />
-								{adresse.line2}
+								{adresse.line1}
+								{adresse.line2 && (
+									<>
+										<br />
+										{adresse.line2}
+									</>
+								)}
+								<br />
+								{adresse.postalCode} {adresse.city}
 							</>
 						)}
-						<br />
-						{adresse.postalCode} {adresse.city}
 						<br />
 						{adresse.email}
 					</address>
 
 					<p className={styles.modeRappel}>
-						{mode.nom}
-						{mode.delai ? ` · ${mode.delai}` : ''}
+						{panier.dematerialise
+							? 'Vos fichiers partent à cette adresse dès le paiement confirmé.'
+							: `${mode.nom}${mode.delai ? ` · ${mode.delai}` : ''}`}
 					</p>
 
 					<Link href='/commande/livraison' className={styles.modifier}>
@@ -161,7 +170,7 @@ export default function PaymentForm({panier, adresse, mode, enLigne, annule}) {
 
 			<CartSummary
 				panier={panier}
-				livraisonCents={mode.prixCents}
+				livraisonCents={mode?.prixCents ?? 0}
 				action={<BoutonValider enLigne={enLigne} totalCents={totalCents} />}
 			/>
 		</form>

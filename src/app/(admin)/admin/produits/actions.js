@@ -8,6 +8,7 @@ import {
 	enregistrerProduit,
 	restaurerProduit,
 } from '@/server/services/product-admin';
+import {enregistrerFichier, supprimerFichier} from '@/server/services/digital';
 import {ACTIONS, journaliser} from '@/server/services/audit';
 
 /* Actions du catalogue.
@@ -110,6 +111,77 @@ export async function archiver(_precedent, donnees) {
 	revalidatePath('/', 'layout');
 
 	redirect('/admin/produits');
+}
+
+/* Ajoute un fichier à un ouvrage numérique.
+
+   Le fichier arrive en mémoire — c'est ce que fait une action serveur — puis
+   part sur le disque. `bodySizeLimit` dans `next.config.mjs` est ce qui empêche
+   un envoi démesuré d'y arriver, et le service revérifie la taille : la limite
+   du cadre et celle du métier ne sont pas la même chose et doivent tenir toutes
+   les deux.
+
+   Le type déclaré par le navigateur n'est pas une preuve — il vient du client,
+   comme tout le reste. Il sert à écarter les envois manifestement hors sujet et
+   à rendre le fichier avec le bon en-tête ; ce qui protège vraiment, c'est que
+   rien de ce dossier n'est jamais exécuté ni servi depuis une URL publique. */
+export async function televerserFichierNumerique(_precedent, donnees) {
+	const utilisateur = await exigerDroit('produits.gerer');
+
+	const produitId = String(donnees.get('produitId') ?? '');
+	const fichier = donnees.get('fichier');
+
+	if (!fichier || typeof fichier.arrayBuffer !== 'function' || fichier.size === 0) {
+		return {statut: 'erreur', message: 'Choisissez un fichier.'};
+	}
+
+	const resultat = await enregistrerFichier({
+		productId: produitId,
+		fileName: fichier.name,
+		mimeType: fichier.type,
+		contenu: Buffer.from(await fichier.arrayBuffer()),
+	});
+
+	if (!resultat.ok) return {statut: 'erreur', message: resultat.erreur};
+
+	/* Le nom du fichier entre au journal, pas son contenu : c'est ce qu'on veut
+	   pouvoir relire pour savoir quelle version a été mise en vente et quand. */
+	await journaliser({
+		utilisateurId: utilisateur.id,
+		action: ACTIONS.FICHIER_AJOUTE,
+		type: 'digital_asset',
+		id: resultat.asset.id,
+		details: {produitId, nom: resultat.asset.fileName, octets: resultat.asset.sizeBytes},
+	});
+
+	revalidatePath(`/admin/produits/${produitId}`);
+
+	return {statut: 'ok'};
+}
+
+/// Retire un fichier. Le service refuse dès qu'il a été vendu — l'accès promis
+/// aux acheteurs ne doit pas pouvoir se couper d'un clic.
+export async function retirerFichierNumerique(_precedent, donnees) {
+	const utilisateur = await exigerDroit('produits.gerer');
+
+	const assetId = String(donnees.get('assetId') ?? '');
+	const produitId = String(donnees.get('produitId') ?? '');
+
+	const resultat = await supprimerFichier(assetId);
+
+	if (!resultat.ok) return {statut: 'erreur', message: resultat.erreur};
+
+	await journaliser({
+		utilisateurId: utilisateur.id,
+		action: ACTIONS.FICHIER_RETIRE,
+		type: 'digital_asset',
+		id: assetId,
+		details: {produitId},
+	});
+
+	revalidatePath(`/admin/produits/${produitId}`);
+
+	return {statut: 'ok'};
 }
 
 export async function restaurer(_precedent, donnees) {

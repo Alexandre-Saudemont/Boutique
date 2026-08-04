@@ -20,6 +20,15 @@ export const LIBELLES_ETAT = {
 	[ETATS.PRECOMMANDE]: 'Précommande',
 };
 
+/* L'état d'un ouvrage numérique.
+
+   Volontairement **hors de `ETATS`** : ces valeurs-là construisent les boutons
+   de filtre de la boutique et s'écrivent dans l'URL. Un fichier n'est ni neuf ni
+   d'occasion — c'est une étiquette à afficher, pas un critère de tri. Le jour où
+   le client voudra filtrer sur « numérique », le rayon « Ouvrages du geek » le
+   fait déjà. */
+export const ETAT_NUMERIQUE = {cle: 'numerique', libelle: 'Numérique'};
+
 export const TRIS = {
 	NOUVEAUTES: 'nouveautes',
 	PRIX_CROISSANT: 'prix-croissant',

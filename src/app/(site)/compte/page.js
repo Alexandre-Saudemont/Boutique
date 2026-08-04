@@ -1,5 +1,6 @@
 import {getUtilisateurCourant} from '@/server/auth/session';
 import {getCommandesUtilisateur} from '@/server/services/accounts';
+import {getTelechargementsDuCompte} from '@/server/services/digital';
 import AuthPanel from './AuthPanel';
 import EspaceCompte from './EspaceCompte';
 import styles from './compte.module.css';
@@ -40,11 +41,28 @@ export default async function Compte({searchParams}) {
 		);
 	}
 
-	const commandes = await getCommandesUtilisateur(utilisateur.id);
+	/* Les fichiers sont retrouvés par le compte **et** par l'adresse : quelqu'un
+	   qui a acheté en invité puis créé son compte avec la même adresse retrouve
+	   ses ouvrages sans avoir à écrire. */
+	const [commandes, fichiers] = await Promise.all([
+		getCommandesUtilisateur(utilisateur.id),
+		getTelechargementsDuCompte(utilisateur.id, utilisateur.email),
+	]);
 
 	return (
 		<section className={styles.page}>
-			<EspaceCompte utilisateur={utilisateur} commandes={commandes} />
+			<EspaceCompte
+				utilisateur={utilisateur}
+				commandes={commandes}
+				fichiers={fichiers.map((droit) => ({
+					id: droit.id,
+					nom: droit.digitalAsset.fileName,
+					octets: droit.digitalAsset.sizeBytes,
+					produit: droit.orderItem.productName,
+					commande: droit.orderItem.order.orderNumber,
+					date: droit.orderItem.order.paidAt,
+				}))}
+			/>
 		</section>
 	);
 }

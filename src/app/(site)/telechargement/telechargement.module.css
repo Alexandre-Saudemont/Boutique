@@ -1,0 +1,81 @@
+/* Page d'atterrissage d'un lien de téléchargement.
+
+   Arrivée depuis un e-mail, comme les écrans de la lettre : le visiteur veut
+   son fichier et rien d'autre. Un bloc centré, le nom du fichier, un bouton. */
+
+.page {
+	max-width: 560px;
+	margin: 0 auto;
+	padding: var(--space-8) var(--space-4);
+}
+
+.bloc {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: var(--space-4);
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-sm);
+	padding: var(--space-8) var(--space-6);
+}
+
+.icone {
+	display: grid;
+	place-items: center;
+	width: 60px;
+	height: 60px;
+	border-radius: 50%;
+	background: var(--color-accent-2-100);
+	color: var(--color-accent-2-700);
+}
+
+/* Un lien épuisé ou périmé n'est pas une faute du visiteur : les tons restent
+   chauds, sans rouge d'alerte. */
+.iconeEchec {
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(24px, 3vw, 30px);
+	line-height: 1.15;
+	margin: 0;
+}
+
+.texte {
+	font-size: 15.5px;
+	line-height: 1.65;
+	color: color-mix(in srgb, var(--color-text) 78%, transparent);
+	margin: 0;
+}
+
+.fichier {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	width: 100%;
+	text-align: left;
+	background: var(--color-surface-2);
+	border-radius: var(--radius-md);
+	padding: var(--space-4);
+}
+
+.nomFichier {
+	font-weight: 600;
+	font-size: 15px;
+	word-break: break-word;
+}
+
+.poids {
+	font-size: 13px;
+	color: color-mix(in srgb, var(--color-text) 62%, transparent);
+}
+
+.restants {
+	font-size: 13px;
+	color: color-mix(in srgb, var(--color-text) 62%, transparent);
+	margin: 0;
+}

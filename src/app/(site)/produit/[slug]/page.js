@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
-import {Check, PackageCheck, RotateCcw, Truck} from 'lucide-react';
+import {Check, FileDown, PackageCheck, RotateCcw, Truck} from 'lucide-react';
 import {getProductBySlug, getRelatedProducts} from '@/server/services/products';
 import {getModesLivraison} from '@/server/services/shipping';
 import {getSettings} from '@/server/services/settings';
@@ -94,23 +94,46 @@ export default async function FicheProduit({params}) {
 	const franco = reglages['shipping.freeAboveCents'];
 	const stock = produit.varianteParDefaut?.stock ?? 0;
 
-	const reassurance = [
-		{
-			icone: <Truck size={18} strokeWidth={2.75} />,
-			titre: `Livraison offerte dès ${formatPrixCompact(franco)}`,
-			sous: 'En France métropolitaine',
-		},
-		{
-			icone: <PackageCheck size={18} strokeWidth={2.75} />,
-			titre: 'Choisi et expédié à la main',
-			sous: "Depuis l'atelier",
-		},
-		{
-			icone: <RotateCcw size={18} strokeWidth={2.75} />,
-			titre: 'Retours sous 14 jours',
-			sous: 'Pièce non ouverte',
-		},
-	];
+	/* La réassurance ment sur un ouvrage numérique : rien n'est expédié, et le
+	   droit de rétractation de quatorze jours ne s'applique pas à un contenu
+	   numérique fourni immédiatement — l'acheteur y renonce en acceptant le
+	   téléchargement (art. L221-28 du code de la consommation). Le dire ici, sur
+	   la fiche, plutôt que de le cacher dans les conditions de vente. */
+	const reassurance = produit.numerique
+		? [
+				{
+					icone: <FileDown size={18} strokeWidth={2.75} />,
+					titre: 'Fichier disponible tout de suite',
+					sous: 'Par e-mail et dans votre compte',
+				},
+				{
+					icone: <PackageCheck size={18} strokeWidth={2.75} />,
+					titre: 'À vous pour toujours',
+					sous: 'Retéléchargeable sans limite',
+				},
+				{
+					icone: <RotateCcw size={18} strokeWidth={2.75} />,
+					titre: 'Sans droit de rétractation',
+					sous: 'Un fichier téléchargé ne se rend pas',
+				},
+			]
+		: [
+				{
+					icone: <Truck size={18} strokeWidth={2.75} />,
+					titre: `Livraison offerte dès ${formatPrixCompact(franco)}`,
+					sous: 'En France métropolitaine',
+				},
+				{
+					icone: <PackageCheck size={18} strokeWidth={2.75} />,
+					titre: 'Choisi et expédié à la main',
+					sous: "Depuis l'atelier",
+				},
+				{
+					icone: <RotateCcw size={18} strokeWidth={2.75} />,
+					titre: 'Retours sous 14 jours',
+					sous: 'Pièce non ouverte',
+				},
+			];
 
 	return (
 		<section className={styles.section}>
@@ -152,7 +175,14 @@ export default async function FicheProduit({params}) {
 
 						<span className='tag tag-accent-2'>{produit.etat.libelle}</span>
 
-						{stock > 0 ? (
+						{/* Un ouvrage numérique n'a pas de stock à annoncer : « épuisé »
+						    serait faux, et « en stock — 0 pièce » incompréhensible. */}
+						{produit.numerique ? (
+							<span className={styles.stock}>
+								<Check size={15} strokeWidth={2.75} />
+								Téléchargement immédiat
+							</span>
+						) : stock > 0 ? (
 							<span className={styles.stock}>
 								<Check size={15} strokeWidth={2.75} />
 								En stock — {pluriel(stock, 'pièce', 'pièces')}
