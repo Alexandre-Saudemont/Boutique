@@ -89,6 +89,8 @@ modification distraite retire un contrôle sans que rien ne proteste.
 - `docs/CONNEXION-ET-RENDU.md` — comment marche la connexion, et où le code
   s'exécute (Server Components, Server Actions, la frontière client/serveur).
 - `docs/AUDIT-SECURITE.md` — état de la sécurité, ce qui est traité, ce qui reste.
+- `docs/MISE-EN-LIGNE.md` — déploiement de zéro, dans l'ordre, et ce qui casse
+  si on saute une étape.
 - `docs/MODELE-DONNEES.md` — schéma de données commenté et décisions structurantes.
 - `docs/QUESTIONS-CLIENT.md` — points en attente de réponse du client.
 - Handoff design : `C:\Users\alexa\Downloads\design_handoff_antre_geek`
