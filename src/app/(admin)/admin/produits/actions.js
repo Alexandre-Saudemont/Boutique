@@ -58,6 +58,7 @@ export async function sauvegarderProduit(_precedent, donnees) {
 		marqueId: donnees.get('marqueId'),
 		licenceId: donnees.get('licenceId'),
 		precommande: donnees.get('precommande') === 'on',
+		boxSurprise: donnees.get('boxSurprise') === 'on',
 		publication: donnees.get('publication'),
 		variantes: lireVariantes(donnees),
 		images: lireImages(donnees),

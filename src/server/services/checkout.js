@@ -214,6 +214,9 @@ export async function creerCommande({
 			variantName: variant.name,
 			sku: variant.sku,
 			kind: variant.product.kind,
+			// Copié comme le reste : la ligne doit pouvoir dire qu'elle demande une
+			// composition même si le produit cesse d'être une box demain.
+			isMysteryBox: variant.product.isMysteryBox,
 			unitPriceCents: variant.priceCents,
 			vatRateBp: TAUX_TVA_BP,
 			quantity: ligne.quantity,

@@ -410,3 +410,75 @@
 	padding-top: var(--space-5);
 	border-top: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
 }
+
+/* ── Contenu des box surprises ──────────────────────────────────────────── */
+
+.box {
+	margin-top: var(--space-4);
+	padding-top: var(--space-4);
+	border-top: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+.boxTitre {
+	font-size: 14.5px;
+	font-weight: 700;
+	margin: 0 0 var(--space-2);
+}
+
+.listePieces {
+	list-style: none;
+	margin: 0 0 var(--space-3);
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.piece {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	background: var(--color-surface-2);
+	border-radius: var(--radius-sm);
+	padding: 8px var(--space-3);
+	font-size: 14px;
+}
+
+.pieceNote {
+	color: color-mix(in srgb, var(--color-text) 58%, transparent);
+}
+
+.retirerPiece {
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+	cursor: pointer;
+}
+
+.retirerPiece:hover {
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+}
+
+/* Le champ principal prend la place restante : c'est celui où l'on tape, les
+   deux autres éléments gardent leur largeur. */
+.formulairePiece {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.formulairePiece input:first-of-type {
+	flex: 2 1 220px;
+}
+
+.formulairePiece input:last-of-type {
+	flex: 1 1 150px;
+}

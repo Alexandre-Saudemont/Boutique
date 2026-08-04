@@ -368,6 +368,21 @@ export default function ProductForm({produit, referentiels}) {
 						/>
 						Proposé en précommande
 					</label>
+
+					{/* Ne change rien à la vente : c'est à la préparation que la case
+					    compte, en faisant apparaître la saisie du contenu sur la fiche
+					    de commande. */}
+					<label
+						className={styles.champ}
+						style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+						<input
+							type='checkbox'
+							name='boxSurprise'
+							defaultChecked={produit?.isMysteryBox ?? false}
+							style={{width: 18, height: 18, accentColor: 'var(--color-accent)'}}
+						/>
+						Box surprise — je noterai son contenu à la préparation
+					</label>
 				</div>
 
 				<div className={styles.carte}>

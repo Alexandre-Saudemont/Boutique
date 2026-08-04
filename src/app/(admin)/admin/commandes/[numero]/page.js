@@ -5,7 +5,9 @@ import {aLeDroit, exigerDroit} from '@/server/auth/roles';
 import {LIBELLES_STATUT, getCommandeAdmin, statutsSuivants} from '@/server/services/orders';
 import {historique} from '@/server/services/audit';
 import {formatDate, formatPrix} from '@/lib/format';
+import {getBoxesDeLaCommande} from '@/server/services/boxes';
 import OrderActions from './OrderActions';
+import BoxContents from './BoxContents';
 import styles from '../../../admin.module.css';
 
 /* Fiche d'une commande : le bon de préparation.
@@ -26,6 +28,7 @@ export async function generateMetadata({params}) {
 const LIBELLES_JOURNAL = {
 	'order.status_changed': 'Statut modifié',
 	'order.note_updated': 'Note interne mise à jour',
+	'order.box_filled': 'Contenu de box noté',
 };
 
 const LIBELLES_PAIEMENT = {
@@ -50,6 +53,11 @@ export default async function FicheCommande({params}) {
 	const livraison = commande.addresses.find((adresse) => adresse.type === 'SHIPPING');
 	const paiement = commande.payments[0];
 	const peutGerer = aLeDroit(utilisateur, 'commandes.gerer');
+
+	/* Les box vendues, avec ce qui a déjà été noté dedans. Requête à part plutôt
+	   qu'un `include` de plus : la plupart des commandes n'en contiennent aucune,
+	   et la fiche charge déjà beaucoup. */
+	const boxes = await getBoxesDeLaCommande(commande.id);
 
 	return (
 		<>
@@ -144,6 +152,16 @@ export default async function FicheCommande({params}) {
 								</div>
 							</div>
 						</div>
+
+						{/* Seulement s'il y a une box à composer : sur une commande de
+						    figurines, ce bloc n'aurait rien à dire. */}
+						{boxes.length > 0 && (
+							<BoxContents
+								numero={commande.orderNumber}
+								boxes={boxes}
+								modifiable={peutGerer}
+							/>
+						)}
 
 						<div className={styles.carte}>
 							<h2 className={styles.carteTitre}>Livraison</h2>

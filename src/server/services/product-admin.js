@@ -195,6 +195,7 @@ export async function enregistrerProduit(saisie) {
 		brandId: saisie.marqueId || null,
 		licenceId: saisie.licenceId || null,
 		allowPreorder: Boolean(saisie.precommande),
+		isMysteryBox: Boolean(saisie.boxSurprise),
 		isActive: saisie.publication !== 'DESACTIVE',
 	};
 

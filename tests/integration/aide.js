@@ -20,7 +20,7 @@ export const baseDisponible = Boolean(process.env.TEST_DATABASE_URL);
 export async function viderLaBase() {
 	await prisma.$executeRawUnsafe(`
 		TRUNCATE TABLE
-			download_grants, digital_assets,
+			download_grants, digital_assets, box_content_items,
 			order_items, order_addresses, payments, orders,
 			cart_items, carts,
 			product_images, variant_options, product_variants, products,

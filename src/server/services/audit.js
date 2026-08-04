@@ -39,6 +39,7 @@ export const ACTIONS = {
 	AVIS_REPONDU: 'review.replied',
 	ROLE_MODIFIE: 'user.role_changed',
 	PROMO_MODIFIEE: 'discount.updated',
+	BOX_COMPOSEE: 'order.box_filled',
 	FICHIER_AJOUTE: 'digital_asset.added',
 	FICHIER_RETIRE: 'digital_asset.removed',
 };

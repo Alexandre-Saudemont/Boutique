@@ -290,6 +290,15 @@ model Product {
   releaseDate   DateTime?
   allowPreorder Boolean   @default(false)
 
+  /// Box surprise. Un produit ordinaire à la vente — c'est à la préparation
+  /// qu'il se distingue : chaque exemplaire vendu reçoit sa composition, notée
+  /// à la main dans le back-office.
+  ///
+  /// Un booléen plutôt que la catégorie « Box surprise » : un slug de rayon se
+  /// renomme, et le jour où il changerait, la saisie de composition
+  /// disparaîtrait sans que personne ne comprenne pourquoi.
+  isMysteryBox Boolean @default(false)
+
   // Publication
   isActive    Boolean   @default(true)
   publishedAt DateTime?
@@ -566,13 +575,49 @@ model OrderItem {
   quantity       Int
   totalCents     Int
 
-  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  variant        ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  /// Copié à la commande, comme le reste de la ligne. Sans cette copie, savoir
+  /// qu'une ligne demande une composition exigerait de remonter au produit —
+  /// qui peut avoir été archivé, ou avoir cessé d'être une box depuis.
+  isMysteryBox Boolean @default(false)
+
+  order          Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant        ProductVariant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
   downloadGrants DownloadGrant[]
+  boxContents    BoxContentItem[]
 
   @@index([orderId])
   @@index([variantId])
   @@map("order_items")
+}
+
+/// Ce qui a été mis dans une box surprise, exemplaire par exemplaire.
+///
+/// **Du texte libre, pas une référence au catalogue.** Le contenu des box vient
+/// d'un stock à part — déstockage, lots, chines — qui n'est pas en vente sur le
+/// site. Forcer une référence produit obligerait à créer une fiche pour chaque
+/// pièce jamais vendue à l'unité, pour le seul plaisir d'avoir une clé
+/// étrangère.
+///
+/// À quoi ça sert : répondre à « qu'est-ce qu'il y avait dans ma box ? » six
+/// mois après. Rien n'oblige légalement à le transmettre, mais sans la trace il
+/// n'y a même pas le choix.
+model BoxContentItem {
+  id          String @id @default(cuid())
+  orderItemId String
+
+  /// De quelle box il s'agit quand la ligne en porte plusieurs : 1, 2, 3…
+  /// Deux box identiques dans la même commande n'ont pas le même contenu.
+  boxNumber Int    @default(1)
+  label     String
+  note      String?
+  position  Int    @default(0)
+
+  createdAt DateTime @default(now())
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([orderItemId])
+  @@map("box_content_items")
 }
 
 model Payment {
