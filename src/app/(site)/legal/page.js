@@ -263,8 +263,13 @@ export default async function Legal() {
 							Ce site ne dépose aucun cookie de mesure d&apos;audience, aucun cookie publicitaire et aucun
 							cookie de réseau social. Les quatre cookies posés sont strictement nécessaires au
 							fonctionnement du site — sans eux, votre panier se viderait à chaque page. La loi ne demande
-							pas votre consentement pour ceux-là : c&apos;est pourquoi vous ne verrez jamais de bandeau
-							ici.
+							pas votre consentement pour ceux-là.
+						</p>
+						<p>
+							Le bandeau affiché lors de votre première visite est donc une information, pas une
+							demande d&apos;autorisation : il n&apos;y a rien à cocher, et le bouton ne fait que le
+							refermer. Nous préférons vous le dire plutôt que de vous faire arbitrer un choix qui
+							n&apos;existe pas.
 						</p>
 
 						<h3>La liste complète</h3>

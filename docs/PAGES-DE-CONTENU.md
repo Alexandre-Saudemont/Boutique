@@ -33,20 +33,27 @@ qui traîne ne se relit jamais.
 **À faire avant l'ouverture :** remplir les neuf champs, et faire relire les CGV
 par un juriste.
 
-### Il n'y aura pas de bandeau cookies
+### Le bandeau cookies informe, il ne demande rien
 
 Le site pose quatre cookies — `session`, `panier`, `commande`, `promo` — tous
 strictement nécessaires à son fonctionnement, aucun traceur, aucun tiers. Cette
-catégorie est dispensée de consentement. Afficher un bandeau « acceptez-vous les
-cookies ? » alors qu'il n'y a rien à refuser serait un faux, et la maquette
-prévoyait justement trois boutons qui n'auraient rien commandé.
+catégorie est dispensée de consentement.
 
-La page cookies liste donc les quatre, avec leur rôle et leur durée, et dit
-qu'il n'y a rien à accepter.
+Le bandeau (`src/components/CookieBanner/`) le dit et propose **un seul
+bouton**, « J'ai compris ». La maquette en prévoyait trois — Tout accepter,
+Refuser, Personnaliser — qui n'auraient commandé rien du tout. Un « Refuser »
+qui ne refuse rien est un faux : le visiteur croit avoir arbitré, et la boutique
+affiche une conformité qu'elle n'a pas eu à obtenir.
+
+Le choix est retenu dans `localStorage`, pas dans un cookie : en ajouter un
+cinquième pour annoncer qu'on en pose quatre serait un comble, et la liste
+publiée sur `/legal#cookies` reste exacte toute seule.
 
 **Ce qui ferait tomber cette dispense :** ajouter une mesure d'audience, un
-pixel publicitaire ou une vidéo embarquée. Il faudra alors un vrai bandeau, avec
-un vrai refus qui bloque vraiment — pas une ligne de plus dans le tableau.
+pixel publicitaire ou une vidéo embarquée. Il ne suffira alors **pas** de
+rajouter des boutons à ce bandeau : il faudra un refus qui bloque le dépôt
+*avant* qu'il ait lieu, et un moyen de revenir sur son choix. C'est un mécanisme
+à construire, pas un libellé à changer.
 
 ### La page des box n'est pas le configurateur de la maquette
 
