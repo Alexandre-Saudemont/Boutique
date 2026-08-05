@@ -1,5 +1,6 @@
+import {existsSync} from 'node:fs';
 import {describe, expect, it} from 'vitest';
-import {construirePolitique, middleware} from '@/middleware';
+import {construirePolitique, proxy} from '@/proxy';
 
 /* Content-Security-Policy.
 
@@ -9,7 +10,7 @@ import {construirePolitique, middleware} from '@/middleware';
    bruyante. */
 
 function politiqueDe(requete = new Request('https://antre-geek.fr/boutique')) {
-	const reponse = middleware(requete);
+	const reponse = proxy(requete);
 
 	return reponse.headers.get('Content-Security-Policy');
 }
@@ -67,5 +68,14 @@ describe('CSP', () => {
 
 	it('n’autorise aucune connexion sortante vers un tiers', () => {
 		expect(directive(politiqueDe(), 'connect-src')).toBe("connect-src 'self'");
+	});
+
+	/* Next 16 reconnaît encore `src/middleware.js`, mais n'exécute que l'un des
+	   deux fichiers. Si celui-ci réapparaissait — retour de branche mal résolu,
+	   copie de sauvegarde oubliée — le site pourrait tourner avec l'ancienne
+	   politique, ou sans aucune, sans que rien ne le signale. Une CSP absente ne
+	   casse rien : c'est exactement ce qui la rend facile à perdre. */
+	it('n’a pas laissé l’ancien middleware derrière lui', () => {
+		expect(existsSync('src/middleware.js')).toBe(false);
 	});
 });

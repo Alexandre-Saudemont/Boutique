@@ -177,7 +177,7 @@ le plus gros risque à moyen terme du projet, et il grandit à chaque écran ajo
 
 ### Traité
 
-**Content-Security-Policy** (`src/middleware.js`). Un `nonce` par réponse, seul
+**Content-Security-Policy** (`src/proxy.js`). Un `nonce` par réponse, seul
 moyen d'autoriser les scripts d'hydratation de Next sans ouvrir la porte à ceux
 qu'on injecterait. Vérifié sur cinq pages : aucune balise `<script>` sans nonce.
 `strict-dynamic` évite d'énumérer des domaines qui changeront. Les styles
@@ -375,9 +375,13 @@ Un ouvrage numérique était en rupture de stock dès sa mise en vente, donc
 impossible à mettre au panier : le stock d'un fichier vaut zéro et n'a aucune
 raison de bouger. Corrigé avec le chantier.
 
-Next annonce au build que la convention `middleware` est dépréciée au profit de
-`proxy`. Sans effet aujourd'hui — c'est un renommage — mais c'est le fichier qui
-porte la CSP, donc une migration à faire posément, pas la veille de l'ouverture.
+~~Next annonce au build que la convention `middleware` est dépréciée au profit de
+`proxy`.~~ **Fait.** `src/middleware.js` est devenu `src/proxy.js`, exportant
+`proxy()` au lieu de `middleware()` — le mécanisme est identique, `config.matcher`
+compris. Les en-têtes ont été revérifiés sur une vraie réponse de production
+après migration, et un test échoue désormais si `src/middleware.js` réapparaît :
+Next reconnaît encore les deux fichiers mais n'en exécute qu'un, et le site
+tournerait sans CSP sans que rien ne le signale.
 
 Les conditions générales de vente devront mentionner l'absence de droit de
 rétractation sur les fichiers téléchargés (art. L221-28 du code de la

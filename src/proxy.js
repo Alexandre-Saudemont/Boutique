@@ -5,8 +5,14 @@ import {NextResponse} from 'next/server';
    C'est le filet qui limite les dégâts si une injection passe malgré tout :
    sans elle, un script glissé dans une page s'exécute sans entrave, lit ce que
    le visiteur tape et parle à qui il veut. Les autres en-têtes de sécurité sont
-   posés dans `next.config.mjs` — celui-ci a besoin d'un middleware parce qu'il
-   change à chaque requête.
+   posés dans `next.config.mjs` — celui-ci a besoin de s'exécuter par requête,
+   d'où ce fichier.
+
+   **Pourquoi `proxy` et non `middleware`.** Next 16 a renommé la convention :
+   `src/proxy.js` exportant `proxy()` remplace `src/middleware.js` exportant
+   `middleware()`. Le mécanisme est identique — même exécution avant le rendu,
+   même `config.matcher`. Seuls les noms changent, mais l'ancien émet un
+   avertissement de dépréciation à chaque build et finira par disparaître.
 
    **Pourquoi un nonce.** Next pose des scripts en ligne pour l'hydratation :
    les autoriser en bloc (`unsafe-inline`) rendrait la CSP inutile, puisque
@@ -25,7 +31,7 @@ import {NextResponse} from 'next/server';
    C'est ce dont Next a besoin pour aller chercher ses fragments de code, et ça
    évite d'énumérer des domaines qui changeront. */
 
-/* La politique, séparée du middleware pour être testable telle quelle.
+/* La politique, séparée du proxy pour être testable telle quelle.
 
    Un test peut ainsi vérifier chaque directive sans avoir à simuler une requête
    ni à inspecter le format interne des réponses de Next — qui, lui, changera. */
@@ -73,7 +79,7 @@ export function construirePolitique(nonce) {
 	return directives.join('; ');
 }
 
-export function middleware(requete) {
+export function proxy(requete) {
 	/* Un nonce par réponse, imprévisible : c'est ce qui distingue les scripts de
 	   Next de ceux qu'un attaquant injecterait. */
 	const nonce = crypto.randomUUID().replaceAll('-', '');
@@ -94,7 +100,7 @@ export function middleware(requete) {
 export const config = {
 	/* Tout sauf ce qui n'est pas une page : les fichiers statiques, les images
 	   déjà optimisées et le favicon n'ont aucun script à contraindre, et les
-	   faire passer par le middleware coûterait une exécution par fichier.
+	   faire passer par ici coûterait une exécution par fichier.
 
 	   Les webhooks (`/api/`) sont exclus aussi : ce sont des appels de serveur à
 	   serveur, sans navigateur pour appliquer quoi que ce soit. */

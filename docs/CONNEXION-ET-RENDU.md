@@ -103,7 +103,7 @@ Une page qui lit les cookies, les en-têtes ou les paramètres d'URL devient
 pages de ce site, puisqu'elles lisent la session, le panier ou les réglages en
 base.
 
-La CSP (`src/middleware.js`) rend cette propriété définitive : elle pose un
+La CSP (`src/proxy.js`) rend cette propriété définitive : elle pose un
 `nonce` différent à chaque réponse, ce qu'un cache statique ne peut pas servir.
 C'est un choix assumé — mais c'est ce qui empêchera de rendre une future page
 « À propos » statique sans y repenser.
@@ -232,7 +232,7 @@ ailleurs juste après sa saisie de mot de passe.
 ```
 Requête sur /admin/commandes
         ↓
-middleware.js : pose la CSP et son nonce
+proxy.js : pose la CSP et son nonce
         ↓
 Layout (admin) : exigerStaff()
    → pas de session       → /compte?suite=/admin
@@ -319,7 +319,7 @@ URL se tape à la main, et le navigateur peut se fermer avant. Seul le webhook
 | Jetons e-mail | `src/server/auth/tokens.js` |
 | Limitation de tentatives | `src/server/auth/rate-limit.js` |
 | Cookie de panier | `src/server/auth/cart-session.js` |
-| CSP et nonce | `src/middleware.js` |
+| CSP et nonce | `src/proxy.js` |
 | En-têtes de sécurité | `next.config.mjs` |
 | Comptes clients | `src/server/services/accounts.js` |
 

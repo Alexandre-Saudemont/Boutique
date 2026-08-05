@@ -5,7 +5,7 @@
    ligne de configuration et se posent avant la mise en ligne, pas après.
 
    La Content-Security-Policy n'est pas ici : elle porte un `nonce` différent à
-   chaque réponse et vit donc dans `src/middleware.js`, seul endroit capable de
+   chaque réponse et vit donc dans `src/proxy.js`, seul endroit capable de
    la reconstruire par requête. */
 const enTetesSecurite = [
 	{
