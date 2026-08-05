@@ -266,15 +266,24 @@ Dans `/admin/reglages`, cocher **« Boutique ouverte »**. Vérifier au passage 
 
 Autant le savoir avant d'annoncer l'ouverture.
 
-**Des pages annoncées n'existent pas.** Onze liens de l'accueil et du pied de
-page mènent à une erreur : `/a-propos`, `/blog`, `/box`, `/contact`,
-`/ichiban-kuji`, `/recherche` et les quatre ancres de `/legal`. Ce sont des
-écrans de contenu à construire, mais ils sont **cliquables aujourd'hui**.
+**Les mentions légales attendent leurs coordonnées.** Les pages existent, mais
+neuf champs sont à saisir dans **Administration → Réglages → Identité légale** :
+raison sociale, forme juridique, SIRET, adresse, e-mail, téléphone, directeur de
+la publication, hébergeur, médiateur de la consommation. Tant qu'un champ est
+vide, `/legal` affiche « à compléter » à sa place, en évidence. Sans médiateur
+désigné, vendre à des particuliers est une infraction (art. L616-1).
 
-**Les mentions légales et les CGV sont obligatoires** et n'existent pas. Elles
-engagent le vendeur et méritent une relecture par un juriste. Elles devront
-mentionner l'absence de droit de rétractation sur les fichiers téléchargés
-(art. L221-28 du code de la consommation), ce que la fiche produit dit déjà.
+**Les CGV doivent être relues par un juriste.** Le texte en place est un point
+de départ honnête, pas un document validé. Il engage le vendeur.
+
+**Il n'y a ni page 404, ni page d'erreur, ni favicon.** Une adresse erronée
+tombe sur l'écran par défaut de Next, et `public/` contient encore les icônes
+de démarrage de create-next-app. Le handoff prévoit un écran « NotFound » dans
+le ton de la boutique.
+
+**Pas de `sitemap.xml` ni de `robots.txt`.** Les fonctions qui listent les
+adresses publiques existent (`getAllProductSlugs`, `getAllPostSlugs`) mais rien
+ne les appelle.
 
 **PayPal est affiché mais refusé** à la validation. Soit le brancher, soit
 retirer l'option de l'écran de paiement.
