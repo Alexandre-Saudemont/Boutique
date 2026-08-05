@@ -155,3 +155,126 @@ export async function getLatestPosts(limite = 3) {
 
 	return articles.map(pourAffichage);
 }
+
+/* ── Vitrine du blog ────────────────────────────────────────────────────────*/
+
+/// Les articles publiés, éventuellement d'une seule catégorie.
+export async function listerArticles({categorie} = {}) {
+	const articles = await prisma.post.findMany({
+		where: {
+			...conditionsPubliees(),
+			...(categorie ? {categories: {some: {slug: categorie}}} : {}),
+		},
+		orderBy: {publishedAt: 'desc'},
+		take: 60,
+		include: {categories: {select: {name: true}, take: 1}},
+	});
+
+	return articles.map(pourAffichage);
+}
+
+/* Les catégories qui ont au moins un article publié.
+
+   Filtrer sur la publication n'est pas un détail : sans ce `some`, une
+   catégorie créée pour un brouillon apparaîtrait en vitrine et mènerait à une
+   page vide — en annonçant au passage qu'un texte se prépare. */
+export async function listerCategoriesArticles() {
+	return prisma.postCategory.findMany({
+		where: {posts: {some: conditionsPubliees()}},
+		orderBy: {name: 'asc'},
+		select: {name: true, slug: true},
+	});
+}
+
+/* Un article complet, pour sa page de lecture.
+
+   Rend `null` si l'article n'existe pas, est en brouillon ou n'est pas encore
+   sorti : la page en fait un 404. Un brouillon dont on devine l'adresse ne doit
+   pas se lire — c'est le même contrôle que pour un produit non publié. */
+export async function getArticleParSlug(slug) {
+	const article = await prisma.post.findFirst({
+		where: {slug, ...conditionsPubliees()},
+		include: {
+			categories: {select: {name: true, slug: true}, take: 1},
+			author: {select: {firstName: true}},
+		},
+	});
+
+	if (!article) return null;
+
+	return {
+		...pourAffichage(article),
+		contenu: article.content,
+		categorieSlug: article.categories[0]?.slug ?? null,
+		auteur: article.author?.firstName ?? 'Le Vieux geek',
+		metaTitre: article.metaTitle,
+		metaDescription: article.metaDescription,
+	};
+}
+
+/// Les slugs publiés, pour la génération statique des pages d'article.
+export async function getAllPostSlugs() {
+	const articles = await prisma.post.findMany({
+		where: conditionsPubliees(),
+		select: {slug: true},
+	});
+
+	return articles.map((article) => article.slug);
+}
+
+/// Deux articles à lire ensuite, de la même catégorie si possible.
+export async function getArticlesLies(articleId, categorieSlug, limite = 2) {
+	const memeCategorie = categorieSlug
+		? await prisma.post.findMany({
+				where: {
+					...conditionsPubliees(),
+					id: {not: articleId},
+					categories: {some: {slug: categorieSlug}},
+				},
+				orderBy: {publishedAt: 'desc'},
+				take: limite,
+				include: {categories: {select: {name: true}, take: 1}},
+			})
+		: [];
+
+	if (memeCategorie.length >= limite) return memeCategorie.map(pourAffichage);
+
+	/* Pas assez de voisins dans la catégorie : on complète avec les derniers
+	   parus. Un bloc « à lire ensuite » à moitié vide fait plus négligé qu'un
+	   rapprochement approximatif. */
+	const complement = await prisma.post.findMany({
+		where: {
+			...conditionsPubliees(),
+			id: {not: articleId},
+			NOT: {id: {in: memeCategorie.map((article) => article.id)}},
+		},
+		orderBy: {publishedAt: 'desc'},
+		take: limite - memeCategorie.length,
+		include: {categories: {select: {name: true}, take: 1}},
+	});
+
+	return [...memeCategorie, ...complement].map(pourAffichage);
+}
+
+/// Recherche dans les articles publiés. Mêmes limites que `searchProducts`.
+export async function rechercherArticles(requete) {
+	const termes = String(requete ?? '').trim();
+
+	if (termes.length < 2) return [];
+
+	const articles = await prisma.post.findMany({
+		where: {
+			...conditionsPubliees(),
+			OR: [
+				{title: {contains: termes, mode: 'insensitive'}},
+				{excerpt: {contains: termes, mode: 'insensitive'}},
+				{content: {contains: termes, mode: 'insensitive'}},
+			],
+		},
+		orderBy: {publishedAt: 'desc'},
+		take: 12,
+		include: {categories: {select: {name: true}, take: 1}},
+	});
+
+	return articles.map(pourAffichage);
+}

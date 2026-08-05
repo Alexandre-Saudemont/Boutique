@@ -28,14 +28,6 @@ const TROUVAILLES = [
 	{nom: 'Ouvrages du geek', meta: 'Créations numériques', href: '/boutique?rayon=ouvrages-du-geek'},
 ];
 
-const THEMES_BOX = ['Manga', 'Rétro-gaming', 'Horreur', 'Mystère total'];
-
-const TAILLES_BOX = [
-	{nom: 'S', prix: '25 €'},
-	{nom: 'M', prix: '40 €'},
-	{nom: 'L', prix: '60 €'},
-];
-
 /* Les pastilles alternent entre les deux rampes : la sauge est une seconde voix
    à part entière dans ce design, pas un simple accent secondaire. */
 function couleurPastille(index) {
@@ -44,6 +36,8 @@ function couleurPastille(index) {
 
 export default function HeaderClient({
 	rayons,
+	boxes = [],
+	taillesBox = [],
 	annonce,
 	articlesAuPanier = 0,
 	compte = null,
@@ -295,33 +289,49 @@ export default function HeaderClient({
 						</button>
 
 						{menuOuvert === 'box' && (
+							/* Thèmes et tailles viennent de la base, pas d'une liste écrite
+							   ici. Elle annonçait quatre thèmes et trois tailles dont la
+							   plupart n'existaient pas : le visiteur cliquait et tombait sur
+							   une page vide. Un menu ne doit proposer que ce qui se vend. */
 							<div className={`${styles.panneau} ${styles.panneauBox}`}>
-								<div className={styles.sousTitre}>Par thème</div>
-								<div className={styles.themes}>
-									{THEMES_BOX.map((theme) => (
-										<Link
-											key={theme}
-											href={`/box?theme=${encodeURIComponent(theme.toLowerCase())}`}
-											onClick={fermerMenu}
-											className='tag tag-neutral'>
-											{theme}
-										</Link>
-									))}
-								</div>
+								{boxes.length > 0 && (
+									<>
+										<div className={styles.sousTitre}>Par thème</div>
+										<div className={styles.themes}>
+											{boxes.map((box) => (
+												<Link
+													key={box.slug}
+													href={`/produit/${box.slug}`}
+													onClick={fermerMenu}
+													className='tag tag-neutral'>
+													{box.nom}
+												</Link>
+											))}
+										</div>
+									</>
+								)}
 
-								<div className={styles.sousTitre}>Par taille</div>
-								<div className={styles.tailles}>
-									{TAILLES_BOX.map((taille) => (
-										<Link
-											key={taille.nom}
-											href={`/box?taille=${taille.nom.toLowerCase()}`}
-											onClick={fermerMenu}
-											className={styles.taille}>
-											<span className={styles.tailleNom}>{taille.nom}</span>
-											<span className={styles.taillePrix}>{taille.prix}</span>
-										</Link>
-									))}
-								</div>
+								{taillesBox.length > 0 && (
+									<>
+										<div className={styles.sousTitre}>Par taille</div>
+										<div className={styles.tailles}>
+											{taillesBox.map((taille) => (
+												<Link
+													key={taille.nom}
+													href={`/box?taille=${taille.nom.toLowerCase()}`}
+													onClick={fermerMenu}
+													className={styles.taille}>
+													<span className={styles.tailleNom}>{taille.nom}</span>
+													<span className={styles.taillePrix}>{taille.prix}</span>
+												</Link>
+											))}
+										</div>
+									</>
+								)}
+
+								<Link href='/box' onClick={fermerMenu} className={styles.entreeSimple}>
+									<span className={styles.entreeNom}>Toutes les box</span>
+								</Link>
 							</div>
 						)}
 					</div>

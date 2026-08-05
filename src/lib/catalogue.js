@@ -29,6 +29,10 @@ export const LIBELLES_ETAT = {
    fait déjà. */
 export const ETAT_NUMERIQUE = {cle: 'numerique', libelle: 'Numérique'};
 
+/* L'étiquette d'une box surprise. Hors de `ETATS` pour la même raison : une box
+   n'est ni neuve ni d'occasion, elle est composée à la main. */
+export const ETAT_BOX = {cle: 'box', libelle: 'Sur mesure'};
+
 export const TRIS = {
 	NOUVEAUTES: 'nouveautes',
 	PRIX_CROISSANT: 'prix-croissant',

@@ -147,6 +147,59 @@ export async function listProducts({rayon, etat, tri} = {}) {
 	return affichables; // nouveautés d'abord : déjà l'ordre de la requête
 }
 
+/* Recherche en vitrine.
+
+   Une recherche par `contains` sur trois colonnes, et rien de plus. C'est
+   suffisant pour quelques centaines de pièces et ça ne demande aucune
+   infrastructure : pas d'index plein texte à maintenir, pas de service à
+   héberger. Ce que ça ne sait pas faire est assumé — ni fautes de frappe, ni
+   pluriels, ni pertinence : les résultats sortent par nouveauté, comme le
+   catalogue.
+
+   Le jour où le stock grossit, la suite est la recherche plein texte de
+   PostgreSQL (`to_tsvector` en français), avant d'envisager quoi que ce soit
+   d'externe.
+
+   `mode: 'insensitive'` n'est pas optionnel : sans lui, chercher « figurine »
+   ne trouverait pas « Figurine », ce qui donne un moteur qui a toujours l'air
+   cassé. */
+export async function searchProducts(requete) {
+	const termes = String(requete ?? '').trim();
+
+	// Une requête vide ramènerait tout le catalogue sous couvert de recherche.
+	if (termes.length < 2) return [];
+
+	const produits = await prisma.product.findMany({
+		where: {
+			...conditionsVitrine(),
+			OR: [
+				{name: {contains: termes, mode: 'insensitive'}},
+				{shortDescription: {contains: termes, mode: 'insensitive'}},
+				{primaryCategory: {name: {contains: termes, mode: 'insensitive'}}},
+			],
+		},
+		orderBy: {publishedAt: 'desc'},
+		take: 48,
+		include: {
+			primaryCategory: {select: {name: true, slug: true}},
+			variants: {
+				where: {isActive: true, archivedAt: null},
+				select: {
+					priceCents: true,
+					compareAtPriceCents: true,
+					stock: true,
+					allowBackorder: true,
+					isActive: true,
+					archivedAt: true,
+				},
+			},
+			images: {orderBy: {position: 'asc'}, take: 1, select: {url: true, alt: true}},
+		},
+	});
+
+	return produits.map(pourAffichage);
+}
+
 /* L'inventaire vu du back-office.
 
    Rien à voir avec `listProducts` malgré la ressemblance : ici on montre

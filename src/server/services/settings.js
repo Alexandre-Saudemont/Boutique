@@ -17,6 +17,19 @@ const DEFAUTS = {
 	'order.minimumCents': 0,
 	'checkout.guestAllowed': true,
 	'reviews.moderation': 'PRIOR',
+
+	/* Identité légale. Vides à dessein : la page /legal affiche un marqueur
+	   « à compléter » tant qu'une case manque, plutôt qu'un SIRET inventé.
+	   Une mention légale fausse est pire qu'une mention légale absente. */
+	'legal.companyName': '',
+	'legal.legalForm': '',
+	'legal.siret': '',
+	'legal.address': '',
+	'legal.email': '',
+	'legal.phone': '',
+	'legal.publisher': '',
+	'legal.host': '',
+	'legal.mediator': '',
 };
 
 /// Lit un réglage. Retourne la valeur par défaut si la clé n'est pas en base —
@@ -87,6 +100,51 @@ export const REGLAGES_MODIFIABLES = {
 		type: 'booleen',
 		libelle: 'Commande sans compte',
 		aide: 'Obliger à créer un compte fait abandonner une partie des acheteurs au moment de payer.',
+	},
+
+	'legal.companyName': {
+		groupe: 'Identité légale',
+		type: 'texte',
+		libelle: 'Raison sociale',
+		aide: 'Le nom sous lequel l’entreprise est immatriculée — pas le nom commercial de la boutique.',
+	},
+	'legal.legalForm': {
+		groupe: 'Identité légale',
+		type: 'texte',
+		libelle: 'Forme juridique',
+		aide: 'Par exemple : entreprise individuelle (micro-entrepreneur).',
+	},
+	'legal.siret': {groupe: 'Identité légale', type: 'texte', libelle: 'SIRET'},
+	'legal.address': {
+		groupe: 'Identité légale',
+		type: 'texte',
+		libelle: 'Adresse du siège',
+		aide: 'Obligatoire dans les mentions légales, même à domicile.',
+	},
+	'legal.email': {
+		groupe: 'Identité légale',
+		type: 'texte',
+		libelle: 'Adresse e-mail de contact',
+		aide: 'Publiée sur le site. C’est elle qui reçoit les demandes des clients.',
+	},
+	'legal.phone': {groupe: 'Identité légale', type: 'texte', libelle: 'Téléphone'},
+	'legal.publisher': {
+		groupe: 'Identité légale',
+		type: 'texte',
+		libelle: 'Directeur de la publication',
+		aide: 'La personne responsable du contenu du site. En entreprise individuelle, c’est vous.',
+	},
+	'legal.host': {
+		groupe: 'Identité légale',
+		type: 'texte',
+		libelle: 'Hébergeur',
+		aide: 'Nom, adresse et téléphone de l’hébergeur du site — la loi impose de les publier.',
+	},
+	'legal.mediator': {
+		groupe: 'Identité légale',
+		type: 'texte',
+		libelle: 'Médiateur de la consommation',
+		aide: 'Nom et site du médiateur auquel vous avez adhéré. Vendre à des particuliers sans en désigner un est une infraction (art. L616-1 du code de la consommation).',
 	},
 };
 

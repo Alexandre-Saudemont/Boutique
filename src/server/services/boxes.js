@@ -1,5 +1,6 @@
 import 'server-only';
 import {prisma} from '@/server/db';
+import {ETAT_BOX} from '@/lib/catalogue';
 
 /* Les box surprises.
 
@@ -21,6 +22,159 @@ import {prisma} from '@/server/db';
    produit. */
 
 const LONGUEUR_MAX = 2000;
+
+/* Le rayon qui porte les box. Le slug est celui du seed d'installation :
+   c'est la seule chose qui relie la page /box au catalogue, autant qu'elle
+   soit nommée une fois. */
+export const RAYON_BOX = 'box-surprise';
+
+/* ── Vitrine ────────────────────────────────────────────────────────────────*/
+
+/* Les tailles proposées, lues sur les variantes réelles.
+
+   Écrites en dur, elles finiraient par mentir : le menu du site proposait
+   « S, M, L » quand une box n'existe qu'en M, et le visiteur tombait sur une
+   page vide. Ici, une taille n'apparaît que si une box la porte vraiment.
+
+   L'ordre est imposé — S, M, L — parce qu'un tri alphabétique donnerait
+   L, M, S, ce qui ne veut rien dire pour une taille. Ce qui sort de cette
+   liste est rangé après, par ordre d'apparition. */
+const ORDRE_TAILLES = ['S', 'M', 'L', 'XL'];
+
+function rangTaille(taille) {
+	const rang = ORDRE_TAILLES.indexOf(taille.toUpperCase());
+
+	return rang === -1 ? ORDRE_TAILLES.length : rang;
+}
+
+/// Les tailles existantes et leur prix d'entrée, pour les filtres et le menu.
+export async function getTaillesBox() {
+	const options = await prisma.variantOption.findMany({
+		where: {
+			name: {equals: 'Taille', mode: 'insensitive'},
+			variant: {
+				isActive: true,
+				archivedAt: null,
+				product: {
+					isActive: true,
+					archivedAt: null,
+					publishedAt: {not: null, lte: new Date()},
+					primaryCategory: {slug: RAYON_BOX},
+				},
+			},
+		},
+		select: {value: true, variant: {select: {priceCents: true}}},
+	});
+
+	// Une taille peut exister sur plusieurs box à des prix différents : on garde
+	// le plus bas, celui qu'annonce le « dès X € » du menu.
+	const parTaille = new Map();
+
+	for (const option of options) {
+		const actuel = parTaille.get(option.value);
+		const prix = option.variant.priceCents;
+
+		if (actuel === undefined || prix < actuel) parTaille.set(option.value, prix);
+	}
+
+	return [...parTaille]
+		.map(([nom, prixCents]) => ({nom, prixCents}))
+		.sort((a, b) => rangTaille(a.nom) - rangTaille(b.nom));
+}
+
+/* Les box en vitrine, éventuellement d'une seule taille.
+
+   Chaque box est un produit du rayon, et ses tailles sont ses variantes. Filtrer
+   sur une taille ne retire donc pas des box de la liste au hasard : ça ne garde
+   que celles qui existent dans cette taille, et le prix affiché devient celui de
+   cette taille précise — pas le prix d'appel de la plus petite.
+
+   La forme retournée est celle qu'attend `ProductCard` : la page des box réutilise
+   la carte du catalogue, plutôt que d'en redessiner une presque identique. */
+export async function listerBoxes({taille} = {}) {
+	const produits = await prisma.product.findMany({
+		where: {
+			isActive: true,
+			archivedAt: null,
+			publishedAt: {not: null, lte: new Date()},
+			primaryCategory: {slug: RAYON_BOX},
+			...(taille
+				? {
+						variants: {
+							some: {
+								isActive: true,
+								archivedAt: null,
+								options: {
+									some: {
+										name: {equals: 'Taille', mode: 'insensitive'},
+										value: {equals: taille, mode: 'insensitive'},
+									},
+								},
+							},
+						},
+					}
+				: {}),
+		},
+		orderBy: {publishedAt: 'desc'},
+		include: {
+			primaryCategory: {select: {name: true, slug: true}},
+			variants: {
+				where: {isActive: true, archivedAt: null},
+				select: {
+					priceCents: true,
+					compareAtPriceCents: true,
+					stock: true,
+					allowBackorder: true,
+					options: {select: {name: true, value: true}},
+				},
+			},
+			images: {orderBy: {position: 'asc'}, take: 1, select: {url: true, alt: true}},
+		},
+	});
+
+	return produits.map((produit) => {
+		const retenues = taille
+			? produit.variants.filter((variante) =>
+					variante.options.some(
+						(option) =>
+							option.name.toLowerCase() === 'taille' &&
+							option.value.toLowerCase() === taille.toLowerCase(),
+					),
+				)
+			: produit.variants;
+
+		const moinsChere = retenues.reduce(
+			(basse, variante) => (basse === null || variante.priceCents < basse.priceCents ? variante : basse),
+			null,
+		);
+
+		const tailles = produit.variants
+			.flatMap((variante) =>
+				variante.options
+					.filter((option) => option.name.toLowerCase() === 'taille')
+					.map((option) => option.value),
+			)
+			.sort((a, b) => rangTaille(a) - rangTaille(b));
+
+		return {
+			id: produit.id,
+			nom: produit.name,
+			slug: produit.slug,
+			rayon: produit.primaryCategory?.name ?? null,
+			accroche: produit.shortDescription,
+			// Une box n'est ni neuve ni d'occasion : elle est composée à la main.
+			etat: ETAT_BOX,
+			prixCents: moinsChere?.priceCents ?? null,
+			prixBarreCents: moinsChere?.compareAtPriceCents ?? null,
+			aPartirDe: !taille && retenues.length > 1,
+			enStock: retenues.some(
+				(variante) => variante.stock > 0 || variante.allowBackorder,
+			),
+			image: produit.images[0] ?? null,
+			tailles,
+		};
+	});
+}
 
 /* Les box d'une ligne de commande, avec ce qui a été noté dedans.
 

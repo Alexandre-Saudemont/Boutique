@@ -33,66 +33,85 @@ function centimesEnEuros(centimes) {
 	return ((Number(centimes) || 0) / 100).toFixed(2).replace('.', ',');
 }
 
+/* Répartit les réglages en cartes, dans l'ordre où ils sont déclarés.
+
+   Sans regroupement, la treizième ligne d'un formulaire d'une seule colonne se
+   confond avec la première : on ne cherche plus un réglage, on le survole. Un
+   descripteur sans `groupe` retombe sur « Boutique ». */
+function parGroupe(descripteurs) {
+	const groupes = new Map();
+
+	for (const [cle, descripteur] of Object.entries(descripteurs)) {
+		const nom = descripteur.groupe ?? 'Boutique';
+		if (!groupes.has(nom)) groupes.set(nom, []);
+		groupes.get(nom).push([cle, descripteur]);
+	}
+
+	return [...groupes];
+}
+
 export default function SettingsForm({descripteurs, valeurs}) {
 	const [etat, action] = useActionState(sauvegarderReglages, ETAT_INITIAL);
 
 	return (
 		<form action={action} style={{maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 20}}>
-			<div className={styles.carte}>
-				<h2 className={styles.carteTitre}>Boutique</h2>
-
-				{etat.statut === 'ok' && <p className={styles.succes}>{etat.message}</p>}
-
-				{Object.entries(descripteurs).map(([cle, descripteur]) => (
-					<div key={cle}>
-						{descripteur.type === 'booleen' ? (
-							<label
-								className={styles.champ}
-								style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
-								<input
-									type='checkbox'
-									name={cle}
-									defaultChecked={Boolean(valeurs[cle])}
-									style={{width: 18, height: 18, accentColor: 'var(--color-accent)'}}
-								/>
-								{descripteur.libelle}
-							</label>
-						) : descripteur.type === 'choix' ? (
-							<label className={styles.champ}>
-								{descripteur.libelle}
-								<select className='input' name={cle} defaultValue={valeurs[cle]}>
-									{descripteur.options.map((option) => (
-										<option key={option.valeur} value={option.valeur}>
-											{option.libelle}
-										</option>
-									))}
-								</select>
-							</label>
-						) : (
-							<label className={styles.champ}>
-								{descripteur.libelle}
-								{descripteur.type === 'euros' ? (
+			{parGroupe(descripteurs).map(([groupe, champs], rang) => (
+				<div key={groupe} className={styles.carte}>
+					<h2 className={styles.carteTitre}>{groupe}</h2>
+	
+					{rang === 0 && etat.statut === 'ok' && <p className={styles.succes}>{etat.message}</p>}
+	
+					{champs.map(([cle, descripteur]) => (
+						<div key={cle}>
+							{descripteur.type === 'booleen' ? (
+								<label
+									className={styles.champ}
+									style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
 									<input
-										className='input'
+										type='checkbox'
 										name={cle}
-										defaultValue={centimesEnEuros(valeurs[cle])}
-										inputMode='decimal'
-										style={{maxWidth: 200}}
+										defaultChecked={Boolean(valeurs[cle])}
+										style={{width: 18, height: 18, accentColor: 'var(--color-accent)'}}
 									/>
-								) : (
-									<input className='input' name={cle} defaultValue={valeurs[cle] ?? ''} />
-								)}
-							</label>
-						)}
-
-						{descripteur.aide && (
-							<p className={styles.kpiDetail} style={{marginTop: -6, marginBottom: 16}}>
-								{descripteur.aide}
-							</p>
-						)}
-					</div>
+									{descripteur.libelle}
+								</label>
+							) : descripteur.type === 'choix' ? (
+								<label className={styles.champ}>
+									{descripteur.libelle}
+									<select className='input' name={cle} defaultValue={valeurs[cle]}>
+										{descripteur.options.map((option) => (
+											<option key={option.valeur} value={option.valeur}>
+												{option.libelle}
+											</option>
+										))}
+									</select>
+								</label>
+							) : (
+								<label className={styles.champ}>
+									{descripteur.libelle}
+									{descripteur.type === 'euros' ? (
+										<input
+											className='input'
+											name={cle}
+											defaultValue={centimesEnEuros(valeurs[cle])}
+											inputMode='decimal'
+											style={{maxWidth: 200}}
+										/>
+									) : (
+										<input className='input' name={cle} defaultValue={valeurs[cle] ?? ''} />
+									)}
+								</label>
+							)}
+	
+							{descripteur.aide && (
+								<p className={styles.kpiDetail} style={{marginTop: -6, marginBottom: 16}}>
+									{descripteur.aide}
+								</p>
+							)}
+						</div>
+					))}
+				</div>
 				))}
-			</div>
 
 			<div>
 				<Enregistrer />

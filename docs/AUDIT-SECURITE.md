@@ -364,11 +364,12 @@ C'est écrit dans `maintenance.js`, pour qu'on ne l'ajoute pas par distraction.
 
 ### Hors sécurité, relevé au passage
 
-Onze liens de la page d'accueil et du pied de page mènent à des pages qui
+~~Onze liens de la page d'accueil et du pied de page mènent à des pages qui
 n'existent pas encore : `/a-propos`, `/blog`, `/box`, `/contact`,
-`/ichiban-kuji`, `/recherche` et les quatre ancres de `/legal`. Ce sont des
-écrans de contenu restant à construire, pas des régressions — mais ils sont
-cliquables aujourd'hui et mènent à une page d'erreur.
+`/ichiban-kuji`, `/recherche` et les quatre ancres de `/legal`.~~ **Corrigé.**
+Les sept pages sont construites, et les quarante liens internes du site
+répondent. Voir `docs/PAGES-DE-CONTENU.md` pour ce que chacune fait et ce qui
+reste à remplir par le client.
 
 Un ouvrage numérique était en rupture de stock dès sa mise en vente, donc
 impossible à mettre au panier : le stock d'un fichier vaut zéro et n'a aucune

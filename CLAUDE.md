@@ -92,6 +92,8 @@ modification distraite retire un contrôle sans que rien ne proteste.
 - `docs/MISE-EN-LIGNE.md` — déploiement de zéro, dans l'ordre, et ce qui casse
   si on saute une étape.
 - `docs/MODELE-DONNEES.md` — schéma de données commenté et décisions structurantes.
+- `docs/PAGES-DE-CONTENU.md` — les sept pages de contenu, les écarts assumés à
+  la maquette, et ce que le client doit encore fournir.
 - `docs/QUESTIONS-CLIENT.md` — points en attente de réponse du client.
 - Handoff design : `C:\Users\alexa\Downloads\design_handoff_antre_geek`
   (`README.md` décrit les 15 écrans, `preview_html/` montre le rendu réel).

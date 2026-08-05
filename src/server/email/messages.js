@@ -297,3 +297,43 @@ ${
 
 	return envoyerEmail({destinataire: commande.email, sujet, texte, html});
 }
+
+/* Un message du formulaire de contact, transmis au Vieux geek.
+
+   Seul e-mail du projet qui parte vers l'intérieur et non vers un client. Deux
+   précautions en découlent.
+
+   L'adresse du visiteur est recopiée dans le corps du message, jamais placée en
+   expéditeur : usurper le `From` ferait rejeter le message par les filtres du
+   destinataire, quand ça ne mettrait pas tout le domaine en liste noire. Pour
+   répondre, il suffit de copier l'adresse — et on saura toujours que le message
+   vient du site.
+
+   Le contenu est intégralement échappé. C'est une saisie publique affichée dans
+   la boîte du client : n'importe qui peut y écrire du HTML. */
+export async function envoyerMessageContact({destinataire, nom, email, sujet, message}) {
+	const texte = `Message reçu depuis le site.
+
+De : ${nom} <${email}>
+Sujet : ${sujet}
+
+${message}`;
+
+	const html = coquille(
+		'Un message depuis le site',
+		`<p style="font-size:15px;line-height:1.6;">De : <strong>${echapper(nom)}</strong> — ${echapper(
+			email,
+		)}</p>
+<p style="font-size:15px;line-height:1.6;">Sujet : <strong>${echapper(sujet)}</strong></p>
+<div style="font-size:15px;line-height:1.6;white-space:pre-wrap;border-top:1px solid #e6ded1;padding-top:16px;margin-top:16px;">${echapper(
+			message,
+		)}</div>`,
+	);
+
+	return envoyerEmail({
+		destinataire,
+		sujet: `[Site] ${sujet} — ${nom}`,
+		texte,
+		html,
+	});
+}

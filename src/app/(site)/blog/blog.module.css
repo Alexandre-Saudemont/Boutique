@@ -1,0 +1,454 @@
+/* Le blog : liste des articles et page de lecture. */
+
+.intro {
+	position: relative;
+	overflow: clip;
+}
+
+.blob {
+	position: absolute;
+	right: -120px;
+	top: -100px;
+	width: 360px;
+	height: 360px;
+	border-radius: 50%;
+	background: var(--color-accent-2-200);
+	z-index: 0;
+}
+
+.introContenu {
+	position: relative;
+	z-index: 1;
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(40px, 6vw, 72px) clamp(20px, 5vw, 64px) clamp(24px, 3vw, 36px);
+}
+
+.kicker {
+	display: block;
+	font-size: 13px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	font-weight: 600;
+	color: var(--color-accent-700);
+	margin-bottom: 12px;
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(38px, 5.4vw, 60px);
+	line-height: 1.02;
+	letter-spacing: -0.02em;
+	margin: 0 0 18px;
+	max-width: 16ch;
+}
+
+.chapeau {
+	font-size: 17.5px;
+	line-height: 1.65;
+	max-width: 56ch;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 80%, transparent);
+}
+
+.categories {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 9px;
+	margin-top: 28px;
+}
+
+.categorie {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-text);
+	background: var(--color-surface);
+	border: 1px solid var(--color-divider);
+	border-radius: 999px;
+	padding: 9px 18px;
+}
+
+.categorie:hover {
+	background: var(--color-bg);
+	color: var(--color-accent-700);
+}
+
+.categorieActive {
+	background: var(--color-accent-100);
+	border-color: transparent;
+	color: var(--color-accent-700);
+}
+
+.sectionUne {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(20px, 3vw, 32px) clamp(20px, 5vw, 64px) clamp(28px, 4vw, 44px);
+}
+
+.une {
+	display: grid;
+	grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+	gap: clamp(24px, 4vw, 48px);
+	align-items: center;
+	background: var(--color-surface);
+	border-radius: calc(1.6 * var(--radius-lg));
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	transition: box-shadow 0.18s ease;
+}
+
+.une:hover {
+	box-shadow: var(--shadow-md);
+}
+
+.uneVisuel {
+	margin: 0;
+	aspect-ratio: 4 / 3;
+	overflow: hidden;
+	height: 100%;
+	position: relative;
+	background: var(--color-bg);
+	display: grid;
+	place-items: center;
+}
+
+.uneCorps {
+	padding: clamp(24px, 3vw, 40px) clamp(24px, 3vw, 44px) clamp(24px, 3vw, 40px) 0;
+}
+
+.uneTitre {
+	font-family: var(--font-heading);
+	font-size: clamp(26px, 3.2vw, 38px);
+	line-height: 1.08;
+	letter-spacing: -0.015em;
+	margin: 0 0 14px;
+}
+
+.uneChapeau {
+	font-size: 16px;
+	line-height: 1.6;
+	margin: 0 0 18px;
+	max-width: 48ch;
+	color: color-mix(in srgb, var(--color-text) 74%, transparent);
+}
+
+.lire {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14.5px;
+	font-weight: 600;
+	color: var(--color-accent-700);
+}
+
+.meta {
+	font-size: 12.5px;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+	margin-top: 18px;
+}
+
+.sectionGrille {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 0 clamp(20px, 5vw, 64px) clamp(48px, 7vw, 88px);
+}
+
+.grille {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 26px 22px;
+}
+
+.carte {
+	display: flex;
+	flex-direction: column;
+}
+
+.carteVisuel {
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+	aspect-ratio: 3 / 2;
+	background: var(--color-surface);
+	margin-bottom: 16px;
+	position: relative;
+	display: grid;
+	place-items: center;
+}
+
+/* Emplacement d'illustration : l'initiale de l'article, en attendant sa
+   couverture. Même parti pris que les cartes produit sans photo. */
+.initiale {
+	font-family: var(--font-heading);
+	font-size: 48px;
+	color: var(--color-accent-2);
+	opacity: 0.5;
+}
+
+.carteTitre {
+	font-family: var(--font-heading);
+	font-size: 21px;
+	line-height: 1.18;
+	letter-spacing: -0.01em;
+	margin: 0 0 10px;
+}
+
+.carteChapeau {
+	font-size: 14px;
+	line-height: 1.55;
+	margin: 0 0 12px;
+	color: color-mix(in srgb, var(--color-text) 72%, transparent);
+}
+
+.carteMeta {
+	font-size: 12.5px;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+	margin-top: auto;
+}
+
+.etiquette {
+	align-self: flex-start;
+	margin-bottom: 11px;
+}
+
+.vide {
+	text-align: center;
+	font-size: 16px;
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+	padding: 32px 0;
+}
+
+.sectionLettre {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(24px, 4vw, 40px) clamp(20px, 5vw, 64px) clamp(48px, 7vw, 88px);
+}
+
+.lettre {
+	position: relative;
+	overflow: hidden;
+	background: var(--color-accent-2-100);
+	border-radius: calc(2 * var(--radius-lg));
+	padding: clamp(28px, 4vw, 52px);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 24px;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.lettreTitre {
+	font-family: var(--font-heading);
+	font-size: clamp(24px, 3vw, 34px);
+	line-height: 1.08;
+	letter-spacing: -0.015em;
+	margin: 0 0 10px;
+}
+
+.lettreTexte {
+	font-size: 15.5px;
+	line-height: 1.6;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 78%, transparent);
+}
+
+.lettreIntro {
+	max-width: 44ch;
+}
+
+.lettreFormulaire {
+	flex: 1;
+	min-width: 280px;
+	max-width: 440px;
+}
+
+/* ── Page d'article ─────────────────────────────────────────────────────── */
+
+.article {
+	max-width: 820px;
+	margin: 0 auto;
+	padding: clamp(28px, 4vw, 48px) clamp(20px, 5vw, 40px) clamp(48px, 7vw, 88px);
+}
+
+.retour {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 26px;
+}
+
+.articleTitre {
+	font-family: var(--font-heading);
+	font-size: clamp(30px, 4.4vw, 50px);
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+	margin: 0 0 18px;
+}
+
+.signature {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0 0 30px;
+}
+
+.avatar {
+	flex: none;
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+	display: grid;
+	place-items: center;
+	font-family: var(--font-heading);
+	font-size: 18px;
+}
+
+.signatureNom {
+	font-size: 13.5px;
+	line-height: 1.35;
+	font-weight: 600;
+}
+
+.signatureMeta {
+	font-size: 13.5px;
+	line-height: 1.35;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.couverture {
+	margin: 0 0 32px;
+	border-radius: calc(1.4 * var(--radius-lg));
+	overflow: hidden;
+	aspect-ratio: 16 / 9;
+	box-shadow: var(--shadow-md);
+	position: relative;
+	background: var(--color-surface);
+	display: grid;
+	place-items: center;
+}
+
+.lead {
+	font-size: 19px;
+	line-height: 1.6;
+	font-family: var(--font-heading);
+	font-weight: 400;
+	margin: 0 0 26px;
+	color: var(--color-text);
+}
+
+.corps {
+	font-size: 17px;
+	line-height: 1.75;
+	color: color-mix(in srgb, var(--color-text) 90%, transparent);
+}
+
+.corps p {
+	margin: 0 0 20px;
+}
+
+.partage {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	margin: 36px 0 8px;
+	padding-top: 26px;
+	border-top: 1px solid var(--color-divider);
+}
+
+.partageLibelle {
+	font-size: 13.5px;
+	font-weight: 600;
+	color: color-mix(in srgb, var(--color-text) 62%, transparent);
+	margin-right: 4px;
+}
+
+.ensuite {
+	margin-top: 44px;
+}
+
+.ensuiteTitre {
+	font-family: var(--font-heading);
+	font-size: 24px;
+	letter-spacing: -0.01em;
+	margin: 0 0 20px;
+}
+
+.ensuiteListe {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 20px;
+}
+
+.ensuiteCarte {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	padding: 14px;
+	box-shadow: var(--shadow-sm);
+	transition: box-shadow 0.18s ease;
+}
+
+.ensuiteCarte:hover {
+	box-shadow: var(--shadow-md);
+}
+
+.ensuiteVisuel {
+	flex: none;
+	width: 84px;
+	height: 84px;
+	border-radius: var(--radius-md);
+	overflow: hidden;
+	background: var(--color-bg);
+	position: relative;
+	display: grid;
+	place-items: center;
+}
+
+.ensuiteKicker {
+	display: block;
+	font-size: 11.5px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	font-weight: 600;
+	color: var(--color-accent-2-700);
+	margin-bottom: 6px;
+}
+
+.ensuiteNom {
+	display: block;
+	font-family: var(--font-heading);
+	font-size: 16.5px;
+	line-height: 1.16;
+	color: var(--color-text);
+}
+
+.image {
+	object-fit: cover;
+}
+
+@media (max-width: 900px) {
+	.une {
+		grid-template-columns: 1fr;
+	}
+
+	.uneCorps {
+		padding: 0 clamp(20px, 4vw, 32px) clamp(24px, 4vw, 32px);
+	}
+
+	.grille {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (max-width: 620px) {
+	.grille,
+	.ensuiteListe {
+		grid-template-columns: 1fr;
+	}
+}

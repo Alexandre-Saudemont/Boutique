@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {Lock} from 'lucide-react';
 import {formatPrix} from '@/lib/format';
-import {ETATS} from '@/lib/catalogue';
+import {ETAT_BOX, ETAT_NUMERIQUE, ETATS} from '@/lib/catalogue';
 import styles from './ProductCard.module.css';
 
 /* Carte produit — boutique, résultats de recherche, favoris, « même rayon ».
@@ -14,12 +14,18 @@ import styles from './ProductCard.module.css';
    Tant que la boutique n'est pas ouverte, le bouton d'achat est désactivé et
    porte un cadenas — l'inventaire se visite, il ne s'achète pas encore. */
 
-/* Le badge d'état reprend les trois classes du design system :
-   terracotta pour le neuf, sauge pour la précommande, contour pour l'occasion. */
+/* Le badge d'état reprend les classes du design system : terracotta pour le
+   neuf, sauge pour la précommande et les box, contour pour l'occasion.
+
+   Le repli n'est pas décoratif : les états hors catalogue (numérique, box) ne
+   sont pas dans `ETATS`, et sans lui la classe valait `undefined` — le badge
+   perdait alors sa couleur de fond et se lisait à peine. */
 const CLASSE_BADGE = {
 	[ETATS.NEUF]: 'tag-accent',
 	[ETATS.PRECOMMANDE]: 'tag-accent-2',
 	[ETATS.OCCASION]: 'tag-outline',
+	[ETAT_NUMERIQUE.cle]: 'tag-neutral',
+	[ETAT_BOX.cle]: 'tag-accent-2',
 };
 
 export default function ProductCard({produit, boutiqueOuverte = false}) {
@@ -44,7 +50,8 @@ export default function ProductCard({produit, boutiqueOuverte = false}) {
 					<span className={styles.emplacement}>{produit.nom.charAt(0)}</span>
 				)}
 
-				<span className={`tag ${CLASSE_BADGE[produit.etat.cle]} ${styles.badge}`}>
+				<span
+					className={`tag ${CLASSE_BADGE[produit.etat.cle] ?? 'tag-neutral'} ${styles.badge}`}>
 					{produit.etat.libelle}
 				</span>
 			</Link>

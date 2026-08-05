@@ -1,8 +1,10 @@
 import {getRayons} from '@/server/services/categories';
+import {getTaillesBox, listerBoxes} from '@/server/services/boxes';
 import {getSetting} from '@/server/services/settings';
 import {countCartItems} from '@/server/services/cart';
 import {getCartToken} from '@/server/auth/cart-session';
 import {getUtilisateurCourant} from '@/server/auth/session';
+import {formatPrixCompact} from '@/lib/format';
 import HeaderClient from './HeaderClient';
 
 /* Enveloppe serveur du header : elle lit les données, HeaderClient les affiche.
@@ -20,8 +22,10 @@ import HeaderClient from './HeaderClient';
 export default async function SiteHeader() {
 	const jeton = await getCartToken();
 
-	const [rayons, annonce, articlesAuPanier, utilisateur] = await Promise.all([
+	const [rayons, boxes, taillesBox, annonce, articlesAuPanier, utilisateur] = await Promise.all([
 		getRayons(),
+		listerBoxes(),
+		getTaillesBox(),
 		getSetting('shop.announcement'),
 		countCartItems(jeton),
 		getUtilisateurCourant(),
@@ -40,6 +44,13 @@ export default async function SiteHeader() {
 	return (
 		<HeaderClient
 			rayons={rayons}
+			/* Seuls le nom et le slug partent au navigateur : le menu n'a pas
+			   besoin du stock ni des images de chaque box. */
+			boxes={boxes.map((box) => ({nom: box.nom, slug: box.slug}))}
+			taillesBox={taillesBox.map((taille) => ({
+				nom: taille.nom,
+				prix: formatPrixCompact(taille.prixCents),
+			}))}
 			annonce={annonce}
 			articlesAuPanier={articlesAuPanier}
 			compte={compte}

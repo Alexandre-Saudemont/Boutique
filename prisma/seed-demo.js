@@ -120,6 +120,77 @@ const PRODUITS = [
 	},
 ];
 
+/* Quelques articles, pour que le blog ne soit pas une page vide en
+   développement. Même principe que les produits : repérés par leur slug, donc
+   rejouables sans doublon. Le contenu est du texte brut séparé par des lignes
+   vides — c'est exactement ce que le back-office enregistre. */
+const ARTICLES = [
+	{
+		slug: 'peindre-sa-premiere-figurine',
+		title: 'Peindre sa première figurine',
+		categorie: {nom: 'Atelier', slug: 'atelier'},
+		excerpt: 'Trois pinceaux, une lampe de bureau, et beaucoup moins de raisons d’avoir peur qu’on ne croit.',
+		content: `On commence tous par la même erreur : trop de peinture sur le pinceau. La figurine se noie, les détails disparaissent sous une couche épaisse, et on range la boîte en se disant qu’on n’est pas doué.
+
+La vérité, c’est qu’il faut diluer. Beaucoup plus qu’on ne l’imagine. Deux couches fines valent mieux qu’une couche franche, et se rattrapent bien plus facilement.
+
+La sous-couche, elle, ne se saute pas. C’est elle qui fait tenir tout le reste. Un aérosol gris à un mètre de distance, par temps sec, et on laisse sécher une nuit entière avant de toucher quoi que ce soit.`,
+	},
+	{
+		slug: 'le-mecha-des-annees-80',
+		title: 'Le mécha des années 80',
+		categorie: {nom: 'Culture', slug: 'culture'},
+		excerpt: 'Pourquoi ces robots dessinés il y a quarante ans tiennent encore debout aujourd’hui.',
+		content: `Il y a une raison très simple pour laquelle les méchas de cette époque vieillissent bien : ils ont été dessinés par des gens qui devaient les faire bouger à la main, image par image.
+
+Chaque articulation avait un coût. Chaque détail en trop se payait en semaines de travail. Résultat : des silhouettes lisibles, reconnaissables à la seule ombre.
+
+C’est la même leçon que pour une figurine posée sur une étagère. Ce qu’on retient d’un objet, c’est sa silhouette avant ses détails.`,
+	},
+	{
+		slug: 'chiner-sans-se-faire-avoir',
+		title: 'Chiner sans se faire avoir',
+		categorie: {nom: 'Coup de cœur', slug: 'coup-de-coeur'},
+		excerpt: 'Ce que je regarde, dans l’ordre, avant de sortir un billet sur une brocante.',
+		content: `La boîte, toujours. Une boîte fatiguée n’est pas grave ; une boîte qui a pris l’eau annonce presque toujours un contenu abîmé.
+
+Ensuite le poids. Une figurine en résine qui semble légère est souvent une copie. Ça ne se sent qu’à force, mais ça se sent.
+
+Enfin, le vendeur. Quelqu’un qui vous raconte d’où vient la pièce vous dira aussi ce qui cloche avec. Celui qui ne sait rien n’a rien à cacher non plus — il ne sait juste rien.`,
+	},
+];
+
+/// Crée les articles manquants. Retourne le nombre effectivement créé.
+async function semerArticles() {
+	let crees = 0;
+
+	for (const article of ARTICLES) {
+		const existant = await prisma.post.findUnique({where: {slug: article.slug}});
+		if (existant) continue;
+
+		const {categorie, ...champs} = article;
+
+		const rubrique = await prisma.postCategory.upsert({
+			where: {slug: categorie.slug},
+			update: {},
+			create: {name: categorie.nom, slug: categorie.slug},
+		});
+
+		await prisma.post.create({
+			data: {
+				...champs,
+				status: 'PUBLISHED',
+				publishedAt: new Date(),
+				categories: {connect: {id: rubrique.id}},
+			},
+		});
+
+		crees += 1;
+	}
+
+	return crees;
+}
+
 async function main() {
 	const rayons = await prisma.category.findMany({select: {id: true, slug: true}});
 	const idParSlug = Object.fromEntries(rayons.map((r) => [r.slug, r.id]));
@@ -157,10 +228,18 @@ async function main() {
 		crees += 1;
 	}
 
+	const articles = await semerArticles();
+
 	console.log(
 		crees > 0
 			? `Catalogue de démonstration : ${crees} produits créés.`
 			: 'Catalogue de démonstration déjà en place, rien à faire.',
+	);
+
+	console.log(
+		articles > 0
+			? `Blog de démonstration : ${articles} articles créés.`
+			: 'Blog de démonstration déjà en place, rien à faire.',
 	);
 }
 
