@@ -48,8 +48,15 @@ function stripe() {
 
    Les lignes envoyées à Stripe sont celles de la commande, pas celles du
    panier : la commande a déjà figé les prix et recalculé le total côté serveur.
-   Ce qui est débité correspond donc exactement à ce qui est facturé. */
-export async function creerSessionPaiement({commandeId, jetonPanier, origine}) {
+   Ce qui est débité correspond donc exactement à ce qui est facturé.
+
+   **`moyen` vaut `'carte'` ou `'paypal'`.** PayPal est encaissé par Stripe, pas
+   par un compte PayPal séparé : même session, même webhook, même solde, même
+   endroit pour rembourser. C'est pour cette raison que le `Payment` reste
+   enregistré en `STRIPE` — c'est bien Stripe qui reçoit l'argent, PayPal n'est
+   que la façon dont l'acheteur le lui donne. Écrire `PAYPAL` en base ferait
+   chercher des versements sur un compte qui n'existe pas. */
+export async function creerSessionPaiement({commandeId, jetonPanier, origine, moyen = 'carte'}) {
 	const commande = await prisma.order.findUnique({
 		where: {id: commandeId},
 		include: {items: true, payments: {where: {status: 'PENDING', provider: 'STRIPE'}}},
@@ -83,6 +90,17 @@ export async function creerSessionPaiement({commandeId, jetonPanier, origine}) {
 			locale: 'fr',
 			line_items: articles,
 			customer_email: commande.email,
+
+			/* Le moyen choisi chez nous est imposé à Stripe, pour que l'acheteur
+			   qui a cliqué « PayPal » arrive sur PayPal — et non sur un second
+			   écran de choix, qui donnerait l'impression que le premier n'a servi
+			   à rien.
+
+			   Rien n'est imposé pour la carte : sans cette clé, Stripe reste en
+			   sélection automatique et propose aussi ce qui est activé au tableau
+			   de bord (Link, portefeuilles mobiles). La fixer à `['card']`
+			   retirerait ces moyens sans que personne l'ait demandé. */
+			...(moyen === 'paypal' ? {payment_method_types: ['paypal']} : {}),
 			/* Deux façons de retrouver la commande au retour du webhook. La
 			   seconde survit aux événements qui ne portent pas
 			   `client_reference_id`. */
@@ -119,8 +137,14 @@ export async function creerSessionPaiement({commandeId, jetonPanier, origine}) {
 			cancel_url: `${origine}/commande/paiement?annule=1`,
 		},
 		/* Clé d'idempotence : un double clic ou un rejeu réseau retombe sur la
-		   session déjà créée au lieu d'en ouvrir une seconde. */
-		{idempotencyKey: `paiement-${paiement.id}`},
+		   session déjà créée au lieu d'en ouvrir une seconde.
+
+		   Le moyen en fait partie, et ce n'est pas cosmétique : quelqu'un qui
+		   essaie la carte, renonce, puis revient choisir PayPal doit obtenir une
+		   nouvelle session. Sans lui dans la clé, Stripe renverrait la session
+		   carte déjà ouverte — le bouton PayPal ramènerait sur un écran de carte,
+		   sans que rien ne signale l'incohérence. */
+		{idempotencyKey: `paiement-${paiement.id}-${moyen}`},
 	);
 
 	return {ok: true, url: session.url};

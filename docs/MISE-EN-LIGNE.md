@@ -50,6 +50,13 @@ STRIPE_WEBHOOK_SECRET="whsec_…"
 
 Voir l'étape 6 : le second ne s'obtient qu'après avoir créé le webhook.
 
+**PayPal n'a pas de clés à lui.** Il est encaissé par Stripe : même compte, même
+solde, même webhook. Il s'active en deux gestes, dans cet ordre — d'abord dans
+le tableau de bord Stripe (*Réglages → Moyens de paiement → PayPal*), ensuite
+dans **Administration → Réglages → Paiement → Proposer PayPal**. Cocher la case
+du site sans avoir activé le moyen chez Stripe ferait échouer l'ouverture de la
+page de paiement, juste après le clic sur « payer ».
+
 ### Pour envoyer des e-mails
 
 ```
@@ -285,8 +292,16 @@ le ton de la boutique.
 adresses publiques existent (`getAllProductSlugs`, `getAllPostSlugs`) mais rien
 ne les appelle.
 
-**PayPal est affiché mais refusé** à la validation. Soit le brancher, soit
-retirer l'option de l'écran de paiement.
+**PayPal est branché mais éteint.** Il ne s'affichera dans le tunnel qu'une fois
+activé des deux côtés (voir « Pour encaisser »). Tant que la case est décochée,
+l'option n'apparaît pas du tout — le site ne promet rien qu'il ne sache faire.
+
+À savoir avant de l'activer : les litiges PayPal viennent le plus souvent
+d'acheteurs estimant que **l'article ne correspond pas à sa description**. C'est
+le terrain le plus exposé pour de l'occasion chinée et des box dont le contenu
+n'est pas annoncé. Deux choses servent de défense, et elles existent déjà : les
+photos réelles pièce par pièce, et la note de contenu saisie à la préparation
+d'une box — qui devient une preuve à produire en cas de contestation.
 
 **Le choix du point relais n'est pas branché.** Le mode est proposé, le point
 se convient ensuite par e-mail.

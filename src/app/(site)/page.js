@@ -40,7 +40,10 @@ const REASSURANCES = [
 	{
 		Icone: ShieldCheck,
 		titre: 'Paiement 100 % sécurisé',
-		sous: 'CB & PayPal, chiffré',
+		/* `{moyens}` suit le réglage, comme `{seuil}` suit le franco de port :
+		   promettre PayPal dès l'accueil alors que le tunnel ne le propose pas
+		   ferait découvrir l'absence au moment de payer. */
+		sous: '{moyens}, chiffré',
 	},
 ];
 
@@ -68,6 +71,7 @@ export default async function Accueil() {
 
 	const boutiqueOuverte = Boolean(reglages['shop.open']);
 	const seuilFranco = formatPrixCompact(reglages['shipping.freeAboveCents']);
+	const moyensPaiement = reglages['payment.paypalEnabled'] ? 'CB & PayPal' : 'CB';
 	const trouvailles = produits.slice(0, 4);
 
 	return (
@@ -135,7 +139,9 @@ export default async function Accueil() {
 								<div className={styles.reassuranceTitre}>
 									{titre.replace('{seuil}', seuilFranco)}
 								</div>
-								<div className={styles.reassuranceSous}>{sous}</div>
+								<div className={styles.reassuranceSous}>
+									{sous.replace('{moyens}', moyensPaiement)}
+								</div>
 							</div>
 						</div>
 					))}

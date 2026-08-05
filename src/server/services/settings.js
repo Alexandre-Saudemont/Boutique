@@ -18,6 +18,14 @@ const DEFAUTS = {
 	'checkout.guestAllowed': true,
 	'reviews.moderation': 'PRIOR',
 
+	/* PayPal, encaissé par Stripe et non par un compte PayPal séparé.
+
+	   Faux par défaut : le moyen doit d'abord être activé dans le tableau de
+	   bord Stripe. Proposé au tunnel sans l'être là-bas, il ferait échouer la
+	   création de session — le client verrait une erreur juste après avoir
+	   choisi comment payer, au pire moment du parcours. */
+	'payment.paypalEnabled': false,
+
 	/* Identité légale. Vides à dessein : la page /legal affiche un marqueur
 	   « à compléter » tant qu'une case manque, plutôt qu'un SIRET inventé.
 	   Une mention légale fausse est pire qu'une mention légale absente. */
@@ -100,6 +108,13 @@ export const REGLAGES_MODIFIABLES = {
 		type: 'booleen',
 		libelle: 'Commande sans compte',
 		aide: 'Obliger à créer un compte fait abandonner une partie des acheteurs au moment de payer.',
+	},
+
+	'payment.paypalEnabled': {
+		groupe: 'Paiement',
+		type: 'booleen',
+		libelle: 'Proposer PayPal',
+		aide: 'À cocher seulement une fois PayPal activé dans votre tableau de bord Stripe (Réglages → Moyens de paiement). C’est Stripe qui encaisse : il n’y a pas de compte PayPal séparé à relier, et les remboursements se font au même endroit que pour les cartes.',
 	},
 
 	'legal.companyName': {

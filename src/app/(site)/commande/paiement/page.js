@@ -66,6 +66,9 @@ export default async function Paiement({searchParams}) {
 				adresse={brouillon.adresse}
 				mode={mode}
 				enLigne={paiementEnLigneActif()}
+				/* PayPal transite par Stripe : sans clés Stripe, il n'y a pas
+				   davantage de PayPal que de carte. */
+				paypalActif={paiementEnLigneActif() && Boolean(reglages['payment.paypalEnabled'])}
 				annule={parametres?.annule === '1'}
 			/>
 		</section>

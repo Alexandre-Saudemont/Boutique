@@ -1,12 +1,17 @@
 import Link from 'next/link';
 import {getRayons} from '@/server/services/categories';
+import {getSettings} from '@/server/services/settings';
 import styles from './SiteFooter.module.css';
 
 /* Pied de page de la vitrine.
 
    Les rayons viennent de la base : quand le client en ajoute un depuis l'admin,
    il apparaît ici sans intervention. Les liens d'aide et les mentions légales
-   sont fixes, ce sont des pages du site. */
+   sont fixes, ce sont des pages du site.
+
+   Les moyens de paiement listés en bas suivent le réglage : annoncer PayPal
+   sur toutes les pages alors que le tunnel ne le propose pas ferait découvrir
+   l'absence au moment de payer — le pire endroit pour une mauvaise surprise. */
 
 const LIENS_AIDE = [
 	{libelle: 'Contact', href: '/contact'},
@@ -24,7 +29,9 @@ const LIENS_LEGAL = [
 ];
 
 export default async function SiteFooter() {
-	const rayons = await getRayons();
+	const [rayons, reglages] = await Promise.all([getRayons(), getSettings()]);
+
+	const moyens = ['CB', reglages['payment.paypalEnabled'] && 'PayPal'].filter(Boolean);
 
 	return (
 		<footer className={styles.footer}>
@@ -83,7 +90,9 @@ export default async function SiteFooter() {
 						© {new Date().getFullYear()} L&apos;antre du vieux geek fou — Tous
 						droits réservés.
 					</span>
-					<span>Paiement sécurisé · CB · PayPal · Mondial Relay · Colissimo</span>
+					<span>
+						Paiement sécurisé · {moyens.join(' · ')} · Mondial Relay · Colissimo
+					</span>
 				</div>
 			</div>
 		</footer>

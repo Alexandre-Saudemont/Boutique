@@ -6,6 +6,7 @@ import {revalidatePath} from 'next/cache';
 import {creerCommande, validerAdresse} from '@/server/services/checkout';
 import {getCart} from '@/server/services/cart';
 import {creerSessionPaiement, paiementEnLigneActif} from '@/server/services/payments';
+import {getSettings} from '@/server/services/settings';
 import {getCartToken} from '@/server/auth/cart-session';
 import {getUtilisateurCourant} from '@/server/auth/session';
 import {getBrouillonCommande, setBrouillonCommande} from '@/server/auth/checkout-session';
@@ -122,12 +123,17 @@ export async function payerCommande(_precedent, donnees) {
 		};
 	}
 
-	if (donnees.get('provider') === 'paypal') {
-		return {
-			statut: 'erreur',
-			message: "PayPal n'est pas encore actif. Choisissez la carte bancaire.",
-		};
-	}
+	/* Le moyen demandé, revérifié contre le réglage.
+
+	   Le formulaire n'affiche PayPal que s'il est activé, mais un champ de
+	   formulaire se réécrit dans le navigateur : sans ce contrôle, n'importe qui
+	   demanderait une session PayPal alors que le moyen n'est pas activé chez
+	   Stripe, et récolterait une erreur de création juste après avoir cliqué
+	   « payer ». On retombe silencieusement sur la carte — le moyen qui, lui,
+	   fonctionne toujours. */
+	const reglages = await getSettings();
+	const moyen =
+		donnees.get('provider') === 'paypal' && reglages['payment.paypalEnabled'] ? 'paypal' : 'carte';
 
 	const enLigne = paiementEnLigneActif();
 
@@ -163,6 +169,7 @@ export async function payerCommande(_precedent, donnees) {
 			commandeId: resultat.id,
 			jetonPanier: jeton,
 			origine: await origineDuSite(),
+			moyen,
 		});
 
 		if (!session.ok) {

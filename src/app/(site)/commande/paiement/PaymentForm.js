@@ -21,6 +21,12 @@ import styles from '../commande.module.css';
 
 const ETAT_INITIAL = {statut: 'vierge'};
 
+/* Les deux moyens, quand ils sont l'un et l'autre disponibles.
+
+   PayPal n'apparaît que si le réglage l'autorise — c'est-à-dire une fois le
+   moyen activé dans le tableau de bord Stripe. L'afficher sans ça mènerait à
+   une erreur de création de session juste après le clic sur « payer », au
+   moment du parcours où un pépin coûte le plus cher. */
 const MOYENS = [
 	{
 		cle: 'carte',
@@ -52,9 +58,11 @@ function BoutonValider({enLigne, totalCents}) {
 	);
 }
 
-export default function PaymentForm({panier, adresse, mode, enLigne, annule}) {
+export default function PaymentForm({panier, adresse, mode, enLigne, annule, paypalActif = false}) {
 	const [etat, action] = useActionState(payerCommande, ETAT_INITIAL);
 	const [moyen, setMoyen] = useState('carte');
+
+	const moyens = paypalActif ? MOYENS : MOYENS.filter((m) => m.cle !== 'paypal');
 
 	/* `mode` est nul quand la commande est entièrement dématérialisée : il n'y a
 	   pas de transporteur à rappeler, et rien à ajouter au total. */
@@ -113,7 +121,7 @@ export default function PaymentForm({panier, adresse, mode, enLigne, annule}) {
 					<legend className={styles.carteTitre}>Moyen de paiement</legend>
 
 					<div className={styles.modes}>
-						{MOYENS.map(({cle, Icone, nom, detail}) => (
+						{moyens.map(({cle, Icone, nom, detail}) => (
 							<label
 								key={cle}
 								className={`${styles.mode} ${moyen === cle ? styles.modeChoisi : ''}`}>
