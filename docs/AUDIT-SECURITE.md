@@ -6,6 +6,10 @@
 > l'effacement. Une suite de tests couvre désormais les garde-fous. Le détail
 > est en partie 5, et les parties 1 à 4 sont laissées telles qu'elles ont été
 > écrites — elles racontent l'état de départ.
+>
+> **12 août 2026.** `npm audit` est passé à zéro : les alertes réputées sans
+> correctif sont couvertes par Next 16.3.0. Voir partie 8, qui traite aussi de
+> ce que `sitemap.xml` et `robots.txt` exposent désormais.
 
 Revue complète du code du projet : authentification, sessions, panier, tunnel de
 commande, encaissement Stripe, back-office, envoi d'e-mails, configuration.
@@ -192,6 +196,9 @@ Next qu'aucune version publiée ne corrige — le seul « correctif » proposé 
 retour à Next 9. Le risque réel est faible : `postcss` traite au build du CSS
 que nous écrivons, `sharp` traite des images dont les domaines sont désormais
 restreints. À revoir à chaque montée de version.
+
+> *Réglé le 12 août 2026 : Next 16.3.0 embarque les versions corrigées. Voir
+> partie 8.*
 
 **Double opt-in de la lettre.** Une adresse ne reçoit rien tant que le lien
 envoyé n'a pas été suivi. Une adresse déjà confirmée ne reçoit pas de second
@@ -387,3 +394,69 @@ Les conditions générales de vente devront mentionner l'absence de droit de
 rétractation sur les fichiers téléchargés (art. L221-28 du code de la
 consommation). La fiche produit le dit déjà, le document contractuel doit le
 dire aussi. C'est un point à signaler au juriste qui relira les CGV.
+
+---
+
+## 8. Dépendances et surface publique — 12 août 2026
+
+### `npm audit` est à zéro
+
+Les six alertes *high* qui subsistaient sont éteintes. Aucune ne venait du code
+du projet, et aucune ne demandait de contournement :
+
+**`sharp` et `postcss`** arrivaient par Next. Elles étaient réputées sans
+correctif publié — c'était vrai à la rédaction de la partie 5, ça ne l'est plus.
+**Next 16.3.0** embarque `sharp` 0.35.3 (libvips 8.18.3, où les quatre CVE de
+`libvips` sont corrigées) et `postcss` 8.5.23. Montée de 16.2.12 à 16.3.0 : build
+vert, 319 tests verts, passe d'affichage faite au navigateur sur les treize pages
+publiques, aucune erreur en console.
+
+Ce que cette passe n'a **pas** pu vérifier : l'optimiseur d'images de bout en
+bout. Aucun produit du jeu de données ne porte encore de photo — les fiches
+affichent leur initiale. `sharp` a donc été exercé directement (encodage WebP,
+relecture des dimensions : correct), mais le chemin `next/image` complet reste à
+revoir le jour où le client fournira ses premières photos.
+
+**`brace-expansion`, `fast-uri`, `js-yaml`** venaient de l'outillage ESLint. Elles
+ne partent jamais en production : ce sont des dépendances de développement. Elles
+comptaient tout de même, parce qu'un `npm audit` qui affiche en permanence six
+lignes rouges est un `npm audit` que plus personne ne lit — et c'est comme ça
+qu'une vraie alerte passe inaperçue. Corrigées par `npm audit fix`, sans
+changement de version majeure.
+
+### La CSP autorisait `eval()` en développement… en l'interdisant
+
+À l'inverse : `script-src` n'accordait pas `'unsafe-eval'`, or React s'en sert en
+mode développement pour reconstruire les piles d'appel. Chaque page affichait donc
+une erreur en console, et les traces devenaient inexploitables en local. Une CSP
+qui gêne le travail quotidien finit desserrée en bloc, sans discernement — mieux
+vaut ouvrir précisément ce qui doit l'être. `'unsafe-eval'` est désormais accordé
+**hors production seulement**, et un test échoue si la production le voit un jour :
+avec lui, un script injecté fabrique du code à la volée et le nonce ne protège
+plus de grand-chose.
+
+### Ce que le site expose désormais aux moteurs
+
+`sitemap.xml` et `robots.txt` sont posés. Ils ne sont pas des mesures de sécurité
+et ne doivent pas être lus comme telles — tout ce qu'ils désignent est fermé côté
+serveur, et testé. Mais ils décident de ce qui se retrouve dans les résultats de
+recherche, et à ce titre ils appartiennent à cette revue.
+
+Le sitemap n'énumère que des pages publiques : ni panier, ni tunnel de commande,
+ni espace compte, ni lien de téléchargement. Le premier filtre est de ne pas
+lister. `robots.txt` les interdit en plus, ceinture et bretelles, et un test
+unitaire échoue si `/telechargement/` sort de la liste — un jeton de
+téléchargement indexé, c'est l'ouvrage numérique d'un client servi à qui passe
+par là.
+
+Deux limites à garder en tête. D'abord, `robots.txt` est une liste publique de
+bonnes adresses à essayer : un robot malveillant la lit dans ce sens. Ensuite,
+interdire n'est pas désindexer — une adresse déjà connue d'un moteur peut rester
+listée sans son contenu. Pour la faire disparaître, il faut un `noindex` sur la
+page elle-même. Les pages qui en portent déjà un (confirmation de newsletter,
+par exemple) sont les bonnes candidates si le cas se présente.
+
+L'écran d'erreur, lui, affiche le `digest` de l'incident et **jamais**
+`error.message` : le message d'une exception serveur cite volontiers un nom de
+table, une requête, parfois une chaîne de connexion. Le visiteur n'en ferait
+rien, un curieux si.
