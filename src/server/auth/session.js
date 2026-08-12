@@ -61,6 +61,18 @@ export async function creerSession(userId) {
 	return jeton;
 }
 
+/* Le jeton de la session en cours, ou `null`.
+
+   Sert à distinguer « cette session-ci » des autres — un changement de mot de
+   passe ferme les sessions ouvertes ailleurs mais garde celle qui vient de le
+   demander. C'est une clé de recherche opaque, elle n'apprend rien sur le
+   compte : la remonter à une action serveur n'expose rien. */
+export async function getJetonSession() {
+	const boite = await cookies();
+
+	return boite.get(NOM_COOKIE)?.value ?? null;
+}
+
 /* L'utilisateur connecté, ou `null`.
 
    Une session expirée est supprimée au passage plutôt que simplement ignorée :

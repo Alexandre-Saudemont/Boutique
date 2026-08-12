@@ -5,6 +5,7 @@ import {headers} from 'next/headers';
 import {revalidatePath} from 'next/cache';
 import {
 	anonymiserCompte,
+	changerMotDePasse,
 	connecter,
 	demanderReinitialisation,
 	demanderVerificationEmail,
@@ -16,6 +17,7 @@ import {
 import {
 	creerSession,
 	fermerSession,
+	getJetonSession,
 	getUtilisateurCourant,
 } from '@/server/auth/session';
 import {getCartToken} from '@/server/auth/cart-session';
@@ -211,6 +213,54 @@ export async function supprimerMonCompte(_precedent, donnees) {
 	revalidatePath('/', 'layout');
 
 	redirect('/?compte=supprime');
+}
+
+/* Changement de mot de passe depuis son compte.
+
+   Limité, comme la connexion : le formulaire vérifie un mot de passe, il est
+   donc utilisable pour en essayer. La limite porte sur le compte connecté et
+   non sur l'adresse saisie — il n'y en a pas — ce qui la rend inoffensive pour
+   les autres : personne ne peut bloquer le formulaire de quelqu'un d'autre.
+
+   La limite est remise à zéro au succès. Sans ça, changer son mot de passe deux
+   fois de suite dans la même journée finirait par se heurter au compteur, alors
+   que rien d'anormal ne s'est produit. */
+export async function changerMonMotDePasse(_precedent, donnees) {
+	const utilisateur = await getUtilisateurCourant();
+
+	if (!utilisateur) {
+		return {statut: 'erreur', message: 'Votre session a expiré. Reconnectez-vous.'};
+	}
+
+	if (donnees.get('nouveau') !== donnees.get('confirmation')) {
+		return {statut: 'erreur', message: 'Les deux mots de passe ne sont pas identiques.'};
+	}
+
+	const cle = `motdepasse:${utilisateur.id}`;
+	const limite = verifierLimite(cle, {max: 10, fenetreMs: 15 * 60 * 1000});
+
+	if (!limite.autorise) {
+		const minutes = Math.ceil(limite.resteSecondes / 60);
+
+		return {
+			statut: 'erreur',
+			message: `Trop de tentatives. Réessayez dans ${minutes} minute${
+				minutes > 1 ? 's' : ''
+			}.`,
+		};
+	}
+
+	const resultat = await changerMotDePasse(utilisateur.id, {
+		actuel: donnees.get('actuel'),
+		nouveau: donnees.get('nouveau'),
+		jetonAConserver: await getJetonSession(),
+	});
+
+	if (!resultat.ok) return {statut: 'erreur', message: resultat.erreur};
+
+	reinitialiserLimite(cle);
+
+	return {statut: 'motdepasse-change'};
 }
 
 export async function seDeconnecter() {

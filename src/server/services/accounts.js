@@ -208,6 +208,81 @@ export async function reinitialiserMotDePasse(jeton, nouveauMotDePasse) {
 	return {ok: true};
 }
 
+/* Change le mot de passe depuis son compte, en connaissant l'ancien.
+
+   À ne pas confondre avec `reinitialiserMotDePasse`, qui part d'un jeton reçu
+   par e-mail parce que la personne a justement oublié son mot de passe. Ici
+   elle le connaît : c'est lui qui autorise l'opération, et non un lien.
+
+   **L'ancien mot de passe est exigé.** Une session laissée ouverte sur un poste
+   partagé ne doit pas suffire à changer la serrure — sinon quiconque passe
+   derrière l'écran prend le compte, et le titulaire ne peut plus rentrer.
+
+   **Les autres sessions sont fermées, la sienne est gardée.** C'est la
+   différence avec la réinitialisation, et elle est délibérée. Quelqu'un qui
+   change son mot de passe soupçonne souvent quelque chose : laisser ouvertes
+   les sessions d'un intrus rendrait le geste inutile. Mais le déconnecter
+   lui-même, au moment précis où il vient de prouver son identité deux fois,
+   n'apprendrait rien à personne et ferait croire à un échec. On garde donc la
+   session courante, et elle seule.
+
+   **Le nouveau mot de passe doit différer de l'ancien.** Sans ce contrôle, le
+   formulaire répond « c'est changé » à quelqu'un qui n'a rien changé — et ferme
+   au passage ses autres sessions sans raison. */
+export async function changerMotDePasse(userId, {actuel, nouveau, jetonAConserver = null}) {
+	const utilisateur = await prisma.user.findUnique({where: {id: userId}});
+
+	if (!utilisateur || utilisateur.anonymizedAt) {
+		return {ok: false, erreur: 'Compte introuvable.'};
+	}
+
+	/* Un compte sans empreinte est un compte créé sans mot de passe — la
+	   commande en invité suivie d'une conversion. Il n'y a pas d'« ancien » à
+	   vérifier, et l'accepter laisserait n'importe quelle session poser un mot
+	   de passe sur le compte. C'est le parcours « mot de passe oublié » qui
+	   convient, puisqu'il prouve l'accès à la boîte mail. */
+	if (!utilisateur.passwordHash) {
+		return {
+			ok: false,
+			erreur:
+				'Ce compte n’a pas encore de mot de passe. Passez par « mot de passe oublié » pour en choisir un.',
+		};
+	}
+
+	if (!(await verifyPassword(String(actuel ?? ''), utilisateur.passwordHash))) {
+		return {ok: false, erreur: 'Votre mot de passe actuel est incorrect.'};
+	}
+
+	const controle = validerMotDePasse(nouveau);
+	if (!controle.valide) return {ok: false, erreur: controle.erreur};
+
+	if (await verifyPassword(String(nouveau), utilisateur.passwordHash)) {
+		return {
+			ok: false,
+			erreur: 'Le nouveau mot de passe est identique à l’ancien.',
+		};
+	}
+
+	const empreinte = await hashPassword(String(nouveau));
+
+	await prisma.$transaction([
+		prisma.user.update({where: {id: userId}, data: {passwordHash: empreinte}}),
+
+		/* Les jetons de réinitialisation en cours sont brûlés : un lien demandé
+		   puis oublié dans une boîte mail ne doit pas permettre de revenir en
+		   arrière après coup. */
+		prisma.verificationToken.deleteMany({where: {userId, purpose: 'PASSWORD_RESET'}}),
+
+		prisma.session.deleteMany({
+			where: jetonAConserver
+				? {userId, NOT: {token: jetonAConserver}}
+				: {userId},
+		}),
+	]);
+
+	return {ok: true};
+}
+
 /// Envoie (ou renvoie) le lien de vérification d'adresse. Silencieux sur un
 /// compte déjà vérifié : le lien ne servirait à rien.
 export async function demanderVerificationEmail(userId) {

@@ -9,7 +9,8 @@
 >
 > **12 août 2026.** `npm audit` est passé à zéro : les alertes réputées sans
 > correctif sont couvertes par Next 16.3.0. Voir partie 8, qui traite aussi de
-> ce que `sitemap.xml` et `robots.txt` exposent désormais.
+> ce que `sitemap.xml` et `robots.txt` exposent désormais, et partie 9 pour le
+> changement de mot de passe depuis son compte.
 
 Revue complète du code du projet : authentification, sessions, panier, tunnel de
 commande, encaissement Stripe, back-office, envoi d'e-mails, configuration.
@@ -460,3 +461,56 @@ L'écran d'erreur, lui, affiche le `digest` de l'incident et **jamais**
 `error.message` : le message d'une exception serveur cite volontiers un nom de
 table, une requête, parfois une chaîne de connexion. Le visiteur n'en ferait
 rien, un curieux si.
+
+---
+
+## 9. Changement de mot de passe depuis son compte — 12 août 2026
+
+Le parcours manquait : le seul chemin était « mot de passe oublié », qui envoie
+un lien par e-mail. Ce n'était pas une faille, mais un manque qui pousse aux
+contournements — et il gênait concrètement la mise en ligne, puisque reprendre
+la main sur le compte administrateur créé au seed supposait Resend configuré.
+
+Trois décisions, et ce sont elles qui font la sécurité du parcours.
+
+**L'ancien mot de passe est exigé.** Une session laissée ouverte sur un poste
+partagé ne doit pas suffire à changer la serrure : sinon quiconque passe derrière
+l'écran prend le compte, et le titulaire ne peut plus rentrer. C'est le même
+raisonnement que pour la suppression de compte.
+
+**Les autres sessions sont fermées, la sienne est gardée.** C'est la différence
+avec la réinitialisation par e-mail, qui ferme tout. Quelqu'un qui change son mot
+de passe soupçonne souvent quelque chose : laisser ouvertes les sessions d'un
+intrus rendrait le geste inutile. Mais le déconnecter lui-même, à l'instant où il
+vient de prouver son identité deux fois, n'apprendrait rien à personne et
+ressemblerait à un échec. L'écran le dit explicitement plutôt que de laisser
+découvrir la déconnexion sur un autre appareil.
+
+**Les jetons de réinitialisation en cours sont brûlés.** Un lien demandé puis
+oublié dans une boîte mail ne doit pas permettre de revenir en arrière une fois
+le mot de passe changé — c'est précisément le scénario où la boîte mail est le
+maillon compromis.
+
+Deux refus complètent le tableau : un nouveau mot de passe identique à l'ancien
+(le formulaire répondrait « c'est changé » à quelqu'un qui n'a rien changé, en
+fermant ses autres sessions pour rien), et un compte sans empreinte — créé par
+conversion d'une commande en invité. Là, il n'y a pas d'« ancien » à vérifier, et
+l'accepter laisserait n'importe quelle session poser un mot de passe sur le
+compte ; le message renvoie vers « mot de passe oublié », qui prouve l'accès à la
+boîte mail.
+
+Le formulaire est limité comme la connexion — il vérifie un mot de passe, il est
+donc utilisable pour en essayer. La limite porte sur le compte connecté, pas sur
+une adresse saisie : personne ne peut bloquer le formulaire de quelqu'un d'autre.
+
+**Vérifié :** neuf tests d'intégration contre une vraie base, dont la fermeture
+sélective des sessions et le brûlage des jetons. Et un passage complet au
+navigateur sur un compte jetable, avec une seconde session posée en base pour
+jouer l'autre appareil : après le changement, cette session-là a disparu, celle du
+navigateur a survécu, et la personne est restée connectée. Le compte de test a été
+supprimé ensuite.
+
+**Reste ouvert :** aucun écran ne liste ses sessions actives. « Vos autres
+appareils ont été déconnectés » demande donc au client de croire sur parole. Un
+écran « mes connexions » — appareil, date, bouton pour fermer — serait la suite
+naturelle ; `Session` porte déjà `userAgent` et `createdAt` pour ça.

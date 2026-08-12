@@ -4,7 +4,12 @@ import {useActionState, useState} from 'react';
 import Link from 'next/link';
 import {useFormStatus} from 'react-dom';
 import {FileDown, Heart, LogOut, MapPin, Package, ShieldCheck, User} from 'lucide-react';
-import {enregistrerProfil, seDeconnecter, supprimerMonCompte} from './actions';
+import {
+	changerMonMotDePasse,
+	enregistrerProfil,
+	seDeconnecter,
+	supprimerMonCompte,
+} from './actions';
 import {formatDate, formatPrix} from '@/lib/format';
 import styles from './compte.module.css';
 
@@ -101,6 +106,100 @@ function SuppressionCompte() {
 				<BoutonSupprimer />
 			</form>
 		</div>
+	);
+}
+
+/* Changement de mot de passe.
+
+   Placé sous « Mes informations » plutôt que dans « Mes données » : c'est là
+   qu'on le cherche. « Mes données » parle du droit à l'effacement, ce qui est
+   un tout autre geste — les mettre côte à côte ferait voisiner « changer mon
+   mot de passe » et « supprimer mon compte », deux boutons qu'on ne veut pas
+   confondre d'un clic distrait.
+
+   Les trois champs portent leur `autoComplete` : c'est ce qui permet à un
+   gestionnaire de mots de passe de proposer l'ancien, d'en générer un nouveau
+   et d'enregistrer le changement. Sans ces attributs, il ne comprend pas ce
+   qu'il regarde — et une personne qui utilise un gestionnaire est justement
+   celle qui a de bons mots de passe. */
+function ChangementMotDePasse() {
+	const [etat, action] = useActionState(changerMonMotDePasse, ETAT_INITIAL);
+
+	return (
+		<form action={action} className={styles.carteSection} style={{marginTop: 20}}>
+			<h2 className={styles.titreSection}>Changer mon mot de passe</h2>
+
+			<div className={styles.grilleChamps}>
+				<label className='field'>
+					<span>Mot de passe actuel</span>
+					<input
+						className={`input ${styles.champ}`}
+						type='password'
+						name='actuel'
+						required
+						autoComplete='current-password'
+					/>
+				</label>
+
+				{/* Rien dans la seconde colonne : les deux champs du nouveau mot de
+				    passe se suivent, ils ne se comparent pas à l'ancien. */}
+				<div />
+
+				<label className='field'>
+					<span>Nouveau mot de passe</span>
+					<input
+						className={`input ${styles.champ}`}
+						type='password'
+						name='nouveau'
+						required
+						minLength={10}
+						autoComplete='new-password'
+					/>
+					<span className={styles.aide}>Dix caractères au minimum.</span>
+				</label>
+
+				<label className='field'>
+					<span>Répétez-le</span>
+					<input
+						className={`input ${styles.champ}`}
+						type='password'
+						name='confirmation'
+						required
+						minLength={10}
+						autoComplete='new-password'
+					/>
+				</label>
+			</div>
+
+			{etat.statut === 'motdepasse-change' && (
+				<p className={styles.confirmation} role='status'>
+					C’est fait. Vos autres appareils ont été déconnectés ; celui-ci reste
+					connecté.
+				</p>
+			)}
+
+			{etat.statut === 'erreur' && (
+				<p className={styles.erreur} role='alert'>
+					{etat.message}
+				</p>
+			)}
+
+			<BoutonChangerMotDePasse />
+		</form>
+	);
+}
+
+function BoutonChangerMotDePasse() {
+	const {pending} = useFormStatus();
+
+	return (
+		<button
+			type='submit'
+			disabled={pending}
+			className='btn btn-primary'
+			style={{padding: '11px 22px', fontSize: 14.5, marginTop: 8}}>
+			{pending ? 'Changement…' : 'Changer mon mot de passe'}
+		</button>
 	);
 }
 
@@ -276,6 +375,7 @@ export default function EspaceCompte({utilisateur, commandes, fichiers = []}) {
 					{section === 'fichiers' && <MesFichiers fichiers={fichiers} />}
 
 					{section === 'infos' && (
+						<>
 						<form action={action} className={styles.carteSection}>
 							<h2 className={styles.titreSection}>Mes informations</h2>
 
@@ -347,6 +447,9 @@ export default function EspaceCompte({utilisateur, commandes, fichiers = []}) {
 
 							<BoutonEnregistrer />
 						</form>
+
+						<ChangementMotDePasse />
+						</>
 					)}
 
 					{section === 'adresses' && (

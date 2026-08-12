@@ -1,5 +1,11 @@
 import {beforeEach, describe, expect, it} from 'vitest';
-import {connecter, fusionnerPanier, inscrire} from '@/server/services/accounts';
+import {
+	changerMotDePasse,
+	connecter,
+	demanderReinitialisation,
+	fusionnerPanier,
+	inscrire,
+} from '@/server/services/accounts';
 import {addItem, getCart} from '@/server/services/cart';
 import {baseDisponible, creerProduit, ouvrirLaBoutique, prisma, viderLaBase} from './aide';
 
@@ -96,6 +102,156 @@ describe.skipIf(!baseDisponible)('connexion', () => {
 
 		const utilisateur = await prisma.user.findUnique({where: {email: 'camille@exemple.fr'}});
 		expect(utilisateur.lastLoginAt).toBeInstanceOf(Date);
+	});
+});
+
+/* Changement de mot de passe depuis son compte.
+
+   Le garde-fou central est la fermeture des autres sessions : quelqu'un qui
+   change son mot de passe soupçonne souvent quelque chose, et laisser ouverte
+   la session d'un intrus rendrait le geste inutile. Sa propre session, elle,
+   doit survivre — le déconnecter au moment où il vient de prouver son identité
+   deux fois ferait croire à un échec. */
+describe.skipIf(!baseDisponible)('changement de mot de passe', () => {
+	const NOUVEAU = 'un-autre-mot-de-passe-long';
+	let utilisateur;
+
+	beforeEach(async () => {
+		await viderLaBase();
+		await inscrire(IDENTIFIANTS);
+		utilisateur = await prisma.user.findUnique({where: {email: 'camille@exemple.fr'}});
+	});
+
+	async function creerSessionEnBase(token) {
+		return prisma.session.create({
+			data: {
+				userId: utilisateur.id,
+				token,
+				expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+			},
+		});
+	}
+
+	it('change le mot de passe quand l’ancien est bon', async () => {
+		const resultat = await changerMotDePasse(utilisateur.id, {
+			actuel: IDENTIFIANTS.motDePasse,
+			nouveau: NOUVEAU,
+		});
+
+		expect(resultat.ok).toBe(true);
+		expect((await connecter({...IDENTIFIANTS, motDePasse: NOUVEAU})).ok).toBe(true);
+		expect((await connecter(IDENTIFIANTS)).ok).toBe(false);
+	});
+
+	it('refuse si le mot de passe actuel est faux, et ne change rien', async () => {
+		const resultat = await changerMotDePasse(utilisateur.id, {
+			actuel: 'ce-n-est-pas-le-bon',
+			nouveau: NOUVEAU,
+		});
+
+		expect(resultat.ok).toBe(false);
+		// L'ancien fonctionne toujours : rien n'a été écrit.
+		expect((await connecter(IDENTIFIANTS)).ok).toBe(true);
+	});
+
+	it('refuse un nouveau mot de passe trop court', async () => {
+		const resultat = await changerMotDePasse(utilisateur.id, {
+			actuel: IDENTIFIANTS.motDePasse,
+			nouveau: 'court',
+		});
+
+		expect(resultat.ok).toBe(false);
+		expect((await connecter(IDENTIFIANTS)).ok).toBe(true);
+	});
+
+	it('refuse de remplacer un mot de passe par lui-même', async () => {
+		const resultat = await changerMotDePasse(utilisateur.id, {
+			actuel: IDENTIFIANTS.motDePasse,
+			nouveau: IDENTIFIANTS.motDePasse,
+		});
+
+		expect(resultat.ok).toBe(false);
+	});
+
+	/* Le cœur du sujet. Sans cette fermeture, changer son mot de passe après une
+	   compromission ne déloge personne. */
+	it('ferme les autres sessions et garde celle qui a fait la demande', async () => {
+		await creerSessionEnBase('jeton-de-la-personne');
+		await creerSessionEnBase('jeton-de-l-intrus');
+		await creerSessionEnBase('jeton-d-un-vieux-telephone');
+
+		await changerMotDePasse(utilisateur.id, {
+			actuel: IDENTIFIANTS.motDePasse,
+			nouveau: NOUVEAU,
+			jetonAConserver: 'jeton-de-la-personne',
+		});
+
+		const restantes = await prisma.session.findMany({where: {userId: utilisateur.id}});
+
+		expect(restantes.map((session) => session.token)).toEqual(['jeton-de-la-personne']);
+	});
+
+	it('ferme tout quand aucune session n’est à conserver', async () => {
+		await creerSessionEnBase('jeton-quelconque');
+
+		await changerMotDePasse(utilisateur.id, {
+			actuel: IDENTIFIANTS.motDePasse,
+			nouveau: NOUVEAU,
+		});
+
+		expect(await prisma.session.count({where: {userId: utilisateur.id}})).toBe(0);
+	});
+
+	/* Un lien de réinitialisation oublié dans une boîte mail ne doit pas
+	   permettre de revenir en arrière une fois le mot de passe changé. */
+	it('brûle les jetons de réinitialisation en cours', async () => {
+		await demanderReinitialisation(IDENTIFIANTS.email);
+
+		expect(
+			await prisma.verificationToken.count({
+				where: {userId: utilisateur.id, purpose: 'PASSWORD_RESET'},
+			}),
+		).toBe(1);
+
+		await changerMotDePasse(utilisateur.id, {
+			actuel: IDENTIFIANTS.motDePasse,
+			nouveau: NOUVEAU,
+		});
+
+		expect(
+			await prisma.verificationToken.count({
+				where: {userId: utilisateur.id, purpose: 'PASSWORD_RESET'},
+			}),
+		).toBe(0);
+	});
+
+	/* Un compte converti depuis une commande en invité n'a pas d'empreinte : il
+	   n'y a pas d'« ancien » à vérifier, et l'accepter laisserait n'importe
+	   quelle session poser un mot de passe dessus. */
+	it('refuse un compte sans mot de passe, et renvoie vers « oublié »', async () => {
+		await prisma.user.update({where: {id: utilisateur.id}, data: {passwordHash: null}});
+
+		const resultat = await changerMotDePasse(utilisateur.id, {
+			actuel: '',
+			nouveau: NOUVEAU,
+		});
+
+		expect(resultat.ok).toBe(false);
+		expect(resultat.erreur).toContain('oublié');
+	});
+
+	it('refuse un compte anonymisé', async () => {
+		await prisma.user.update({
+			where: {id: utilisateur.id},
+			data: {anonymizedAt: new Date()},
+		});
+
+		const resultat = await changerMotDePasse(utilisateur.id, {
+			actuel: IDENTIFIANTS.motDePasse,
+			nouveau: NOUVEAU,
+		});
+
+		expect(resultat.ok).toBe(false);
 	});
 });
 

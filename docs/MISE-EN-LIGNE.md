@@ -177,10 +177,15 @@ l'identification faite.
 `ADMIN_PASSWORD` des variables d'environnement — elles restent lisibles en clair
 dans le tableau de bord de l'hébergeur, et le seed ne recréera rien.
 
-> ⚠️ **Aujourd'hui, aucun écran ne permet de changer son mot de passe depuis son
-> compte.** Le seul chemin est « mot de passe oublié » sur la page de connexion,
-> qui envoie un lien par e-mail — donc après avoir configuré Resend. C'est un
-> manque connu, à combler avant l'ouverture.
+Le mot de passe se change ensuite depuis **Mon compte → Mes informations**, en
+saisissant l'ancien. Ce chemin ne dépend d'aucun e-mail : il fonctionne avant
+même que Resend soit configuré, ce qui en fait le bon moyen de reprendre la main
+sur le compte administrateur créé au seed. « Mot de passe oublié », lui, envoie
+un lien et suppose donc l'envoi d'e-mails en état de marche.
+
+Changer son mot de passe **déconnecte les autres appareils** et garde celui d'où
+part la demande. C'est ce qui rend le geste utile après un doute : sans ça, une
+session ouverte ailleurs survivrait au changement.
 
 Les accès suivants se donnent depuis le back-office (`/admin/comptes`) : la
 personne crée un compte client ordinaire sur la boutique, et l'administrateur
@@ -311,8 +316,6 @@ d'une box — qui devient une preuve à produire en cas de contestation.
 
 **Le choix du point relais n'est pas branché.** Le mode est proposé, le point
 se convient ensuite par e-mail.
-
-**Pas de changement de mot de passe depuis son compte** (voir étape 5).
 
 **La limitation des tentatives de connexion vit en mémoire.** Elle repart à zéro
 à chaque redéploiement et ne serait pas partagée entre deux instances.
