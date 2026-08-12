@@ -41,6 +41,11 @@ en-têtes de la requête. En pratique, derrière un proxy ou dans un conteneur,
 l'en-tête `host` est celui de la machine et non le domaine public : les liens
 des e-mails partiraient vers `http://localhost:3000`. **La renseigner.**
 
+Depuis que le site publie un `sitemap.xml`, elle n'est même plus facultative en
+théorie : un plan de site n'a pas de requête d'où déduire le domaine, il ne
+connaît que cette variable. Oubliée, il annonce aux moteurs de recherche une
+liste d'adresses en `localhost` — c'est-à-dire rien du tout.
+
 ### Pour encaisser
 
 ```
@@ -266,6 +271,9 @@ Dans `/admin/reglages`, cocher **« Boutique ouverte »**. Vérifier au passage 
 - [ ] Un achat d'ouvrage numérique délivre bien son lien de téléchargement
 - [ ] Le ménage programmé répond `200` (le tester une fois à la main)
 - [ ] Les photos de produits s'affichent (sinon : `NEXT_PUBLIC_IMAGE_HOSTS`)
+- [ ] `/sitemap.xml` liste bien le vrai domaine, et non `localhost`
+- [ ] Une adresse inventée affiche le 404 de la boutique, pas l'écran de Next
+- [ ] Le plan du site est déclaré dans la Search Console de Google
 
 ---
 
@@ -283,14 +291,12 @@ désigné, vendre à des particuliers est une infraction (art. L616-1).
 **Les CGV doivent être relues par un juriste.** Le texte en place est un point
 de départ honnête, pas un document validé. Il engage le vendeur.
 
-**Il n'y a ni page 404, ni page d'erreur, ni favicon.** Une adresse erronée
-tombe sur l'écran par défaut de Next, et `public/` contient encore les icônes
-de démarrage de create-next-app. Le handoff prévoit un écran « NotFound » dans
-le ton de la boutique.
-
-**Pas de `sitemap.xml` ni de `robots.txt`.** Les fonctions qui listent les
-adresses publiques existent (`getAllProductSlugs`, `getAllPostSlugs`) mais rien
-ne les appelle.
+**Il manque une icône pour l'écran d'accueil des iPhone.** Le favicon existe
+(`src/app/icon.svg`, la marque du handoff) et suffit à tous les navigateurs,
+mais iOS ignore les icônes en SVG : ajouté aux favoris depuis un iPhone, le
+site s'affiche avec une capture de la page au lieu du logo. Il faut pour cela
+un PNG de 180 pixels déposé en `src/app/apple-icon.png` — une exportation à
+demander au moment où le client fournira son logo définitif.
 
 **PayPal est branché mais éteint.** Il ne s'affichera dans le tunnel qu'une fois
 activé des deux côtés (voir « Pour encaisser »). Tant que la case est décochée,

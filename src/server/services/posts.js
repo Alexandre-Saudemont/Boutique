@@ -212,14 +212,14 @@ export async function getArticleParSlug(slug) {
 	};
 }
 
-/// Les slugs publiés, pour la génération statique des pages d'article.
+/// Les slugs publiés, pour la génération statique des pages d'article et pour
+/// le sitemap — d'où la date de dernière modification, que les moteurs lisent
+/// pour décider s'ils ont besoin de repasser.
 export async function getAllPostSlugs() {
-	const articles = await prisma.post.findMany({
+	return prisma.post.findMany({
 		where: conditionsPubliees(),
-		select: {slug: true},
+		select: {slug: true, updatedAt: true},
 	});
-
-	return articles.map((article) => article.slug);
 }
 
 /// Deux articles à lire ensuite, de la même catégorie si possible.

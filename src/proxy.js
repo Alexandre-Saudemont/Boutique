@@ -43,7 +43,14 @@ export function construirePolitique(nonce) {
 		   il reste là pour les anciens, qui ignorent `strict-dynamic`.
 		   `unsafe-inline` est présent pour la même raison et sera de même ignoré
 		   dès qu'un nonce est reconnu — ce n'est pas un relâchement. */
-		`script-src 'nonce-${nonce}' 'strict-dynamic' 'self' 'unsafe-inline' https:`,
+		/* `unsafe-eval` uniquement en développement : React s'en sert pour
+		   reconstruire les piles d'appel et alimenter ses outils de débogage.
+		   Sans lui, la console locale affiche une erreur à chaque page et les
+		   traces deviennent inexploitables. La production ne le voit jamais —
+		   React n'y appelle pas `eval`. */
+		`script-src 'nonce-${nonce}' 'strict-dynamic' 'self' 'unsafe-inline' https:${
+			process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"
+		}`,
 
 		/* Les styles restent en `unsafe-inline`, faute de mieux : les CSS Modules
 		   sont servis en fichiers, mais React pose des styles en ligne

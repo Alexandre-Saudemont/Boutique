@@ -1,6 +1,7 @@
 import 'server-only';
 import {envoyerEmail} from '@/server/email/transport';
 import {formatPrix} from '@/lib/format';
+import {adresseDuSite} from '@/lib/site-url';
 
 /* Les e-mails que le site envoie.
 
@@ -18,17 +19,6 @@ import {formatPrix} from '@/lib/format';
    peut contenir `<` ou `&`. Sans échappement, une commande au nom de
    `<script>` casserait le message — et un e-mail est une page HTML comme une
    autre, affichée chez quelqu'un d'autre. */
-/* L'adresse publique du site, pour les liens des e-mails.
-
-   Contrairement aux actions serveur, un e-mail n'a pas de requête sous la main
-   d'où déduire le domaine : la variable d'environnement est ici la seule
-   source. Le repli sur localhost n'est utile qu'en développement — en
-   production, `NEXT_PUBLIC_SITE_URL` doit être renseignée, sans quoi les liens
-   envoyés aux clients ne mèneraient nulle part. */
-function adresseDuSite() {
-	return (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
-}
-
 function echapper(valeur) {
 	return String(valeur ?? '')
 		.replace(/&/g, '&amp;')

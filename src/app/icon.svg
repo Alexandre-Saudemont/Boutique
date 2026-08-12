@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="L'antre du vieux geek fou">
+  <!--
+    La marque de la boutique, reprise du visuel du handoff : carré terracotta,
+    « A » couleur crème. Les deux couleurs sont écrites en dur, ce qui est
+    inévitable ici : un favicon est servi comme fichier statique, hors de toute
+    feuille de style, il ne peut pas lire les tokens de organic.css. Ce sont
+    exactement les valeurs de color-accent et de color-bg (notées sans leurs
+    deux tirets, qu'un commentaire XML interdit) : si l'une des deux change là
+    bas, changer celle d'ici aussi.
+
+    Le « A » est tracé plutôt qu'écrit en texte : à 16 pixels dans un onglet, le
+    rendu d'une police dépend de ce qui est installé sur la machine, et la
+    Caprasimo du site n'y est de toute façon pas.
+  -->
+  <rect width="64" height="64" rx="14" fill="#c67139"/>
+  <path d="M14 51 L32 14 L50 51 M22 39 H42"
+        fill="none" stroke="#f5ead8" stroke-width="6.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

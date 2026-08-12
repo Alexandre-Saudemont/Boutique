@@ -54,6 +54,21 @@ describe('CSP', () => {
 		expect(scripts).toContain("'strict-dynamic'");
 	});
 
+	/* `unsafe-eval` est ouvert en développement pour les outils de débogage de
+	   React. C'est exactement le genre de tolérance qu'on oublie de refermer :
+	   avec elle, un script injecté peut fabriquer du code à la volée et
+	   contourner tout le bénéfice du nonce. */
+	it('ne laisse jamais fabriquer du code à la volée en production', () => {
+		const avant = process.env.NODE_ENV;
+
+		try {
+			process.env.NODE_ENV = 'production';
+			expect(directive(politiqueDe(), 'script-src')).not.toContain("'unsafe-eval'");
+		} finally {
+			process.env.NODE_ENV = avant;
+		}
+	});
+
 	it('interdit les greffons, les iframes tierces et le détournement de base', () => {
 		const politique = politiqueDe();
 

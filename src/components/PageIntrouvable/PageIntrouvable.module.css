@@ -1,0 +1,102 @@
+/* Page introuvable. Reprend la maquette « NotFound » du handoff. */
+
+.section {
+	position: relative;
+	overflow: clip;
+	min-height: 60vh;
+	display: grid;
+	place-items: center;
+}
+
+.blob {
+	position: absolute;
+	border-radius: 50%;
+	z-index: 0;
+}
+
+.blobHaut {
+	right: -100px;
+	top: -40px;
+	width: 320px;
+	height: 320px;
+	background: var(--color-accent-2-200);
+	animation: flotter404 9s ease-in-out infinite;
+}
+
+.blobBas {
+	left: -80px;
+	bottom: -20px;
+	width: 180px;
+	height: 180px;
+	background: var(--color-accent-100);
+	animation: flotter404 7s ease-in-out infinite;
+}
+
+@keyframes flotter404 {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-14px);
+	}
+}
+
+/* Une animation d'ambiance n'a aucune raison de s'imposer à quelqu'un que le
+   mouvement dérange. */
+@media (prefers-reduced-motion: reduce) {
+	.blob {
+		animation: none;
+	}
+}
+
+.contenu {
+	position: relative;
+	z-index: 1;
+	text-align: center;
+	max-width: 560px;
+	padding: clamp(48px, 8vw, 96px) clamp(20px, 5vw, 40px);
+}
+
+.code {
+	font-family: var(--font-heading);
+	font-size: clamp(90px, 18vw, 180px);
+	line-height: 0.9;
+	color: var(--color-accent);
+	letter-spacing: -0.03em;
+	margin-bottom: 8px;
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(26px, 3.6vw, 38px);
+	line-height: 1.06;
+	letter-spacing: -0.015em;
+	margin: 0 0 14px;
+}
+
+.texte {
+	font-size: 17px;
+	line-height: 1.6;
+	margin: 0 0 28px;
+	color: color-mix(in srgb, var(--color-text) 78%, transparent);
+}
+
+.actions {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.appoint {
+	margin: 34px 0 0;
+	font-size: 14px;
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+/* L'accent brut ne monte qu'à ~3:1 : en texte courant, c'est la nuance 700. */
+.lienAppoint {
+	font-weight: 600;
+	color: var(--color-accent-700);
+}

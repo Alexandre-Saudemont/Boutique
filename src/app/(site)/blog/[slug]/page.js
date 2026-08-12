@@ -4,6 +4,7 @@ import {notFound} from 'next/navigation';
 import {ArrowLeft, Mail} from 'lucide-react';
 import {getArticleParSlug, getArticlesLies} from '@/server/services/posts';
 import {formatDate} from '@/lib/format';
+import {adresseDuSite} from '@/lib/site-url';
 import styles from '../blog.module.css';
 
 /* La lecture d'un article.
@@ -37,14 +38,6 @@ export async function generateMetadata({params}) {
    Une simple coupure à chaque retour à la ligne ferait un paragraphe par ligne
    d'un texte tapé au fil de l'eau. La ligne vide, elle, est le geste que fait
    tout le monde pour séparer deux idées. */
-/* L'adresse publique du site, pour le lien de partage.
-
-   Même repli que dans les e-mails : sans `NEXT_PUBLIC_SITE_URL`, un partage
-   enverrait une adresse `localhost` à un ami. */
-function adresseDuSite() {
-	return (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
-}
-
 function paragraphes(contenu) {
 	return String(contenu ?? '')
 		.split(/\n\s*\n/)

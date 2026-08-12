@@ -1,5 +1,6 @@
 import {Caprasimo, Figtree} from 'next/font/google';
 import '@/styles/globals.css';
+import {adresseDuSite} from '@/lib/site-url';
 
 /* Les deux familles du design system Organic. next/font les auto-héberge :
    aucune requête vers Google au chargement de la page. Les variables CSS
@@ -20,6 +21,10 @@ const figtree = Figtree({
 });
 
 export const metadata = {
+	/* Le point de départ des adresses absolues que Next fabrique tout seul :
+	   images de partage, liens canoniques. Sans cette ligne, il les construit
+	   sur `localhost` et prévient dans les journaux de build. */
+	metadataBase: new URL(adresseDuSite()),
 	title: {
 		default: "L'antre du vieux geek fou",
 		template: "%s · L'antre du vieux geek fou",
