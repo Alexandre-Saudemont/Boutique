@@ -1,6 +1,7 @@
 import 'server-only';
 import {prisma} from '@/server/db';
 import {envoyerAvisExpedition} from '@/server/email/messages';
+import {dateCsv, montantCsv, versCsv} from '@/lib/csv';
 
 /* Les commandes vues du back-office.
 
@@ -198,4 +199,212 @@ export async function enregistrerNoteAdmin(numero, note) {
 	});
 
 	return {ok: true};
+}
+
+// ============================================================
+// LIVRE DES RECETTES
+// ============================================================
+
+/* Ce qu'une micro-entreprise doit tenir, et pourquoi ce n'est pas un export
+   de la base.
+
+   L'obligation comptable du régime micro est le livre des recettes : une ligne
+   par encaissement, dans l'ordre chronologique, portant la date, la référence
+   de la pièce, l'identité du client, le montant et le mode de règlement. Rien
+   de plus — et surtout rien qu'on puisse réécrire après coup.
+
+   D'où deux choix qui expliquent tout le reste de ce module.
+
+   La date retenue est `paidAt`, jamais `createdAt`. Le régime micro est un
+   régime de caisse : ce qui compte est l'encaissement, pas l'émission. Une
+   commande passée le 31 décembre et payée le 2 janvier appartient à l'exercice
+   suivant, et se tromper là-dessus fausse deux déclarations d'un coup.
+
+   Le critère d'inclusion est `paidAt` non nul, et non le statut. Les statuts
+   bougent — une commande payée puis remboursée devient REFUNDED, une expédiée
+   devient livrée — alors que l'encaissement, lui, a eu lieu. Filtrer sur le
+   statut ferait disparaître du livre des recettes réellement perçues, ce qui
+   est exactement ce qu'un contrôle cherche. Les paniers abandonnés et les
+   commandes annulées avant paiement n'ont jamais de `paidAt` : ils sortent
+   d'eux-mêmes, sans qu'on ait à les nommer. */
+
+/* Les moyens de règlement, écrits comme sur le relevé.
+
+   PayPal est encaissé par Stripe et enregistré en STRIPE (voir `payments.js`) :
+   du point de vue du livre, l'argent vient bien de Stripe, et c'est ce qu'il
+   faut pouvoir rapprocher des versements reçus sur le compte. */
+const LIBELLES_REGLEMENT = {
+	STRIPE: 'Carte bancaire (Stripe)',
+	PAYPAL: 'PayPal',
+};
+
+/* L'exercice auquel appartient un encaissement, vu de France.
+
+   Les dates sont stockées en UTC ; l'exercice, lui, est français. Un paiement
+   du 1er janvier à 00 h 30 heure de Paris est enregistré le 31 décembre à
+   23 h 30 UTC : lu naïvement, il tomberait dans l'exercice précédent, alors que
+   le client le verra daté du 1er janvier sur son relevé. Deux déclarations
+   fausses pour une commande de nuit du réveillon. */
+const ANNEE_PARIS = new Intl.DateTimeFormat('fr-FR', {
+	timeZone: 'Europe/Paris',
+	year: 'numeric',
+});
+
+function anneeFiscale(date) {
+	return Number(ANNEE_PARIS.format(date));
+}
+
+/* Les bornes d'un exercice, en instants UTC.
+
+   Janvier est toujours en heure d'hiver, soit UTC+1 : l'exercice commence donc
+   le 31 décembre précédent à 23 h UTC. Pas de calcul d'heure d'été à faire ici,
+   les deux bornes tombent du même côté du changement. */
+function bornesExercice(annee) {
+	return {
+		debut: new Date(Date.UTC(annee - 1, 11, 31, 23)),
+		finExclue: new Date(Date.UTC(annee, 11, 31, 23)),
+	};
+}
+
+/* Les exercices sur lesquels il existe quelque chose à déclarer.
+
+   Sert à ne proposer dans le back-office que des années réellement remplies :
+   un menu qui offre 2019 sur une boutique ouverte en 2026 fait douter de tout
+   le reste du fichier. */
+export async function exercicesDeRecettes() {
+	const encaissements = await prisma.order.findMany({
+		where: {paidAt: {not: null}},
+		select: {paidAt: true},
+		orderBy: {paidAt: 'desc'},
+	});
+
+	return [...new Set(encaissements.map((commande) => anneeFiscale(commande.paidAt)))];
+}
+
+/* Le livre d'un exercice, prêt à être écrit dans un tableur.
+
+   Renvoie les lignes et leurs totaux plutôt qu'un fichier : la mise en forme
+   CSV appartient à `@/lib/csv`, et les totaux servent aussi à l'écran.
+
+   Le remboursement occupe sa propre colonne au lieu d'être soustrait de la
+   recette. Un remboursement est un mouvement daté, souvent sur un autre
+   exercice que l'encaissement ; le fondre dans le montant perçu effacerait à la
+   fois la recette et sa contrepartie, et le livre ne collerait plus au relevé
+   bancaire. */
+export async function livreDesRecettes(annee) {
+	const {debut, finExclue} = bornesExercice(annee);
+
+	const commandes = await prisma.order.findMany({
+		where: {paidAt: {gte: debut, lt: finExclue}},
+		orderBy: {paidAt: 'asc'},
+		include: {
+			payments: {
+				where: {status: {in: ['SUCCEEDED', 'REFUNDED']}},
+				orderBy: {createdAt: 'asc'},
+			},
+			addresses: true,
+		},
+	});
+
+	const lignes = commandes.map((commande) => {
+		const reglement = commande.payments[0];
+
+		/* Le nom qui figure sur la facture, et pas celui du compte : l'adresse
+		   de facturation est une copie figée à la commande, alors qu'un client
+		   peut avoir changé de nom — ou avoir demandé l'effacement de son
+		   compte depuis. Le livre doit rester lisible dans dix ans. */
+		const facturation =
+			commande.addresses.find((adresse) => adresse.type === 'BILLING') ?? commande.addresses[0];
+
+		const client = [facturation?.firstName, facturation?.lastName].filter(Boolean).join(' ');
+
+		return {
+			date: commande.paidAt,
+			numero: commande.orderNumber,
+			client: client || commande.email,
+			email: commande.email,
+			reglement: LIBELLES_REGLEMENT[reglement?.provider] ?? 'Non renseigné',
+			produitsCents: commande.subtotalCents - commande.discountCents,
+			portCents: commande.shippingCents,
+			tvaCents: commande.vatCents,
+			totalCents: commande.totalCents,
+			rembourseCents: reglement?.refundedCents ?? 0,
+			franchiseTva: commande.vatRegime === 'FRANCHISE',
+			statut: LIBELLES_STATUT[commande.status],
+		};
+	});
+
+	const totaux = lignes.reduce(
+		(somme, ligne) => ({
+			encaisseCents: somme.encaisseCents + ligne.totalCents,
+			rembourseCents: somme.rembourseCents + ligne.rembourseCents,
+		}),
+		{encaisseCents: 0, rembourseCents: 0},
+	);
+
+	return {
+		annee,
+		lignes,
+		totaux: {...totaux, netCents: totaux.encaisseCents - totaux.rembourseCents},
+	};
+}
+
+/* Le même livre, en CSV.
+
+   La ligne de totaux est incluse, séparée par une ligne vide. C'est ce que le
+   comptable attend d'un livre de recettes, et ça évite au client de refaire la
+   somme à la main — donc de se tromper. */
+export async function livreDesRecettesEnCsv(annee) {
+	const {lignes, totaux} = await livreDesRecettes(annee);
+
+	const enTete = [
+		'Date d’encaissement',
+		'N° de commande',
+		'Client',
+		'E-mail',
+		'Mode de règlement',
+		'Produits (€)',
+		'Livraison (€)',
+		'TVA (€)',
+		'Total encaissé (€)',
+		'Remboursé (€)',
+		'Régime TVA',
+		'Statut',
+	];
+
+	const corps = lignes.map((ligne) => [
+		dateCsv(ligne.date),
+		ligne.numero,
+		ligne.client,
+		ligne.email,
+		ligne.reglement,
+		montantCsv(ligne.produitsCents),
+		montantCsv(ligne.portCents),
+		montantCsv(ligne.tvaCents),
+		montantCsv(ligne.totalCents),
+		montantCsv(ligne.rembourseCents),
+		ligne.franchiseTva ? 'Franchise en base (art. 293 B du CGI)' : 'TVA applicable',
+		ligne.statut,
+	]);
+
+	const pied = [
+		[],
+		[
+			`Total ${annee}`,
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			montantCsv(totaux.encaisseCents),
+			montantCsv(totaux.rembourseCents),
+			'',
+			'',
+		],
+		[`Recettes nettes ${annee}`, montantCsv(totaux.netCents)],
+	];
+
+	return versCsv([enTete, ...corps, ...pied]);
 }

@@ -2,6 +2,7 @@ import 'server-only';
 import {randomUUID} from 'node:crypto';
 import {prisma} from '@/server/db';
 import {envoyerConfirmationNewsletter} from '@/server/email/messages';
+import {versCsv} from '@/lib/csv';
 
 /* Liste d'attente et lettre de l'antre.
 
@@ -125,28 +126,12 @@ export async function desinscrireAbonne(id) {
 	return {ok: true};
 }
 
-/* Échappe une cellule pour un fichier CSV.
-
-   Deux problèmes distincts. Le premier est le format : guillemets doublés,
-   cellule entourée dès qu'elle contient un séparateur ou un retour à la ligne.
-
-   Le second est une faille connue des tableurs : une cellule commençant par
-   `=`, `+`, `-` ou `@` est interprétée comme une formule à l'ouverture. Une
-   adresse e-mail forgée à l'inscription pourrait ainsi exécuter quelque chose
-   sur le poste de qui ouvre l'export. On préfixe donc ces cellules d'une
-   apostrophe, qui force le tableur à les lire comme du texte. */
-function celluleCsv(valeur) {
-	const texte = String(valeur ?? '');
-	const sur = /^[=+\-@]/.test(texte) ? `'${texte}` : texte;
-
-	return /[",;\n]/.test(sur) ? `"${sur.replace(/"/g, '""')}"` : sur;
-}
-
 /* L'export de la liste, au format CSV.
 
-   Séparateur point-virgule et BOM UTF-8 en tête : c'est ce qu'attend Excel en
-   configuration française. Sans le BOM, les accents s'affichent en charabia ;
-   avec une virgule, tout atterrit dans une seule colonne. */
+   L'échappement et le BOM vivent dans `@/lib/csv`, partagés avec le livre des
+   recettes : une adresse e-mail est saisie par n'importe quel visiteur, et la
+   neutralisation des formules de tableur ne doit exister qu'en un seul
+   exemplaire. */
 export async function abonnesEnCsv() {
 	const abonnes = await listerAbonnes({inclureDesinscrits: true});
 
@@ -161,7 +146,7 @@ export async function abonnesEnCsv() {
 		]),
 	];
 
-	return `﻿${lignes.map((ligne) => ligne.map(celluleCsv).join(';')).join('\r\n')}`;
+	return versCsv(lignes);
 }
 
 /// Retire une adresse de la liste, depuis le lien du bas des e-mails.

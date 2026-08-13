@@ -252,6 +252,56 @@ personne en train de commander. Si le travail ne tourne jamais, rien de grave.
 
 ---
 
+## 7 bis. Sauvegardes et conservation
+
+Deux besoins qu'il ne faut pas confondre : se remettre d'une panne, et garder
+des pièces comptables dix ans. Les traiter avec le même outil donne le pire des
+deux.
+
+**Les sauvegardes** protègent de la panne. Une copie quotidienne de la base
+suffit, avec une rétention courte — trente jours. Trois pièges :
+
+- **La copie doit partir hors de la machine.** Une sauvegarde posée sur le
+  disque du serveur ne sert à rien le jour où c'est le serveur qui disparaît.
+- **Le dump ne contient pas les fichiers.** Les images produits et les ouvrages
+  numériques (`DIGITAL_STORAGE_DIR`) vivent sur le disque. Restaurer la base
+  seule rendrait des fiches sans photos et des livres achetés qu'on ne peut plus
+  télécharger.
+- **Une sauvegarde jamais restaurée n'est pas une sauvegarde.** Le faire une
+  fois pour de vrai, sur une base jetable.
+
+Le fichier contient les noms et adresses des acheteurs : il est chiffré au
+repos, et son accès se limite à qui administre le serveur.
+
+**La conservation légale** est un autre métier. L'obligation décennale porte sur
+les pièces comptables, pas sur la base. Garder dix ans de sauvegardes
+quotidiennes serait à la fois inutile et contraire au RGPD : un client qui
+demande l'effacement de son compte ne peut pas l'obtenir si on conserve trois
+mille copies de ses données.
+
+Ce qui se conserve, c'est le **livre des recettes** : une ligne par
+encaissement, exportée depuis `/admin/commandes` (bouton « Livre des recettes »,
+réservé à l'administrateur). Un fichier par exercice, déposé là où le client
+range sa comptabilité. C'est ce que demande le régime micro — date, référence,
+client, montant, mode de règlement — et c'est ce qu'un contrôle réclame.
+
+Trois précisions sur ce fichier, parce qu'elles étonnent :
+
+- **La date retenue est celle de l'encaissement**, pas celle de la commande. Le
+  régime micro est un régime de caisse : une commande passée le 31 décembre et
+  payée le 2 janvier appartient à l'exercice suivant.
+- **Les commandes remboursées y figurent**, avec le remboursement dans sa propre
+  colonne. L'argent a bien été encaissé ; le retirer du livre ferait disparaître
+  une recette réelle, ce qu'un contrôle cherche précisément.
+- **Les paniers abandonnés n'y figurent pas.** Le critère est l'encaissement,
+  jamais le statut.
+
+Côté données personnelles, c'est `anonymizedAt` qui fait le travail inverse : le
+compte s'efface, la commande reste avec le nom figé dessus. Les deux obligations
+tiennent ensemble.
+
+---
+
 ## 8. Ouvrir la boutique
 
 Le catalogue est visible dès le déploiement, mais **le tunnel de commande est

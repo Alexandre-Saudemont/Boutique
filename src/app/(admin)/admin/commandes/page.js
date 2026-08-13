@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import {exigerDroit} from '@/server/auth/roles';
-import {LIBELLES_STATUT, listerCommandes} from '@/server/services/orders';
+import {Download} from 'lucide-react';
+import {aLeDroit, exigerDroit} from '@/server/auth/roles';
+import {exercicesDeRecettes, LIBELLES_STATUT, listerCommandes} from '@/server/services/orders';
 import {formatDate, formatPrix, pluriel} from '@/lib/format';
 import styles from '../../admin.module.css';
 
@@ -26,13 +27,18 @@ const FILTRES = [
 ];
 
 export default async function Commandes({searchParams}) {
-	await exigerDroit('commandes.voir');
+	const utilisateur = await exigerDroit('commandes.voir');
 
 	const parametres = await searchParams;
 	const statut = FILTRES.some((f) => f.cle === parametres?.statut) ? parametres.statut : null;
 	const recherche = parametres?.q ?? null;
 
-	const {commandes, total} = await listerCommandes({statut, recherche});
+	const peutExporter = aLeDroit(utilisateur, 'finances.voir');
+
+	const [{commandes, total}, exercices] = await Promise.all([
+		listerCommandes({statut, recherche}),
+		peutExporter ? exercicesDeRecettes() : [],
+	]);
 
 	return (
 		<>
@@ -45,23 +51,50 @@ export default async function Commandes({searchParams}) {
 					</p>
 				</div>
 
-				{/* Formulaire en GET : la recherche atterrit dans l'URL, donc dans
-				    l'historique du navigateur et dans les favoris. */}
-				<form className={styles.actionsTitre} method='get'>
-					{statut && <input type='hidden' name='statut' value={statut} />}
-					<input
-						className='input'
-						type='search'
-						name='q'
-						defaultValue={recherche ?? ''}
-						placeholder='Numéro ou e-mail…'
-						aria-label='Rechercher une commande'
-						style={{width: 220, fontSize: 13.5}}
-					/>
-					<button type='submit' className='btn btn-secondary'>
-						Rechercher
-					</button>
-				</form>
+				<div className={styles.actionsTitre}>
+					{/* Formulaire en GET : la recherche atterrit dans l'URL, donc dans
+					    l'historique du navigateur et dans les favoris. */}
+					<form method='get' style={{display: 'flex', gap: 8}}>
+						{statut && <input type='hidden' name='statut' value={statut} />}
+						<input
+							className='input'
+							type='search'
+							name='q'
+							defaultValue={recherche ?? ''}
+							placeholder='Numéro ou e-mail…'
+							aria-label='Rechercher une commande'
+							style={{width: 220, fontSize: 13.5}}
+						/>
+						<button type='submit' className='btn btn-secondary'>
+							Rechercher
+						</button>
+					</form>
+
+					{/* Le livre des recettes ne s'affiche qu'à qui a le droit d'en
+					    connaître le montant, et seulement s'il y a eu un
+					    encaissement : proposer d'exporter une année vide laisserait
+					    croire à une erreur. */}
+					{peutExporter && exercices.length > 0 && (
+						<form method='get' action='/admin/commandes/export' style={{display: 'flex', gap: 8}}>
+							<select
+								className='input'
+								name='annee'
+								defaultValue={exercices[0]}
+								aria-label='Exercice à exporter'
+								style={{width: 96, fontSize: 13.5}}>
+								{exercices.map((annee) => (
+									<option key={annee} value={annee}>
+										{annee}
+									</option>
+								))}
+							</select>
+							<button type='submit' className='btn btn-secondary' style={{gap: 8}}>
+								<Download size={16} strokeWidth={2.75} />
+								Livre des recettes
+							</button>
+						</form>
+					)}
+				</div>
 			</div>
 
 			<div className={styles.contenu}>
