@@ -27,44 +27,162 @@ function echapper(valeur) {
 		.replace(/"/g, '&quot;');
 }
 
-/* Une coquille HTML minimale.
+/* Les couleurs, reprises de `src/styles/organic.css`.
+
+   En valeurs littérales et non en `var(--…)` : Outlook rend le HTML avec le
+   moteur de Word, qui ne connaît pas les variables CSS. Une couleur écrite en
+   variable n'y serait tout simplement pas appliquée, et le texte tomberait sur
+   le noir par défaut — sur un fond qui, lui, serait resté crème.
+
+   `ACCENT` est `--color-accent-600` et non l'accent brut : le blanc sur
+   l'accent ne passe pas le contraste. Même règle que sur le site, où le texte
+   en terracotta monte à `--color-accent-700`. */
+const T = {
+	fond: '#f5ead8', // --color-bg
+	carte: '#f9f4ed', // --color-neutral-100
+	blanc: '#ffffff',
+	titre: '#201e1d', // --color-text
+	texte: '#474238', // --color-neutral-800
+	discret: '#82796a', // --color-neutral-600
+	trait: '#eee7db', // --color-neutral-200
+	traitFort: '#dcd3c4', // --color-neutral-300
+	accent: '#b2622d', // --color-accent-600 — fonds et boutons
+	accentTexte: '#8c491a', // --color-accent-700 — liens et montants
+	accentClair: '#ffe1d0', // --color-accent-200
+	sauge: '#728157', // --color-accent-2-600
+	saugeFonce: '#56633f', // --color-accent-2-700
+	saugeClair: '#e1eecc', // --color-accent-2-200
+	sombre: '#474238',
+};
+
+/* Deux piles de polices, et un renoncement assumé.
+
+   Caprasimo et Figtree ne s'afficheront jamais : Outlook et Gmail ignorent
+   `@font-face`. Georgia gras est la substitution la plus proche de l'esprit
+   Caprasimo parmi les polices installées partout — chaleureuse, à empattements,
+   un peu massive. C'est le seul écart visible avec le site, et la seule
+   alternative serait une image, bloquée par défaut chez la plupart des
+   destinataires. */
+const POLICE_TITRE = "Georgia,'Times New Roman',serif";
+const POLICE_TEXTE = 'Helvetica,Arial,sans-serif';
+
+/* Les trois habillages d'en-tête.
+
+   La lettre passe en sauge et non en terracotta : un e-mail commercial et une
+   confirmation de commande ne doivent pas se ressembler, sans quoi le client
+   qui se désabonne de l'un croit se couper de l'autre. Le message de contact,
+   lui, part vers l'intérieur — inutile de lui servir la devanture. */
+const HABILLAGES = {
+	boutique: {bandeau: T.accent, surtitre: 'L’antre du', titre: 'vieux geek fou', clair: T.accentClair},
+	lettre: {bandeau: T.sauge, surtitre: 'La lettre de', titre: 'l’antre', clair: T.saugeClair},
+	interne: {bandeau: T.sombre, surtitre: null, titre: 'Message reçu sur le site', clair: T.traitFort},
+};
+
+/* Un bouton qui survit à Outlook.
+
+   Un `<a>` stylé en `display:inline-block` perd son fond sous le moteur de
+   Word : seul le texte reste cliquable, sur fond blanc. La cellule de tableau
+   porte donc la couleur, et le lien ne porte que sa propre zone de clic. */
+export function bouton(lien, libelle, {couleur = T.accent} = {}) {
+	return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 6px;"><tr><td style="background:${couleur};border-radius:999px;">
+<a href="${echapper(lien)}" style="display:inline-block;padding:13px 28px;font-family:${POLICE_TEXTE};font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">${echapper(libelle)}</a>
+</td></tr></table>`;
+}
+
+/// Un paragraphe courant.
+function p(contenu, {taille = 15, couleur = T.texte, marge = '0 0 16px'} = {}) {
+	return `<p style="font-family:${POLICE_TEXTE};font-size:${taille}px;line-height:1.65;margin:${marge};color:${couleur};">${contenu}</p>`;
+}
+
+/// Une mention discrète — durée de validité, « ce n'était pas vous », etc.
+function mention(contenu) {
+	return p(contenu, {taille: 13, couleur: T.discret, marge: '18px 0 0'});
+}
+
+/* La coquille : bandeau, carte, pied.
 
    Styles en attributs `style` et non dans une feuille : les clients de
    messagerie retirent les `<style>`, quand ils ne suppriment pas tout le
-   `<head>`. Ce qui n'est pas en ligne n'est pas appliqué. */
-function coquille(titre, corps, {jetonDesinscription = null} = {}) {
+   `<head>`. Ce qui n'est pas en ligne n'est pas appliqué. Mise en page en
+   tableaux imbriqués pour la même raison — ni flexbox ni grille ne sont
+   comprises par le moteur de Word.
+
+   `color-scheme` demande aux clients de ne pas inverser les couleurs en mode
+   sombre. Gmail et Apple Mail le respectent en partie seulement : d'où des
+   fonds déclarés explicitement à chaque niveau, pour qu'un fond retourné ne
+   laisse jamais du texte clair sur clair.
+
+   `preheader` est le texte d'aperçu affiché dans la liste des messages, juste
+   après l'objet. Sans lui, le client de messagerie y recopie le premier texte
+   trouvé — souvent « L'antre du vieux geek fou » du bandeau, ce qui n'apprend
+   rien. */
+function coquille(titre, corps, {jetonDesinscription = null, variante = 'boutique', preheader = ''} = {}) {
+	const habillage = HABILLAGES[variante] ?? HABILLAGES.boutique;
+
 	/* Le lien de désinscription n'apparaît que sur les messages de la lettre.
 
 	   Il n'a rien à faire sur une confirmation de commande : un e-mail
 	   transactionnel n'est pas de la prospection, et proposer de s'en désinscrire
 	   ferait croire au client qu'il peut refuser d'être prévenu de l'expédition
 	   de son colis. */
-	const pied = jetonDesinscription
-		? `<p style="font-size:12px;color:#6b6459;margin-top:10px;"><a href="${adresseDuSite()}/newsletter/desinscription?jeton=${encodeURIComponent(
+	const desinscription = jetonDesinscription
+		? `<br><a href="${adresseDuSite()}/newsletter/desinscription?jeton=${encodeURIComponent(
 				jetonDesinscription,
-			)}" style="color:#6b6459;">Se désinscrire de la lettre</a></p>`
+			)}" style="color:${T.discret};">Se désinscrire de la lettre</a>`
 		: '';
 
+	const pied =
+		variante === 'interne'
+			? ''
+			: `<tr><td style="padding:18px 28px 4px;text-align:center;font-family:${POLICE_TEXTE};font-size:12px;line-height:1.7;color:${T.discret};">
+L’antre du vieux geek fou · boutique indépendante de pop culture<br>
+<a href="${adresseDuSite()}/contact" style="color:${T.accentTexte};">Nous écrire</a> &nbsp;·&nbsp; <a href="${adresseDuSite()}/legal" style="color:${T.accentTexte};">Mentions légales</a>${desinscription}
+</td></tr>`;
+
+	const enTete = habillage.surtitre
+		? `<div style="font-family:${POLICE_TITRE};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${habillage.clair};">${habillage.surtitre}</div>
+<div style="font-family:${POLICE_TITRE};font-weight:bold;font-size:25px;color:#ffffff;line-height:1.15;margin-top:3px;">${habillage.titre}</div>`
+		: `<div style="font-family:${POLICE_TITRE};font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${habillage.clair};">${habillage.titre}</div>`;
+
 	return `<!doctype html>
-<html lang="fr"><body style="margin:0;padding:24px;background:#f7f3ec;font-family:Georgia,serif;color:#2e2b25;">
-<div style="max-width:560px;margin:0 auto;background:#fffdf9;border-radius:16px;padding:28px;">
-<h1 style="font-size:22px;margin:0 0 18px;">${echapper(titre)}</h1>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
+<title>${echapper(titre)}</title></head>
+<body style="margin:0;padding:0;background:${T.fond};">
+<div style="display:none;font-size:1px;color:${T.fond};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${echapper(preheader)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${T.fond};"><tr><td align="center" style="padding:24px 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+<tr><td style="background:${habillage.bandeau};border-radius:16px 16px 0 0;padding:${
+		variante === 'interne' ? '14px 28px' : '22px 28px'
+	};text-align:center;">
+${enTete}
+</td></tr>
+<tr><td style="background:${T.carte};border-radius:0 0 16px 16px;padding:30px 28px;">
+<h1 style="font-family:${POLICE_TITRE};font-size:23px;line-height:1.2;margin:0 0 10px;color:${T.titre};">${echapper(titre)}</h1>
 ${corps}
-<p style="font-size:13px;color:#6b6459;margin-top:28px;">L'antre du vieux geek fou</p>
+</td></tr>
 ${pied}
-</div></body></html>`;
+</table>
+</td></tr></table>
+</body></html>`;
 }
 
-/// Le tableau des articles, commun aux deux messages.
+/// Le tableau des articles, commun à la confirmation et à l'expédition.
 function lignesArticles(commande) {
 	return commande.items
 		.map(
-			(ligne) =>
-				`<tr><td style="padding:6px 0;">${echapper(ligne.productName)}${
+			(ligne, index) =>
+				`<tr><td style="padding:${index === 0 ? '14px 16px 8px' : '8px 16px'};${
+					index === 0 ? '' : `border-top:1px solid ${T.trait};`
+				}font-family:${POLICE_TEXTE};font-size:14px;color:${T.texte};">${echapper(ligne.productName)}${
 					ligne.variantName && ligne.variantName !== 'Standard'
 						? ` — ${echapper(ligne.variantName)}`
 						: ''
-				} × ${ligne.quantity}</td><td style="padding:6px 0;text-align:right;">${formatPrix(
+				} <span style="color:${T.discret};">× ${ligne.quantity}</span></td><td align="right" style="padding:${
+					index === 0 ? '14px 16px 8px' : '8px 16px'
+				};${
+					index === 0 ? '' : `border-top:1px solid ${T.trait};`
+				}font-family:${POLICE_TEXTE};font-size:14px;color:${T.texte};white-space:nowrap;">${formatPrix(
 					ligne.totalCents,
 				)}</td></tr>`,
 		)
@@ -123,30 +241,36 @@ ${suite}
 Le Vieux geek`;
 
 	const html = coquille(
-		'Merci — votre commande est confirmée',
-		`<p style="font-size:15px;line-height:1.6;">Votre paiement est bien arrivé. Votre commande <strong>${echapper(
-			commande.orderNumber,
-		)}</strong> est confirmée.</p>
-<table style="width:100%;border-collapse:collapse;font-size:14px;">${lignesArticles(commande)}
-<tr><td style="padding:6px 0;border-top:1px solid #e6ded1;">Livraison</td><td style="padding:6px 0;text-align:right;border-top:1px solid #e6ded1;">${
+		'Merci — c’est noté.',
+		`${p(
+			`Votre paiement est bien arrivé. Votre commande <strong style="color:${T.titre};">${echapper(
+				commande.orderNumber,
+			)}</strong> est confirmée.`,
+			{marge: '0 0 20px'},
+		)}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${T.blanc};border-radius:10px;">${lignesArticles(commande)}
+<tr><td style="padding:8px 16px;border-top:1px solid ${T.trait};font-family:${POLICE_TEXTE};font-size:14px;color:${T.texte};">Livraison</td><td align="right" style="padding:8px 16px;border-top:1px solid ${T.trait};font-family:${POLICE_TEXTE};font-size:14px;color:${T.texte};white-space:nowrap;">${
 			commande.shippingCents === 0 ? 'Offerte' : formatPrix(commande.shippingCents)
 		}</td></tr>
-<tr><td style="padding:6px 0;font-weight:bold;">Total</td><td style="padding:6px 0;text-align:right;font-weight:bold;">${formatPrix(
+<tr><td style="padding:10px 16px 14px;border-top:2px solid ${T.traitFort};font-family:${POLICE_TEXTE};font-size:14px;font-weight:bold;color:${T.titre};">Total</td><td align="right" style="padding:10px 16px 14px;border-top:2px solid ${T.traitFort};font-family:${POLICE_TEXTE};font-size:14px;font-weight:bold;color:${T.accentTexte};white-space:nowrap;">${formatPrix(
 			commande.totalCents,
 		)}</td></tr></table>
 ${
 	aDesFichiers
-		? `<p style="font-size:15px;line-height:1.6;margin-top:22px;"><strong>À télécharger</strong></p>
-<ul style="font-size:15px;line-height:1.8;padding-left:18px;">${liensTelechargement
+		? `${p('<strong>À télécharger</strong>', {marge: '24px 0 8px'})}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${T.blanc};border-radius:10px;">${liensTelechargement
 				.map(
-					(lien) =>
-						`<li><a href="${lienDe(lien)}" style="color:#a4502a;">${echapper(lien.fileName)}</a></li>`,
+					(lien, index) =>
+						`<tr><td style="padding:12px 16px;${
+							index === 0 ? '' : `border-top:1px solid ${T.trait};`
+						}font-family:${POLICE_TEXTE};font-size:14px;"><a href="${lienDe(lien)}" style="color:${T.accentTexte};">${echapper(lien.fileName)}</a></td></tr>`,
 				)
-				.join('')}</ul>
-<p style="font-size:13px;color:#6b6459;line-height:1.6;">Ces liens sont valables trente jours et cinq téléchargements. Passé ce délai, vos fichiers restent disponibles depuis votre compte, sans limite.</p>`
-		: ''
+				.join('')}</table>
+${mention('Ces liens sont valables trente jours et cinq téléchargements. Passé ce délai, vos fichiers restent disponibles depuis votre compte, sans limite.')}`
+		: bouton(`${adresseDuSite()}/compte`, 'Suivre ma commande')
 }
-<p style="font-size:15px;line-height:1.6;">${echapper(suite)}</p>`,
+${p(echapper(suite), {marge: '18px 0 0'})}`,
+		{preheader: `Commande ${commande.orderNumber} — ${formatPrix(commande.totalCents)}`},
 	);
 
 	return envoyerEmail({destinataire: commande.email, sujet, texte, html});
@@ -172,12 +296,15 @@ Si ce n'était pas vous, ignorez ce message : sans confirmation, aucune lettre n
 Le Vieux geek`;
 
 	const html = coquille(
-		'Confirmez votre inscription',
-		`<p style="font-size:15px;line-height:1.6;">Quelqu'un — vous, j'espère — a inscrit cette adresse à la lettre de l'antre.</p>
-<p style="margin:22px 0;"><a href="${echapper(
-			lien,
-		)}" style="display:inline-block;background:#c67139;color:#fffdf9;padding:12px 22px;border-radius:999px;font-size:15px;">Confirmer mon inscription</a></p>
-<p style="font-size:13.5px;line-height:1.6;color:#6b6459;">Si ce n'était pas vous, ignorez ce message : sans confirmation, aucune lettre ne partira.</p>`,
+		'Presque inscrit.',
+		`${p("Quelqu'un — vous, j'espère — a inscrit cette adresse à la lettre de l'antre. Un clic et vous recevrez les nouveautés, les box du mois et les trouvailles.")}
+${bouton(lien, 'Je confirme mon inscription', {couleur: T.saugeFonce})}
+${mention("Si ce n'était pas vous, ignorez ce message : sans confirmation, aucune lettre ne partira.")}`,
+		{
+			variante: 'lettre',
+			jetonDesinscription: abonne.token,
+			preheader: 'Un clic pour confirmer, et la lettre arrive.',
+		},
 	);
 
 	return envoyerEmail({
@@ -209,12 +336,11 @@ Si ce n'était pas vous, ignorez ce message : votre mot de passe actuel reste va
 Le Vieux geek`;
 
 	const html = coquille(
-		'Changer votre mot de passe',
-		`<p style="font-size:15px;line-height:1.6;">Vous avez demandé à changer le mot de passe de votre compte.</p>
-<p style="margin:22px 0;"><a href="${echapper(
-			lien,
-		)}" style="display:inline-block;background:#c67139;color:#fffdf9;padding:12px 22px;border-radius:999px;font-size:15px;">Choisir un nouveau mot de passe</a></p>
-<p style="font-size:13.5px;line-height:1.6;color:#6b6459;">Ce lien est valable une heure. Si ce n'était pas vous, ignorez ce message : votre mot de passe actuel reste valable.</p>`,
+		'On repart de zéro.',
+		`${p('Vous avez demandé à changer le mot de passe de votre compte. Choisissez-en un nouveau — le lien expire dans une heure.')}
+${bouton(lien, 'Changer mon mot de passe')}
+${mention("Si ce n'était pas vous, ignorez ce message : votre mot de passe actuel reste valable et personne n'a accès à votre compte.")}`,
+		{preheader: 'Lien valable une heure.'},
 	);
 
 	return envoyerEmail({
@@ -239,12 +365,11 @@ Si vous n'avez pas créé de compte chez moi, ignorez ce message.
 Le Vieux geek`;
 
 	const html = coquille(
-		'Bienvenue dans l’antre',
-		`<p style="font-size:15px;line-height:1.6;">Il ne reste qu'à confirmer votre adresse — c'est elle qui servira pour le suivi de vos commandes.</p>
-<p style="margin:22px 0;"><a href="${echapper(
-			lien,
-		)}" style="display:inline-block;background:#c67139;color:#fffdf9;padding:12px 22px;border-radius:999px;font-size:15px;">Confirmer mon adresse</a></p>
-<p style="font-size:13.5px;line-height:1.6;color:#6b6459;">Lien valable 24 heures. Si vous n'avez pas créé de compte chez moi, ignorez ce message.</p>`,
+		'Une dernière chose.',
+		`${p("Confirmez votre adresse et votre compte est prêt — c'est elle qui servira pour le suivi de vos commandes. Le lien est valable vingt-quatre heures.")}
+${bouton(lien, 'Confirmer mon adresse')}
+${mention("Vous n'avez rien demandé ? Ignorez ce message, aucun compte ne sera créé.")}`,
+		{preheader: 'Un clic et votre compte est prêt.'},
 	);
 
 	return envoyerEmail({
@@ -271,18 +396,30 @@ Commande ${commande.orderNumber}${suivi}
 Le Vieux geek`;
 
 	const html = coquille(
-		'Votre colis est parti',
-		`<p style="font-size:15px;line-height:1.6;">Votre commande <strong>${echapper(
-			commande.orderNumber,
-		)}</strong> vient de quitter l'atelier.</p>
+		'C’est parti.',
+		`${p(
+			`Votre commande <strong style="color:${T.titre};">${echapper(
+				commande.orderNumber,
+			)}</strong> vient de quitter l'atelier.`,
+			{marge: '0 0 18px'},
+		)}
 ${
 	commande.trackingNumber
-		? `<p style="font-size:15px;line-height:1.6;">Suivi ${echapper(
-				commande.carrier ?? '',
-			)} : <strong>${echapper(commande.trackingNumber)}</strong></p>`
+		? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${T.saugeClair};border-radius:10px;">
+<tr><td style="padding:14px 16px;font-family:${POLICE_TEXTE};font-size:13px;color:${T.saugeFonce};">
+Numéro de suivi${commande.carrier ? ` · ${echapper(commande.carrier)}` : ''}<br><strong style="font-size:16px;letter-spacing:.5px;">${echapper(
+				commande.trackingNumber,
+			)}</strong>
+</td></tr></table>`
 		: ''
 }
-<p style="font-size:15px;line-height:1.6;">À bientôt dans l'antre.</p>`,
+${bouton(`${adresseDuSite()}/compte`, 'Voir ma commande')}
+${p("À bientôt dans l'antre.", {marge: '18px 0 0'})}`,
+		{
+			preheader: commande.trackingNumber
+				? `Suivi ${commande.trackingNumber}`
+				: 'Votre colis a quitté l’atelier.',
+		},
 	);
 
 	return envoyerEmail({destinataire: commande.email, sujet, texte, html});
@@ -310,14 +447,19 @@ Sujet : ${sujet}
 ${message}`;
 
 	const html = coquille(
-		'Un message depuis le site',
-		`<p style="font-size:15px;line-height:1.6;">De : <strong>${echapper(nom)}</strong> — ${echapper(
+		`${sujet}`,
+		`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:${POLICE_TEXTE};font-size:14px;color:${T.texte};">
+<tr><td style="padding:0 0 6px;color:${T.discret};width:70px;">De</td><td style="padding:0 0 6px;">${echapper(nom)}</td></tr>
+<tr><td style="padding:0 0 14px;color:${T.discret};">Adresse</td><td style="padding:0 0 14px;"><a href="mailto:${echapper(
 			email,
-		)}</p>
-<p style="font-size:15px;line-height:1.6;">Sujet : <strong>${echapper(sujet)}</strong></p>
-<div style="font-size:15px;line-height:1.6;white-space:pre-wrap;border-top:1px solid #e6ded1;padding-top:16px;margin-top:16px;">${echapper(
+		)}" style="color:${T.accentTexte};">${echapper(email)}</a></td></tr>
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${T.blanc};border-left:3px solid ${T.traitFort};border-radius:0 8px 8px 0;">
+<tr><td style="padding:14px 16px;font-family:${POLICE_TEXTE};font-size:14px;line-height:1.65;color:${T.texte};white-space:pre-wrap;">${echapper(
 			message,
-		)}</div>`,
+		)}</td></tr></table>
+${mention("Pour répondre, cliquez sur l'adresse ci-dessus — répondre à ce message-ci n'irait nulle part, l'expéditeur est le site.")}`,
+		{variante: 'interne', preheader: `${nom} — ${sujet}`},
 	);
 
 	return envoyerEmail({
