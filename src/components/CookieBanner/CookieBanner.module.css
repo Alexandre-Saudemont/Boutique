@@ -1,0 +1,66 @@
+/* Le bandeau cookies. */
+
+.bandeau {
+	position: fixed;
+	left: 50%;
+	transform: translateX(-50%);
+	bottom: clamp(12px, 2vw, 24px);
+	z-index: 60;
+	width: min(760px, calc(100vw - 24px));
+
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px 20px;
+	justify-content: space-between;
+
+	background: var(--color-surface);
+	border-radius: calc(1.2 * var(--radius-lg));
+	padding: 18px 22px;
+	box-shadow: var(--shadow-lg);
+
+	animation: apparaitre 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Le mouvement est court et discret : le bandeau doit se remarquer sans
+   happer le regard de quelqu'un venu lire une fiche produit. */
+@keyframes apparaitre {
+	from {
+		opacity: 0;
+		transform: translateX(-50%) translateY(10px);
+	}
+}
+
+/* Respecte le réglage système : une animation, même brève, n'est pas anodine
+   pour qui souffre de troubles vestibulaires. */
+@media (prefers-reduced-motion: reduce) {
+	.bandeau {
+		animation: none;
+	}
+}
+
+.texte {
+	flex: 1;
+	min-width: 260px;
+	font-size: 14.5px;
+	line-height: 1.55;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 82%, transparent);
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+}
+
+@media (max-width: 520px) {
+	.actions {
+		width: 100%;
+	}
+
+	.actions > * {
+		flex: 1;
+	}
+}

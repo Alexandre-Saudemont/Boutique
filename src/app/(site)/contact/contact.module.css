@@ -1,0 +1,338 @@
+/* Contact et questions fréquentes. */
+
+.intro {
+	position: relative;
+	overflow: clip;
+}
+
+.blob {
+	position: absolute;
+	right: -120px;
+	top: -100px;
+	width: 340px;
+	height: 340px;
+	border-radius: 50%;
+	background: var(--color-accent-2-200);
+	z-index: 0;
+}
+
+.introContenu {
+	position: relative;
+	z-index: 1;
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(38px, 5.5vw, 64px) clamp(20px, 5vw, 64px) clamp(20px, 3vw, 32px);
+}
+
+.kicker {
+	display: block;
+	font-size: 13px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	font-weight: 600;
+	color: var(--color-accent-700);
+	margin-bottom: 12px;
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(36px, 5vw, 58px);
+	line-height: 1.02;
+	letter-spacing: -0.02em;
+	margin: 0 0 16px;
+	max-width: 16ch;
+}
+
+.chapeau {
+	font-size: 17px;
+	line-height: 1.6;
+	max-width: 56ch;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 80%, transparent);
+}
+
+.section {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(20px, 3vw, 32px) clamp(20px, 5vw, 64px) clamp(40px, 6vw, 64px);
+}
+
+.colonnes {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+	gap: clamp(20px, 3vw, 36px);
+	align-items: start;
+}
+
+.carteFormulaire {
+	background: var(--color-surface);
+	border-radius: calc(1.4 * var(--radius-lg));
+	padding: clamp(24px, 3vw, 40px);
+	box-shadow: var(--shadow-sm);
+}
+
+.titreFormulaire {
+	font-family: var(--font-heading);
+	font-size: 22px;
+	margin: 0 0 20px;
+}
+
+.duo {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+	margin-bottom: 16px;
+}
+
+.champ {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.champLarge {
+	composes: champ;
+	margin-bottom: 16px;
+}
+
+.zoneTexte {
+	resize: vertical;
+	font-family: inherit;
+}
+
+/* Le champ-piège : hors écran mais bien dans le formulaire.
+
+   `display: none` n'irait pas — c'est le premier signe qu'un robot un peu
+   sérieux cherche pour savoir quel champ ignorer. Sorti du flux et retiré du
+   parcours clavier, il reste invisible pour tout le monde sauf pour eux. */
+.piege {
+	position: absolute;
+	left: -9999px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+.erreur {
+	font-size: 14px;
+	line-height: 1.5;
+	margin: 0 0 16px;
+	padding: 12px 14px;
+	border-radius: var(--radius-md);
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+	font-weight: 600;
+}
+
+.mentionDonnees {
+	font-size: 12px;
+	text-align: center;
+	margin: 14px 0 0;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.confirmation {
+	text-align: center;
+	padding: 40px 12px;
+}
+
+.pastilleConfirmation {
+	display: inline-grid;
+	place-items: center;
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	background: var(--color-accent-2-100);
+	color: var(--color-accent-2-700);
+	margin-bottom: 18px;
+}
+
+.titreConfirmation {
+	font-family: var(--font-heading);
+	font-size: 24px;
+	margin: 0 0 10px;
+}
+
+.texteConfirmation {
+	font-size: 15px;
+	line-height: 1.6;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+
+.infos {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.info {
+	display: flex;
+	gap: 16px;
+	align-items: flex-start;
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	padding: 20px 22px;
+}
+
+.infoIcone {
+	flex: none;
+	width: 46px;
+	height: 46px;
+	border-radius: 50%;
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+	display: grid;
+	place-items: center;
+}
+
+.infoTitre {
+	font-family: var(--font-heading);
+	font-size: 17px;
+	line-height: 1.15;
+	margin: 0 0 5px;
+}
+
+.infoTexte {
+	font-size: 14px;
+	line-height: 1.5;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 72%, transparent);
+}
+
+.infoLien {
+	display: inline-block;
+	font-size: 13.5px;
+	font-weight: 600;
+	margin-top: 6px;
+}
+
+.encart {
+	background: var(--color-accent-2-100);
+	border-radius: var(--radius-lg);
+	padding: 20px 22px;
+}
+
+.encartTitre {
+	font-family: var(--font-heading);
+	font-size: 17px;
+	margin: 0 0 10px;
+}
+
+.encartTexte {
+	font-size: 14px;
+	line-height: 1.55;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 74%, transparent);
+}
+
+.faq {
+	background: var(--color-surface);
+	scroll-margin-top: 80px;
+}
+
+.faqContenu {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(44px, 6vw, 80px) clamp(20px, 5vw, 64px);
+}
+
+.faqEntete {
+	max-width: 640px;
+	margin-bottom: 32px;
+}
+
+.faqTitre {
+	font-family: var(--font-heading);
+	font-size: clamp(28px, 3.6vw, 42px);
+	line-height: 1.05;
+	letter-spacing: -0.015em;
+	margin: 0;
+}
+
+/* Deux colonnes en maçonnerie plutôt qu'une grille : les réponses n'ont pas
+   la même longueur, et une grille laisserait des trous sous les plus courtes. */
+.faqListe {
+	columns: 2;
+	column-gap: 24px;
+}
+
+.question {
+	background: var(--color-bg);
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+	margin-bottom: 12px;
+	break-inside: avoid;
+}
+
+.questionTitre {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	font-size: 15.5px;
+	font-weight: 600;
+	padding: 18px 20px;
+	cursor: pointer;
+	list-style: none;
+}
+
+/* Safari dessine encore son propre triangle sans ceci. */
+.questionTitre::-webkit-details-marker {
+	display: none;
+}
+
+.questionTexte {
+	flex: 1;
+}
+
+.caret {
+	flex: none;
+	color: var(--color-accent);
+	transition: transform 0.2s ease;
+	display: grid;
+}
+
+.question[open] .caret {
+	transform: rotate(180deg);
+}
+
+.reponse {
+	padding: 0 20px 20px;
+	font-size: 14.5px;
+	line-height: 1.6;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 76%, transparent);
+}
+
+.faqPied {
+	margin-top: 36px;
+	text-align: center;
+}
+
+.faqPied p {
+	font-size: 15.5px;
+	margin: 0 0 4px;
+}
+
+.faqPiedDetail {
+	font-size: 14px !important;
+	color: color-mix(in srgb, var(--color-text) 62%, transparent);
+}
+
+@media (max-width: 900px) {
+	.colonnes {
+		grid-template-columns: 1fr;
+	}
+
+	.faqListe {
+		columns: 1;
+	}
+}
+
+@media (max-width: 520px) {
+	.duo {
+		grid-template-columns: 1fr;
+	}
+}

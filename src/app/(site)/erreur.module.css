@@ -1,0 +1,51 @@
+/* Écran d'erreur de la vitrine. Volontairement plus sobre que le 404 : ce
+   n'est pas le moment de faire joli, mais de dire ce qui se passe. */
+
+.section {
+	min-height: 55vh;
+	display: grid;
+	place-items: center;
+}
+
+.contenu {
+	text-align: center;
+	max-width: 520px;
+	padding: clamp(48px, 8vw, 96px) clamp(20px, 5vw, 40px);
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(28px, 4vw, 42px);
+	line-height: 1.05;
+	letter-spacing: -0.015em;
+	margin: 0 0 14px;
+}
+
+.texte {
+	font-size: 17px;
+	line-height: 1.6;
+	margin: 0 0 28px;
+	color: color-mix(in srgb, var(--color-text) 78%, transparent);
+}
+
+.actions {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.reference {
+	margin: 34px 0 0;
+	font-size: 14px;
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+.digest {
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 13px;
+	background: var(--color-surface);
+	border-radius: var(--radius-sm);
+	padding: 2px 8px;
+	user-select: all;
+}

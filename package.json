@@ -1,0 +1,39 @@
+{
+  "name": "boutique",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:preparer": "node tests/preparer-base.mjs",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:seed": "prisma db seed",
+    "db:seed:demo": "node prisma/seed-demo.js",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "lucide-react": "^1.27.0",
+    "next": "^16.3.0",
+    "pg": "^8.22.0",
+    "prisma": "^7.3.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "server-only": "^0.0.1",
+    "stripe": "^22.4.0"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "^16.3.0",
+    "vitest": "^4.1.10"
+  }
+}

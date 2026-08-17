@@ -1,0 +1,176 @@
+.section {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(20px, 3vw, 32px) clamp(20px, 5vw, 64px) clamp(40px, 6vw, 72px);
+}
+
+/* — fil d'Ariane — */
+
+.fil {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+	margin-bottom: 24px;
+}
+
+.fil a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.fil a:hover {
+	color: var(--color-accent-700);
+}
+
+.filCourant {
+	color: var(--color-text);
+	font-weight: 600;
+}
+
+/* — mise en page — */
+
+.grille {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: clamp(28px, 4vw, 56px);
+	align-items: start;
+}
+
+/* — colonne infos — */
+
+.rayon {
+	display: block;
+	font-size: 12.5px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	font-weight: 600;
+	color: var(--color-accent-2-700);
+	margin-bottom: 10px;
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(28px, 3.6vw, 42px);
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+	margin: 0 0 14px;
+}
+
+.ligneePrix {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 14px;
+	margin-bottom: 20px;
+}
+
+.prix {
+	font-family: var(--font-heading);
+	font-size: 30px;
+	color: var(--color-accent-700);
+}
+
+.prixBarre {
+	font-family: var(--font-body);
+	font-size: 17px;
+	text-decoration: line-through;
+	color: color-mix(in srgb, var(--color-text) 45%, transparent);
+	margin-left: 8px;
+}
+
+.stock {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--color-accent-2-700);
+}
+
+.stockEpuise {
+	color: var(--color-accent-700);
+}
+
+.description {
+	font-size: 16px;
+	line-height: 1.65;
+	margin: 0 0 26px;
+	color: color-mix(in srgb, var(--color-text) 82%, transparent);
+}
+
+/* — réassurance — */
+
+.reassurance {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	padding: 8px;
+	margin-bottom: 30px;
+}
+
+.reassuranceLigne {
+	display: flex;
+	align-items: center;
+	gap: 13px;
+	padding: 11px 14px;
+}
+
+.reassuranceIcone {
+	flex: none;
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+	display: grid;
+	place-items: center;
+}
+
+.reassuranceTexte {
+	font-size: 13.5px;
+	line-height: 1.35;
+}
+
+.reassuranceTitre {
+	font-weight: 600;
+}
+
+.reassuranceSous {
+	color: color-mix(in srgb, var(--color-text) 58%, transparent);
+}
+
+/* — « dans le même rayon » — */
+
+.liesTitre {
+	font-family: var(--font-heading);
+	font-size: clamp(22px, 2.6vw, 30px);
+	line-height: 1.1;
+	margin: clamp(48px, 6vw, 72px) 0 22px;
+}
+
+.lies {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 22px 20px;
+}
+
+@media (max-width: 900px) {
+	.grille {
+		grid-template-columns: 1fr;
+	}
+
+	.lies {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+@media (max-width: 560px) {
+	.lies {
+		grid-template-columns: 1fr;
+	}
+}

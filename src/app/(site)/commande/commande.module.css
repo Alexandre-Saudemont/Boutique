@@ -1,0 +1,356 @@
+/* Styles communs aux trois écrans du tunnel.
+
+   Une seule feuille pour livraison, paiement et confirmation : ces pages
+   partagent leur ossature, et les tenir ensemble évite qu'une carte change de
+   rayon d'un écran à l'autre. */
+
+.page {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(28px, 4vw, 44px) clamp(20px, 5vw, 64px) clamp(48px, 7vw, 80px);
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(28px, 3.4vw, 38px);
+	letter-spacing: -0.015em;
+	margin: 0 0 24px;
+}
+
+.colonnes {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 340px;
+	gap: clamp(24px, 3vw, 40px);
+	align-items: start;
+}
+
+.contenu {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	min-width: 0;
+}
+
+/* — cartes — */
+
+.carte {
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	padding: 22px;
+	box-shadow: var(--shadow-sm);
+	/* <fieldset> apporte une bordure et des marges propres au navigateur. */
+	border: none;
+	margin: 0;
+}
+
+.carteTitre {
+	display: block;
+	font-family: var(--font-heading);
+	font-size: 18px;
+	margin: 0 0 16px;
+	padding: 0;
+}
+
+/* — modes de livraison et de paiement — */
+
+.modes {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.mode {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	background: var(--color-bg);
+	border: 2px solid transparent;
+	border-radius: var(--radius-md);
+	padding: 15px 16px;
+	cursor: pointer;
+}
+
+.mode:hover {
+	border-color: var(--color-accent-300);
+}
+
+.modeChoisi {
+	border-color: var(--color-accent);
+	background: var(--color-accent-100);
+}
+
+/* Le radio natif est conservé — il porte le nom, l'état coché et la navigation
+   par flèches. On le laisse visible plutôt que de le remplacer par une pastille
+   dessinée : moins de code, et le comportement clavier reste celui du système. */
+.radio {
+	flex: none;
+	accent-color: var(--color-accent);
+	width: 18px;
+	height: 18px;
+}
+
+.radio:focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 2px;
+}
+
+.moyenIcone {
+	flex: none;
+	color: var(--color-accent-700);
+}
+
+.modeInfos {
+	flex: 1;
+	min-width: 0;
+}
+
+.modeNom {
+	display: block;
+	font-family: var(--font-heading);
+	font-size: 15.5px;
+}
+
+.modeDelai {
+	display: block;
+	font-size: 13px;
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+.modePrix {
+	font-family: var(--font-heading);
+	font-size: 15px;
+}
+
+.modePrixOffert {
+	color: var(--color-accent-2-700);
+}
+
+.noteRelais {
+	margin: 14px 0 0;
+	font-size: 12.5px;
+	line-height: 1.45;
+	color: color-mix(in srgb, var(--color-text) 65%, transparent);
+}
+
+/* — champs — */
+
+.grilleChamps {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 14px;
+}
+
+.champLarge {
+	grid-column: 1 / -1;
+}
+
+/* Le design impose des champs plus hauts et moins arrondis dans le tunnel que
+   dans le reste du site : on saisit une adresse, pas un mot-clé de recherche. */
+.grilleChamps .input,
+.zoneTexte {
+	min-height: 50px;
+	padding: 13px 16px;
+	font-size: 15px;
+	border-radius: var(--radius-md);
+	background: var(--color-bg);
+	border-color: color-mix(in srgb, var(--color-text) 16%, transparent);
+}
+
+.zoneTexte {
+	width: 100%;
+	resize: vertical;
+	font-family: var(--font-body);
+	line-height: 1.5;
+}
+
+.erreurChamp {
+	display: block;
+	margin-top: 6px;
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--color-accent-700);
+}
+
+.erreurBloc {
+	margin: 0;
+	background: var(--color-accent-100);
+	border-radius: var(--radius-md);
+	padding: 14px 16px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-accent-800);
+}
+
+.mentionDonnees {
+	margin: 16px 0 0;
+	font-size: 12.5px;
+	color: color-mix(in srgb, var(--color-text) 58%, transparent);
+}
+
+.avertissement {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin: 16px 0 0;
+	background: var(--color-accent-2-100);
+	border-radius: var(--radius-md);
+	padding: 12px 14px;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--color-accent-2-800);
+}
+
+.avertissementIcone {
+	flex: none;
+	margin-top: 1px;
+}
+
+/* — rappel d'adresse — */
+
+.adresse {
+	font-style: normal;
+	font-size: 14.5px;
+	line-height: 1.6;
+	margin: 0 0 12px;
+}
+
+.modeRappel {
+	margin: 0 0 12px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-accent-2-700);
+}
+
+.modifier,
+.retour {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-accent-700);
+	text-decoration: none;
+}
+
+.retour {
+	align-self: flex-start;
+}
+
+.modifier:hover,
+.retour:hover {
+	color: var(--color-accent);
+}
+
+/* — confirmation — */
+
+.confirmation {
+	text-align: center;
+	max-width: 620px;
+	margin: 0 auto;
+	background: var(--color-surface);
+	border-radius: calc(1.4 * var(--radius-lg));
+	padding: clamp(32px, 5vw, 56px) clamp(20px, 4vw, 44px);
+}
+
+.confirmationIcone {
+	display: inline-grid;
+	place-items: center;
+	width: 70px;
+	height: 70px;
+	border-radius: 50%;
+	background: var(--color-accent-2-200);
+	color: var(--color-accent-2-800);
+	margin-bottom: 18px;
+}
+
+.confirmationTitre {
+	font-family: var(--font-heading);
+	font-size: clamp(26px, 3.2vw, 34px);
+	letter-spacing: -0.015em;
+	margin: 0 0 14px;
+}
+
+.confirmationTexte {
+	font-size: 15.5px;
+	line-height: 1.6;
+	margin: 0 0 20px;
+	color: color-mix(in srgb, var(--color-text) 78%, transparent);
+}
+
+.numero {
+	font-family: var(--font-heading);
+	font-weight: var(--font-heading-weight);
+	color: var(--color-accent-700);
+	white-space: nowrap;
+}
+
+.enAttente {
+	background: var(--color-accent-100);
+	border-radius: var(--radius-md);
+	padding: 14px 16px;
+	font-size: 13.5px;
+	line-height: 1.5;
+	text-align: left;
+	color: var(--color-accent-800);
+	margin-bottom: 22px;
+}
+
+.resume {
+	margin: 0 0 26px;
+	text-align: left;
+	background: var(--color-bg);
+	border-radius: var(--radius-md);
+	padding: 16px 18px;
+}
+
+.resumeLigne {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 14.5px;
+}
+
+.resumeLigne + .resumeLigne {
+	margin-top: 10px;
+}
+
+.resumeLigne dt {
+	color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+
+.resumeLigne dd {
+	margin: 0;
+	font-weight: 600;
+}
+
+.resumeTotal {
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid var(--color-divider);
+	font-family: var(--font-heading);
+	font-size: 17px;
+}
+
+.resumeTotal dd {
+	color: var(--color-accent-700);
+	font-size: 20px;
+}
+
+.confirmationBoutons {
+	display: flex;
+	justify-content: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+@media (max-width: 820px) {
+	.colonnes {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 560px) {
+	.grilleChamps {
+		grid-template-columns: 1fr;
+	}
+}

@@ -1,0 +1,69 @@
+.galerie {
+	position: sticky;
+	/* Sous le header collant : la galerie suit la lecture de la colonne infos. */
+	top: 150px;
+}
+
+.principale {
+	position: relative;
+	border-radius: calc(1.4 * var(--radius-lg));
+	overflow: hidden;
+	aspect-ratio: 1 / 1;
+	background: var(--color-surface);
+	box-shadow: var(--shadow-md);
+}
+
+.image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.emplacement {
+	width: 100%;
+	height: 100%;
+	display: grid;
+	place-items: center;
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+	font-family: var(--font-heading);
+	font-size: 96px;
+	user-select: none;
+}
+
+.badge {
+	position: absolute;
+	top: 16px;
+	left: 16px;
+	z-index: 2;
+	box-shadow: var(--shadow-sm);
+}
+
+.miniatures {
+	display: flex;
+	gap: 12px;
+	margin-top: 14px;
+}
+
+.miniature {
+	flex: 1;
+	padding: 0;
+	border: 2px solid transparent;
+	border-radius: var(--radius-md);
+	overflow: hidden;
+	aspect-ratio: 1 / 1;
+	background: var(--color-surface);
+	cursor: pointer;
+	position: relative;
+}
+
+.miniatureActive {
+	border-color: var(--color-accent);
+}
+
+.miniatureImage {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	pointer-events: none;
+}

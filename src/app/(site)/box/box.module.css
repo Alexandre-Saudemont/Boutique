@@ -1,0 +1,186 @@
+/* Les box surprises. */
+
+.intro {
+	position: relative;
+	overflow: clip;
+}
+
+.blob {
+	position: absolute;
+	right: -120px;
+	top: -100px;
+	width: 360px;
+	height: 360px;
+	border-radius: 50%;
+	background: var(--color-accent-2-200);
+	z-index: 0;
+}
+
+.introContenu {
+	position: relative;
+	z-index: 1;
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(38px, 5.5vw, 64px) clamp(20px, 5vw, 64px) clamp(16px, 2vw, 24px);
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(36px, 5vw, 58px);
+	line-height: 1.02;
+	letter-spacing: -0.02em;
+	margin: 0 0 16px;
+	max-width: 18ch;
+}
+
+.chapeau {
+	font-size: 17px;
+	line-height: 1.6;
+	max-width: 56ch;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 80%, transparent);
+}
+
+.section {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(20px, 3vw, 32px) clamp(20px, 5vw, 64px) clamp(48px, 7vw, 80px);
+}
+
+.barreTailles {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 26px;
+}
+
+.libelleTailles {
+	font-size: 13.5px;
+	font-weight: 600;
+	color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+
+.tailles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.taille {
+	text-align: center;
+	background: var(--color-surface);
+	border: 2px solid transparent;
+	border-radius: var(--radius-lg);
+	padding: 12px 22px;
+	min-width: 96px;
+}
+
+.taille:hover {
+	border-color: var(--color-accent-200);
+}
+
+.tailleActive {
+	border-color: var(--color-accent);
+	background: var(--color-accent-100);
+}
+
+.tailleNom {
+	display: block;
+	font-family: var(--font-heading);
+	font-size: 26px;
+	line-height: 1;
+	color: var(--color-text);
+}
+
+.taillePrix {
+	display: block;
+	font-size: 13px;
+	color: var(--color-accent-700);
+	margin-top: 6px;
+	font-weight: 600;
+}
+
+.cartes {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 26px 22px;
+}
+
+.vide {
+	text-align: center;
+	font-size: 16px;
+	line-height: 1.6;
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+	padding: 40px 20px;
+	background: var(--color-surface);
+	border-radius: calc(1.4 * var(--radius-lg));
+}
+
+.etapes {
+	background: var(--color-surface);
+}
+
+.etapesContenu {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(44px, 6vw, 80px) clamp(20px, 5vw, 64px);
+}
+
+.titreSection {
+	font-family: var(--font-heading);
+	font-size: clamp(26px, 3.4vw, 38px);
+	line-height: 1.05;
+	letter-spacing: -0.015em;
+	margin: 0 0 28px;
+}
+
+.listeEtapes {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 20px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.numero {
+	display: inline-grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: var(--color-accent);
+	color: var(--color-bg);
+	font-family: var(--font-heading);
+	font-size: 18px;
+	margin-bottom: 14px;
+}
+
+.etapeTitre {
+	font-family: var(--font-heading);
+	font-size: 18px;
+	line-height: 1.15;
+	margin: 0 0 8px;
+}
+
+.etapeTexte {
+	font-size: 14px;
+	line-height: 1.6;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 72%, transparent);
+}
+
+@media (max-width: 900px) {
+	.cartes,
+	.listeEtapes {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (max-width: 620px) {
+	.cartes,
+	.listeEtapes {
+		grid-template-columns: 1fr;
+	}
+}

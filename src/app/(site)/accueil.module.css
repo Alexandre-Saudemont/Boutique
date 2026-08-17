@@ -1,0 +1,592 @@
+/* Accueil.
+
+   La largeur (1180px) et les paddings fluides reprennent ceux de la boutique :
+   les deux pages doivent caler au pixel quand on passe de l'une à l'autre. */
+
+.section {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(48px, 7vw, 88px) clamp(20px, 5vw, 64px);
+	scroll-margin-top: 80px;
+}
+
+/* Une bande pleine largeur en fond surface, dont le contenu reste dans la
+   largeur commune — d'où le .section imbriqué. */
+.bandeSurface {
+	background: var(--color-surface);
+	scroll-margin-top: 80px;
+}
+
+/* Formes rondes décoratives. Purement ornementales, jamais annoncées. */
+.blob {
+	position: absolute;
+	border-radius: 50%;
+	z-index: 0;
+}
+
+.blobHaut {
+	right: -140px;
+	top: -120px;
+	width: 420px;
+	height: 420px;
+	background: var(--color-accent-2-200);
+	animation: flotter 9s ease-in-out infinite;
+}
+
+.blobBas {
+	left: -90px;
+	bottom: 40px;
+	width: 180px;
+	height: 180px;
+	background: var(--color-accent-100);
+	animation: flotterInverse 7s ease-in-out infinite;
+}
+
+@keyframes flotter {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-14px);
+	}
+}
+
+@keyframes flotterInverse {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(10px);
+	}
+}
+
+/* — hero — */
+
+.hero {
+	position: relative;
+	overflow: clip;
+}
+
+.heroContenu {
+	position: relative;
+	z-index: 1;
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(48px, 7vw, 88px) clamp(20px, 5vw, 64px) clamp(40px, 6vw, 72px);
+	display: grid;
+	grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+	gap: clamp(28px, 5vw, 64px);
+	align-items: center;
+}
+
+.heroTitre {
+	font-family: var(--font-heading);
+	font-size: clamp(40px, 6vw, 72px);
+	line-height: 1.02;
+	letter-spacing: -0.02em;
+	margin: 0 0 22px;
+}
+
+.heroTexte {
+	font-size: 17.5px;
+	line-height: 1.65;
+	max-width: 52ch;
+	margin: 0 0 28px;
+	color: color-mix(in srgb, var(--color-text) 82%, transparent);
+}
+
+.heroBoutons {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.heroVisuel {
+	position: relative;
+	margin: 0;
+	border-radius: calc(2 * var(--radius-lg));
+	overflow: hidden;
+	aspect-ratio: 5 / 6;
+	background: var(--color-surface);
+	box-shadow: var(--shadow-lg);
+}
+
+/* — emplacements photo —
+   En attendant les visuels du client : un aplat qui tient la place et annonce
+   ce qu'on y mettra, plutôt qu'un trou dans la mise en page. */
+
+.emplacement,
+.emplacementPetit {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	padding: var(--space-6);
+	text-align: center;
+	font-size: 13.5px;
+	line-height: 1.4;
+	color: color-mix(in srgb, var(--color-text) 42%, transparent);
+}
+
+.emplacementPetit {
+	font-family: var(--font-heading);
+	font-size: 15px;
+	padding: var(--space-4);
+}
+
+/* — réassurance — */
+
+.reassuranceSection {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 8px clamp(20px, 5vw, 64px) clamp(24px, 4vw, 40px);
+}
+
+.reassurances {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 14px;
+}
+
+.reassurance {
+	display: flex;
+	gap: 14px;
+	align-items: center;
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	padding: 16px 20px;
+}
+
+.reassuranceIcone {
+	flex: none;
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+	display: grid;
+	place-items: center;
+}
+
+.reassuranceTitre {
+	font-family: var(--font-heading);
+	font-size: 16px;
+	line-height: 1.15;
+}
+
+.reassuranceSous {
+	font-size: 13px;
+	color: color-mix(in srgb, var(--color-text) 62%, transparent);
+	margin-top: 3px;
+}
+
+/* — en-têtes de section — */
+
+.enTete {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 24px;
+	flex-wrap: wrap;
+	margin-bottom: 34px;
+}
+
+.kicker,
+.kickerSauge {
+	display: block;
+	font-size: 13px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	font-weight: 600;
+	color: var(--color-accent-700);
+	margin-bottom: 10px;
+}
+
+.kickerSauge {
+	color: var(--color-accent-2-700);
+	margin-bottom: 12px;
+}
+
+.titreSection {
+	font-family: var(--font-heading);
+	font-size: clamp(30px, 4vw, 42px);
+	line-height: 1.05;
+	letter-spacing: -0.015em;
+	margin: 0;
+}
+
+.chapeauSection {
+	font-size: 16px;
+	line-height: 1.6;
+	max-width: 60ch;
+	margin: 16px 0 34px;
+	color: color-mix(in srgb, var(--color-text) 78%, transparent);
+}
+
+.lienSection {
+	font-size: 14.5px;
+	font-weight: 600;
+	color: var(--color-accent-700);
+	text-decoration: none;
+}
+
+.lienSection:hover {
+	color: var(--color-accent);
+}
+
+/* — rayons — */
+
+.rayons {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 18px;
+}
+
+.rayon {
+	display: flex;
+	flex-direction: column;
+	border-radius: calc(1.4 * var(--radius-lg));
+	overflow: hidden;
+	text-decoration: none;
+	color: var(--color-text);
+	box-shadow: var(--shadow-sm);
+	transition:
+		transform 0.18s ease,
+		box-shadow 0.18s ease;
+}
+
+.rayon:hover {
+	transform: translateY(-4px);
+	box-shadow: var(--shadow-md);
+}
+
+.rayonVisuel {
+	position: relative;
+	aspect-ratio: 16 / 10;
+	background: var(--color-surface);
+	overflow: hidden;
+}
+
+.rayonImage {
+	object-fit: cover;
+}
+
+.rayonCorps {
+	padding: 18px 20px 20px;
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.rayonNom {
+	font-family: var(--font-heading);
+	font-size: 20px;
+	line-height: 1.1;
+	margin: 0 0 5px;
+}
+
+.rayonMeta {
+	font-size: 13.5px;
+	line-height: 1.4;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 68%, transparent);
+}
+
+.rayonFleche {
+	flex: none;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	background: var(--color-bg);
+	display: grid;
+	place-items: center;
+	color: var(--color-accent);
+}
+
+/* — trouvailles — */
+
+.produits {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 20px;
+}
+
+.bandeauInscription {
+	margin-top: 38px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	align-items: center;
+	justify-content: space-between;
+	background: var(--color-bg);
+	border-radius: var(--radius-lg);
+	padding: 20px 24px;
+}
+
+.bandeauTexte {
+	margin: 0;
+	font-size: 15.5px;
+	line-height: 1.5;
+	max-width: 46ch;
+	color: color-mix(in srgb, var(--color-text) 80%, transparent);
+}
+
+.bandeauFort {
+	font-family: var(--font-heading);
+	font-weight: var(--font-heading-weight);
+	color: var(--color-text);
+}
+
+/* — box surprise — */
+
+.box {
+	background: var(--color-accent-2-100);
+	border-radius: calc(2 * var(--radius-lg));
+	padding: clamp(28px, 4vw, 52px);
+	display: grid;
+	grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+	gap: clamp(28px, 4vw, 56px);
+	align-items: center;
+}
+
+.titreBox {
+	font-family: var(--font-heading);
+	font-size: clamp(28px, 3.6vw, 40px);
+	line-height: 1.05;
+	letter-spacing: -0.015em;
+	margin: 0 0 16px;
+}
+
+.boxTexte {
+	font-size: 16px;
+	line-height: 1.6;
+	max-width: 46ch;
+	margin: 0 0 24px;
+	color: color-mix(in srgb, var(--color-text) 82%, transparent);
+}
+
+.boxLabel {
+	margin-bottom: 12px;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: color-mix(in srgb, var(--color-text) 65%, transparent);
+}
+
+.boxThemes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 24px;
+}
+
+.boxTailles {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 26px;
+}
+
+.boxTaille {
+	flex: 1;
+	min-width: 96px;
+	background: var(--color-bg);
+	border-radius: var(--radius-md);
+	padding: 14px 16px;
+	text-align: center;
+}
+
+.boxTailleNom {
+	font-family: var(--font-heading);
+	font-size: 22px;
+	line-height: 1;
+}
+
+.boxTailleDesc {
+	font-size: 12px;
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+	margin: 5px 0 8px;
+}
+
+.boxTaillePrix {
+	font-family: var(--font-heading);
+	font-size: 16px;
+	color: var(--color-accent-700);
+}
+
+.boxVisuel {
+	position: relative;
+	margin: 0;
+	border-radius: calc(1.6 * var(--radius-lg));
+	overflow: hidden;
+	aspect-ratio: 1 / 1;
+	background: var(--color-bg);
+	box-shadow: var(--shadow-md);
+}
+
+/* — blog — */
+
+.sectionBlog {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(24px, 4vw, 40px) clamp(20px, 5vw, 64px) clamp(48px, 7vw, 88px);
+	scroll-margin-top: 80px;
+}
+
+.articles {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 22px;
+}
+
+.article {
+	display: flex;
+	flex-direction: column;
+	text-decoration: none;
+	color: var(--color-text);
+}
+
+.articleVisuel {
+	position: relative;
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+	aspect-ratio: 3 / 2;
+	background: var(--color-surface);
+	margin-bottom: 16px;
+}
+
+.articleImage {
+	object-fit: cover;
+}
+
+.articleTitre {
+	font-family: var(--font-heading);
+	font-size: 21px;
+	line-height: 1.18;
+	letter-spacing: -0.01em;
+	margin: 0 0 10px;
+}
+
+.articleChapeau {
+	font-size: 14px;
+	line-height: 1.55;
+	margin: 0 0 12px;
+	color: color-mix(in srgb, var(--color-text) 72%, transparent);
+}
+
+.articleMeta {
+	font-size: 12.5px;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+	margin-top: auto;
+}
+
+/* — l'antre — */
+
+.antre {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(48px, 7vw, 88px) clamp(20px, 5vw, 64px);
+	display: grid;
+	grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+	gap: clamp(28px, 5vw, 64px);
+	align-items: center;
+}
+
+.antreVisuel {
+	position: relative;
+	margin: 0;
+	border-radius: calc(2 * var(--radius-lg));
+	overflow: hidden;
+	aspect-ratio: 4 / 5;
+	background: var(--color-bg);
+	box-shadow: var(--shadow-md);
+}
+
+.antreTexte {
+	font-size: 16.5px;
+	line-height: 1.68;
+	max-width: 54ch;
+	margin: 16px 0 0;
+	color: color-mix(in srgb, var(--color-text) 82%, transparent);
+}
+
+/* — lettre — */
+
+.lettre {
+	position: relative;
+	overflow: hidden;
+	background: var(--color-accent);
+	color: var(--color-bg);
+	border-radius: calc(2 * var(--radius-lg));
+	padding: clamp(32px, 5vw, 64px);
+}
+
+.blobLettre {
+	right: -60px;
+	top: -60px;
+	width: 260px;
+	height: 260px;
+	background: color-mix(in srgb, var(--color-bg) 14%, transparent);
+	animation: flotter 8s ease-in-out infinite;
+}
+
+.lettreContenu {
+	position: relative;
+	z-index: 1;
+	max-width: 600px;
+}
+
+.lettreTitre {
+	font-family: var(--font-heading);
+	font-size: clamp(28px, 3.6vw, 40px);
+	line-height: 1.05;
+	letter-spacing: -0.015em;
+	margin: 0 0 14px;
+}
+
+.lettreTexte {
+	font-size: 16.5px;
+	line-height: 1.6;
+	margin: 0 0 26px;
+	opacity: 0.92;
+}
+
+.lettreMention {
+	margin: 16px 0 0;
+	font-size: 12.5px;
+	opacity: 0.8;
+}
+
+/* — repli — */
+
+@media (max-width: 900px) {
+	.heroContenu,
+	.box,
+	.antre {
+		grid-template-columns: 1fr;
+	}
+
+	/* Sur une colonne, le portrait passe devant le texte : une photo qui ouvre
+	   la section, plutôt qu'un pavé de texte suivi d'une image orpheline. */
+	.antre figure {
+		order: -1;
+	}
+
+	.reassurances,
+	.rayons,
+	.produits,
+	.articles {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+@media (max-width: 560px) {
+	.reassurances,
+	.rayons,
+	.produits,
+	.articles {
+		grid-template-columns: 1fr;
+	}
+}

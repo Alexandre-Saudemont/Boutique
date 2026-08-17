@@ -1,0 +1,200 @@
+/* L'Ichiban Kuji — page d'annonce. */
+
+.intro {
+	position: relative;
+	overflow: clip;
+}
+
+.blob {
+	position: absolute;
+	right: -120px;
+	top: -100px;
+	width: 360px;
+	height: 360px;
+	border-radius: 50%;
+	background: var(--color-accent-2-200);
+	z-index: 0;
+}
+
+.introContenu {
+	position: relative;
+	z-index: 1;
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(38px, 5.5vw, 64px) clamp(20px, 5vw, 64px) clamp(16px, 2vw, 24px);
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(36px, 5.2vw, 60px);
+	line-height: 1.02;
+	letter-spacing: -0.02em;
+	margin: 0 0 16px;
+	max-width: 18ch;
+}
+
+.chapeau {
+	font-size: 17.5px;
+	line-height: 1.62;
+	max-width: 58ch;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 80%, transparent);
+}
+
+.section {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(20px, 3vw, 32px) clamp(20px, 5vw, 64px) clamp(48px, 7vw, 80px);
+}
+
+.titreSection {
+	font-family: var(--font-heading);
+	font-size: clamp(26px, 3.4vw, 38px);
+	line-height: 1.05;
+	letter-spacing: -0.015em;
+	margin: 0 0 24px;
+}
+
+/* Les rangs, du plus rare au dernier lot. */
+.rangs {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.rang {
+	display: flex;
+	gap: 18px;
+	align-items: center;
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	padding: 16px 20px;
+	box-shadow: var(--shadow-sm);
+}
+
+.lettre {
+	flex: none;
+	width: 52px;
+	height: 52px;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	font-family: var(--font-heading);
+	font-size: 24px;
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+}
+
+/* Le dernier lot est la pièce que tout le monde vise : il se distingue. */
+.lettreDerniere {
+	background: var(--color-accent);
+	color: var(--color-bg);
+	font-size: 13px;
+	line-height: 1.1;
+	text-align: center;
+}
+
+.rangTitre {
+	font-family: var(--font-heading);
+	font-size: 18px;
+	line-height: 1.15;
+	margin: 0 0 4px;
+}
+
+.rangTexte {
+	font-size: 14px;
+	line-height: 1.55;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 72%, transparent);
+}
+
+.etapes {
+	background: var(--color-surface);
+}
+
+.etapesContenu {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: clamp(44px, 6vw, 80px) clamp(20px, 5vw, 64px);
+}
+
+.listeEtapes {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 20px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.numero {
+	display: inline-grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: var(--color-accent);
+	color: var(--color-bg);
+	font-family: var(--font-heading);
+	font-size: 18px;
+	margin-bottom: 14px;
+}
+
+.etapeTitre {
+	font-family: var(--font-heading);
+	font-size: 18px;
+	line-height: 1.15;
+	margin: 0 0 8px;
+}
+
+.etapeTexte {
+	font-size: 14px;
+	line-height: 1.6;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 72%, transparent);
+}
+
+.attente {
+	background: var(--color-accent-2-100);
+	border-radius: calc(2 * var(--radius-lg));
+	padding: clamp(28px, 4vw, 52px);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 24px;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.attenteIntro {
+	max-width: 46ch;
+}
+
+.attenteTitre {
+	font-family: var(--font-heading);
+	font-size: clamp(24px, 3vw, 34px);
+	line-height: 1.08;
+	letter-spacing: -0.015em;
+	margin: 0 0 10px;
+}
+
+.attenteTexte {
+	font-size: 15.5px;
+	line-height: 1.6;
+	margin: 0;
+	color: color-mix(in srgb, var(--color-text) 78%, transparent);
+}
+
+.attenteFormulaire {
+	flex: 1;
+	min-width: 280px;
+	max-width: 440px;
+}
+
+@media (max-width: 620px) {
+	.listeEtapes {
+		grid-template-columns: 1fr;
+	}
+}

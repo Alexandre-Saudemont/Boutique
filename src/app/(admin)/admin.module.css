@@ -1,0 +1,459 @@
+/* Habillage commun du back-office : la coque, la barre de titre et les tableaux.
+
+   Un seul module pour toutes les pages d'administration plutôt qu'un par page :
+   ce sont partout les mêmes cartes, les mêmes tableaux, les mêmes en-têtes. Les
+   dupliquer les ferait diverger au premier ajustement. */
+
+.coque {
+	display: grid;
+	grid-template-columns: 248px 1fr;
+	min-height: 100dvh;
+	font-family: var(--font-body);
+	background: var(--color-bg);
+	color: var(--color-text);
+}
+
+.principal {
+	min-width: 0;
+}
+
+/* Barre de titre collante : sur une liste de commandes longue, savoir où l'on
+   est et pouvoir agir sans remonter compte plus que quelques pixels gagnés. */
+.barreTitre {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	flex-wrap: wrap;
+	padding: var(--space-4) clamp(20px, 3vw, 36px);
+	background: color-mix(in srgb, var(--color-bg) 90%, transparent);
+	backdrop-filter: blur(8px);
+	border-bottom: 1px solid var(--color-divider);
+}
+
+.titre {
+	font-family: var(--font-heading);
+	font-size: clamp(22px, 2.4vw, 28px);
+	line-height: 1.1;
+	letter-spacing: -0.015em;
+	margin: 0;
+}
+
+.sousTitre {
+	font-size: 13px;
+	margin: 3px 0 0;
+	color: color-mix(in srgb, var(--color-text) 58%, transparent);
+}
+
+.actionsTitre {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.contenu {
+	padding: clamp(22px, 3vw, 36px);
+}
+
+/* ── Cartes ─────────────────────────────────────────────────────────────── */
+
+.carte {
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-sm);
+	padding: var(--space-6);
+}
+
+.carteTitre {
+	font-family: var(--font-heading);
+	font-size: 18px;
+	margin: 0 0 var(--space-4);
+}
+
+.grilleKpis {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: var(--space-4);
+	margin-bottom: var(--space-6);
+}
+
+.kpi {
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	box-shadow: var(--shadow-sm);
+}
+
+.kpiEntete {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--space-3);
+}
+
+.kpiLabel {
+	font-size: 13px;
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+.kpiIcone {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	background: var(--color-accent-100);
+	color: var(--color-accent-700);
+}
+
+.kpiValeur {
+	font-family: var(--font-heading);
+	font-size: 30px;
+	line-height: 1;
+}
+
+.kpiDetail {
+	font-size: 12.5px;
+	margin-top: var(--space-2);
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+.deuxColonnes {
+	display: grid;
+	grid-template-columns: 1.5fr 1fr;
+	gap: var(--space-6);
+	align-items: start;
+}
+
+.colonne {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+}
+
+/* ── Tableaux ───────────────────────────────────────────────────────────── */
+
+.tableauCadre {
+	background: var(--color-surface);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-sm);
+	padding: var(--space-2);
+}
+
+/* Le défilement horizontal est porté par ce conteneur, jamais par la page : un
+   tableau large ne doit pas faire glisser tout l'écran de côté. */
+.tableauDefile {
+	overflow-x: auto;
+}
+
+.tableau {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+	min-width: 560px;
+}
+
+.tableau th {
+	text-align: left;
+	font-weight: 600;
+	font-size: 12px;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+	padding: 0 var(--space-4) var(--space-3);
+	white-space: nowrap;
+}
+
+.tableau td {
+	padding: 14px var(--space-4);
+	border-top: 1px solid var(--color-divider);
+	vertical-align: middle;
+}
+
+.tableau tbody tr:hover {
+	background: color-mix(in srgb, var(--color-accent-100) 55%, transparent);
+}
+
+.cellulePrincipale {
+	font-weight: 600;
+}
+
+.celluleDiscrete {
+	color: color-mix(in srgb, var(--color-text) 65%, transparent);
+}
+
+.celluleMontant {
+	font-family: var(--font-heading);
+	color: var(--color-accent-700);
+	white-space: nowrap;
+}
+
+.celluleActions {
+	text-align: right;
+}
+
+.lienLigne {
+	color: var(--color-accent-700);
+	font-weight: 600;
+}
+
+/* ── Filtres ────────────────────────────────────────────────────────────── */
+
+.filtres {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	align-items: center;
+	padding: var(--space-3) var(--space-3) var(--space-4);
+}
+
+.puce {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--color-text);
+	background: var(--color-bg);
+	border: 1px solid var(--color-divider);
+	border-radius: 999px;
+	padding: 7px 14px;
+}
+
+.puce:hover {
+	border-color: var(--color-accent);
+	color: var(--color-accent-700);
+}
+
+.puceActive,
+.puceActive:hover {
+	background: var(--color-accent);
+	border-color: var(--color-accent);
+	color: var(--color-bg);
+}
+
+.compteur {
+	margin-left: auto;
+	font-size: 13px;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+/* ── Détail d'une commande ──────────────────────────────────────────────── */
+
+.detail {
+	display: grid;
+	grid-template-columns: 1.6fr 1fr;
+	gap: var(--space-6);
+	align-items: start;
+}
+
+.retour {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var(--color-accent-700);
+	margin-bottom: var(--space-3);
+}
+
+.adresse {
+	font-style: normal;
+	font-size: 14px;
+	line-height: 1.6;
+}
+
+.ligneResume {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--space-4);
+	font-size: 14px;
+	padding: 7px 0;
+}
+
+.ligneTotal {
+	border-top: 1px solid var(--color-divider);
+	margin-top: var(--space-2);
+	padding-top: var(--space-3);
+	font-family: var(--font-heading);
+	font-size: 17px;
+}
+
+.champ {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 13.5px;
+	font-weight: 600;
+	margin-bottom: var(--space-3);
+}
+
+.erreur {
+	font-size: 13.5px;
+	color: var(--color-danger, #a4331f);
+	margin: 0 0 var(--space-3);
+}
+
+.succes {
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var(--color-accent-2-700);
+	margin: 0 0 var(--space-3);
+}
+
+.vide {
+	padding: var(--space-6) var(--space-4);
+	text-align: center;
+	font-size: 14.5px;
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+.listeStock {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	font-size: 14px;
+}
+
+.ligneStock {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+}
+
+.pastilleStock {
+	flex: none;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--color-accent);
+}
+
+.nomStock {
+	flex: 1;
+	min-width: 0;
+}
+
+.quantiteStock {
+	font-weight: 600;
+	color: var(--color-accent-700);
+}
+
+@media (max-width: 1100px) {
+	.grilleKpis {
+		grid-template-columns: 1fr 1fr;
+	}
+
+	.deuxColonnes,
+	.detail {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 860px) {
+	.coque {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ── Fichiers des ouvrages numériques ───────────────────────────────────── */
+
+.aide {
+	font-size: 13.5px;
+	line-height: 1.55;
+	color: color-mix(in srgb, var(--color-text) 65%, transparent);
+	margin: 0;
+}
+
+.listeFichiers {
+	list-style: none;
+	margin: var(--space-4) 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.fichier {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	background: var(--color-surface-2);
+	border-radius: var(--radius-md);
+	padding: var(--space-3) var(--space-4);
+}
+
+.fichierInfos {
+	flex: 1;
+	min-width: 0;
+}
+
+.fichierNom {
+	display: block;
+	font-size: 14.5px;
+	font-weight: 600;
+	word-break: break-word;
+}
+
+.fichierMeta {
+	display: block;
+	font-size: 12.5px;
+	color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+.formulaireFichier {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--space-3);
+	margin-top: var(--space-5);
+	padding-top: var(--space-5);
+	border-top: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+/* ── Contenu des box surprises ──────────────────────────────────────────── */
+
+.box {
+	margin-top: var(--space-4);
+	padding-top: var(--space-4);
+	border-top: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+.boxTitre {
+	font-size: 14.5px;
+	font-weight: 700;
+	margin: 0 0 var(--space-2);
+}
+
+/* La date de saisie accompagne le titre sans le concurrencer : elle répond à
+   « c'est à jour ? », pas à « qu'est-ce que c'est ? ». */
+.boxDate {
+	font-weight: 400;
+	font-size: 12.5px;
+	color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.formulaireBox {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.zoneBox {
+	width: 100%;
+	resize: vertical;
+	font-family: inherit;
+	line-height: 1.5;
+}
+
+/* Sans droit d'écriture, la note se lit telle qu'elle a été tapée — retours à
+   la ligne compris, puisque c'est du texte libre. */
+.contenuBox {
+	white-space: pre-wrap;
+	font-size: 14px;
+	line-height: 1.6;
+	background: var(--color-surface-2);
+	border-radius: var(--radius-sm);
+	padding: var(--space-3);
+	margin: 0;
+}
