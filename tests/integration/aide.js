@@ -63,6 +63,7 @@ export async function creerProduit({
 	publie = true,
 	actif = true,
 	allowBackorder = false,
+	allowPreorder = false,
 } = {}) {
 	compteur += 1;
 
@@ -71,6 +72,7 @@ export async function creerProduit({
 			name: nom,
 			slug: `produit-test-${compteur}`,
 			isActive: actif,
+			allowPreorder,
 			publishedAt: publie ? new Date('2026-01-01') : null,
 			variants: {
 				create: {

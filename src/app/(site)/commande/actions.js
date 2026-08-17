@@ -65,6 +65,13 @@ export async function enregistrerLivraison(_precedent, donnees) {
 		adresse,
 		rateId: dematerialise ? null : rateId,
 		note: donnees.get('note') || null,
+		/* Le choix d'être livré en deux fois. Recueilli ici et pas plus tard :
+		   c'est à l'étape livraison que le client voit ce que le second colis lui
+		   coûte, donc le seul endroit où la question a du sens.
+
+		   La valeur n'est pas crue sur parole — `creerCommande` la confronte au
+		   panier relu en base et l'ignore si celui-ci ne s'y prête pas. */
+		livraisonScindee: donnees.get('livraison') === 'deux-colis',
 	});
 
 	redirect('/commande/paiement');
@@ -151,6 +158,7 @@ export async function payerCommande(_precedent, donnees) {
 		viderPanier: !enLigne,
 		codePromo: await getCodePromo(),
 		userId: utilisateur?.id ?? null,
+		livraisonScindee: Boolean(brouillon.livraisonScindee),
 	});
 
 	if (!resultat.ok) {

@@ -194,12 +194,23 @@ export default async function FicheCommande({params}) {
 										.join(' · ') || '—'}
 								</span>
 							</div>
-							{commande.trackingNumber && (
+							{commande.splitShipping && (
 								<div className={styles.ligneResume}>
-									<span>Suivi</span>
-									<span>{commande.trackingNumber}</span>
+									<span>Envoi</span>
+									<span>En deux colis, à la demande du client</span>
 								</div>
 							)}
+							{commande.shipments
+								?.filter((colis) => colis.trackingNumber)
+								.map((colis) => (
+									<div className={styles.ligneResume} key={colis.id}>
+										<span>
+											Suivi
+											{commande.shipments.length > 1 ? ` · colis ${colis.position}` : ''}
+										</span>
+										<span>{colis.trackingNumber}</span>
+									</div>
+								))}
 							{commande.customerNote && (
 								<p className={styles.kpiDetail}>
 									Mot du client : « {commande.customerNote} »
@@ -285,8 +296,22 @@ export default async function FicheCommande({params}) {
 								numero={commande.orderNumber}
 								suivants={statutsSuivants(commande.status)}
 								transporteur={commande.carrier}
-								suivi={commande.trackingNumber}
 								note={commande.adminNote}
+								colis={(commande.shipments ?? []).map((envoi) => ({
+									id: envoi.id,
+									position: envoi.position,
+									label: envoi.label,
+									carrier: envoi.carrier,
+									trackingNumber: envoi.trackingNumber,
+									shippedAt: envoi.shippedAt ? formatDate(envoi.shippedAt) : null,
+									articles: envoi.items.map((ligne) => ({
+										id: ligne.id,
+										nom: ligne.productName,
+										variante: ligne.variantName,
+										quantite: ligne.quantity,
+									})),
+								}))}
+								expediable={['PAID', 'PREPARING', 'PARTIALLY_SHIPPED'].includes(commande.status)}
 							/>
 						) : (
 							commande.adminNote && (

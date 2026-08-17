@@ -4,6 +4,7 @@ import {getCart} from '@/server/services/cart';
 import {getSettings} from '@/server/services/settings';
 import {getModesLivraison} from '@/server/services/shipping';
 import {appliquerCodeAuPanier, consommerCode} from '@/server/services/discounts';
+import {analyserPanier, creerColis, ligneEnAttente} from '@/server/services/shipments';
 
 /* Le tunnel de commande.
 
@@ -149,6 +150,10 @@ export async function creerCommande({
 	provider = 'STRIPE',
 	viderPanier = true,
 	codePromo = null,
+	/* Le client a demandé à recevoir en deux fois ce qui est disponible et ce
+	   qui attend un réassort. N'a d'effet que sur un panier qui mêle les deux —
+	   voir `analyserPanier`. */
+	livraisonScindee = false,
 	/* Le compte qui commande, s'il y en a un. Il vient de l'appelant et jamais du
 	   formulaire : c'est l'action serveur qui lit la session, un service ne
 	   connaît pas les cookies.
@@ -205,6 +210,18 @@ export async function creerCommande({
 		return {ok: false, erreur: 'Votre panier est vide.'};
 	}
 
+	/* Ce qui part maintenant, ce qui attend le réassort.
+
+	   Jugé sur les lignes relues en base, jamais sur ce que le formulaire
+	   affirme : un champ caché forgé ferait sinon facturer deux ports sur une
+	   commande qui n'en demande qu'un — ou l'inverse. */
+	const expedition = analyserPanier(lignes);
+
+	// Le client ne peut demander deux colis que si le panier s'y prête. Sur un
+	// panier homogène, la case n'a pas été affichée, et une valeur reçue quand
+	// même est ignorée plutôt que refusée : elle ne change rien au résultat.
+	const scindee = Boolean(livraisonScindee) && expedition.scindable;
+
 	const articles = lignes.map((ligne) => {
 		const {variant} = ligne;
 
@@ -221,8 +238,16 @@ export async function creerCommande({
 			vatRateBp: TAUX_TVA_BP,
 			quantity: ligne.quantity,
 			totalCents: variant.priceCents * ligne.quantity,
+			// Sert au rangement dans les colis, jamais écrit en base : `OrderItem`
+			// n'a pas ce champ, c'est le rattachement au colis qui porte
+			// l'information une fois la commande créée.
+			enAttente: ligneEnAttente(variant, ligne.quantity),
 		};
 	});
+
+	/* Les lignes telles qu'elles partent en base : `enAttente` retiré, sans quoi
+	   Prisma refuse la création sur un champ qui n'existe pas au schéma. */
+	const articlesACreer = articles.map(({enAttente: _, ...reste}) => reste);
 
 	const sousTotalCents = articles.reduce((somme, article) => somme + article.totalCents, 0);
 
@@ -235,7 +260,17 @@ export async function creerCommande({
 
 	/* Un code « livraison offerte » met les frais de port à zéro, quel que soit le
 	   mode choisi — et une commande dématérialisée n'en a jamais eu. */
-	const livraisonCents = dematerialise || (promo?.ok && promo.livraisonOfferte) ? 0 : mode.prixCents;
+	const portUnitaireCents =
+		dematerialise || (promo?.ok && promo.livraisonOfferte) ? 0 : mode.prixCents;
+
+	/* Deux colis, deux ports — sauf quand le port est déjà nul.
+	 *
+	   Le franco se juge sur la commande et non sur chaque colis : un client qui a
+	   dépassé le seuil ne paie rien, qu'il reçoive un paquet ou deux. Multiplier
+	   zéro par deux donne zéro, la règle tient donc en une ligne — mais elle est
+	   écrite ici, parce que c'est une décision commerciale et pas une propriété
+	   de l'arithmétique. */
+	const livraisonCents = portUnitaireCents * (scindee ? 2 : 1);
 
 	const totalCents = sousTotalCents - reductionCents + livraisonCents;
 
@@ -261,8 +296,9 @@ export async function creerCommande({
 				// Dit franchement sur la commande qu'il n'y a rien à expédier : c'est
 				// la première chose que le back-office lit sur une fiche.
 				shippingMethod: mode?.nom ?? 'Téléchargement',
+				splitShipping: scindee,
 				placedAt: new Date(),
-				items: {create: articles},
+				items: {create: articlesACreer},
 				/* Le paiement est créé en attente dès la commande : c'est lui que le
 				   webhook du prestataire viendra retrouver pour la passer en payée.
 				   `providerPaymentId` restera nul jusqu'à ce que Stripe ou PayPal
@@ -295,6 +331,18 @@ export async function creerCommande({
 							},
 						}),
 			},
+		});
+
+		/* Les colis, dans la même transaction que la commande.
+
+		   Une commande dont les lignes ne savent pas par où elles partent ne doit
+		   jamais exister, même une milliseconde : le back-office l'afficherait
+		   sans aucun colis à expédier, et rien ne dirait pourquoi. */
+		await creerColis(tx, {
+			orderId: creee.id,
+			scindee,
+			transporteur: mode?.transporteur ?? null,
+			articles,
 		});
 
 		/* Le panier est vidé, pas supprimé : le visiteur garde son jeton et son

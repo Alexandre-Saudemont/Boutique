@@ -35,7 +35,7 @@ function BoutonContinuer() {
 	);
 }
 
-export default function ShippingForm({panier, modes, brouillon}) {
+export default function ShippingForm({panier, modes, brouillon, expedition = null}) {
 	const [etat, action] = useActionState(enregistrerLivraison, ETAT_INITIAL);
 
 	/* Le mode par défaut : celui déjà choisi si le visiteur revient corriger son
@@ -44,12 +44,24 @@ export default function ShippingForm({panier, modes, brouillon}) {
 		etat.rateId ?? brouillon?.rateId ?? modes[0]?.id ?? null,
 	);
 
+	/* Un seul colis par défaut, même quand le panier s'y prête.
+
+	   C'est ce que le client a demandé, et c'est le choix qui ne coûte rien de
+	   plus : présélectionner l'option payante ferait payer un second port à qui
+	   n'a pas lu. */
+	const [scindee, setScindee] = useState(Boolean(brouillon?.livraisonScindee));
+
 	// Les valeurs reviennent du serveur en cas d'erreur, du cookie si le visiteur
 	// revient sur ses pas, et sont vides au premier passage.
 	const adresse = etat.adresse ?? brouillon?.adresse ?? {};
 	const erreurs = etat.erreurs ?? {};
 
 	const mode = modes.find((candidat) => candidat.id === modeChoisi) ?? null;
+
+	/* Le port d'un colis, tel que le serveur le facturera. Vaut zéro quand le
+	   franco est atteint — et le second colis est alors offert lui aussi, le
+	   franco se jugeant sur la commande et non sur chaque paquet. */
+	const portUnitaire = mode?.prixCents ?? 0;
 
 	const champ = (nom, libelle, options = {}) => (
 		<label className={`field ${options.large ? styles.champLarge : ''}`}>
@@ -136,6 +148,79 @@ export default function ShippingForm({panier, modes, brouillon}) {
 								carte Mondial Relay n&apos;est pas encore branchée.
 							</p>
 						)}
+					</fieldset>
+				)}
+
+				{expedition?.scindable && (
+					<fieldset className={styles.carte}>
+						<legend className={styles.carteTitre}>Votre commande en deux temps</legend>
+
+						<p className={styles.noteRelais} style={{marginTop: 0}}>
+							Votre panier contient une pièce en précommande, que je n&apos;ai pas encore
+							reçue. Vous choisissez : tout ensemble à sa réception, ou le reste tout de
+							suite et la précommande ensuite.
+						</p>
+
+						<div className={styles.modes}>
+							<label
+								className={`${styles.mode} ${!scindee ? styles.modeChoisi : ''}`}>
+								<input
+									type='radio'
+									name='livraison'
+									value='un-colis'
+									checked={!scindee}
+									onChange={() => setScindee(false)}
+									className={styles.radio}
+								/>
+
+								<span className={styles.modeInfos}>
+									<span className={styles.modeNom}>Tout en un seul colis</span>
+									<span className={styles.modeDelai}>
+										Départ à la réception de la précommande
+									</span>
+								</span>
+
+								<span className={`${styles.modePrix} ${portUnitaire === 0 ? styles.modePrixOffert : ''}`}>
+									{portUnitaire === 0 ? 'Offerte' : formatPrix(portUnitaire)}
+								</span>
+							</label>
+
+							<label className={`${styles.mode} ${scindee ? styles.modeChoisi : ''}`}>
+								<input
+									type='radio'
+									name='livraison'
+									value='deux-colis'
+									checked={scindee}
+									onChange={() => setScindee(true)}
+									className={styles.radio}
+								/>
+
+								<span className={styles.modeInfos}>
+									<span className={styles.modeNom}>En deux colis</span>
+									<span className={styles.modeDelai}>
+										Le disponible tout de suite, la précommande à sa réception
+									</span>
+								</span>
+
+								<span className={`${styles.modePrix} ${portUnitaire === 0 ? styles.modePrixOffert : ''}`}>
+									{portUnitaire === 0 ? 'Offerte' : formatPrix(portUnitaire * 2)}
+								</span>
+							</label>
+						</div>
+
+						{portUnitaire > 0 && scindee && (
+							<p className={styles.noteRelais}>
+								Deux colis, deux frais de port : {formatPrix(portUnitaire)} × 2.
+							</p>
+						)}
+
+						<p className={styles.noteRelais}>
+							<strong>Tout de suite :</strong>{' '}
+							{expedition.immediates.map((article) => article.nom).join(', ')}
+							<br />
+							<strong>À la réception :</strong>{' '}
+							{expedition.attendues.map((article) => article.nom).join(', ')}
+						</p>
 					</fieldset>
 				)}
 

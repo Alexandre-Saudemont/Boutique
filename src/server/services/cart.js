@@ -63,16 +63,26 @@ const INCLUSION_LIGNE = {
 
 /* Le stock encore disponible sur une variante.
 
-   `Infinity` dans deux cas : la vente à découvert est autorisée (précommande,
-   réassort permanent), ou le produit est un ouvrage numérique — un fichier ne
-   s'épuise pas. Sans cette seconde règle, un ouvrage serait « en rupture » dès
-   sa mise en vente, puisque son stock vaut zéro et n'a aucune raison de bouger.
+   `Infinity` dans trois cas.
+
+   **Un ouvrage numérique** ne s'épuise pas. Sans cette règle, il serait « en
+   rupture » dès sa mise en vente, puisque son stock vaut zéro et n'a aucune
+   raison de bouger.
+
+   **Le réassort permanent** (`allowBackorder`, porté par la déclinaison) : la
+   pièce se recommande en continu, on la vend sans attendre le réapprovisionnement.
+
+   **La précommande** (`allowPreorder`, porté par le produit) : la pièce est
+   annoncée mais pas encore arrivée. C'est tout l'intérêt d'une précommande de
+   pouvoir être achetée avant d'exister — la refuser parce que le stock vaut zéro
+   revenait à ne jamais pouvoir en vendre une seule.
 
    La variante ne porte pas toujours son produit : les appelants qui n'en ont pas
-   besoin ne le chargent pas. On ne conclut donc au numérique que lorsqu'il est
-   là — et l'ajout au panier, lui, le charge toujours. */
+   besoin ne le chargent pas. On ne conclut donc que sur ce qui est là — et
+   l'ajout au panier, lui, le charge toujours. */
 function disponible(variante) {
 	if (variante.product?.kind === 'DIGITAL') return Infinity;
+	if (variante.product?.allowPreorder) return Infinity;
 
 	return variante.allowBackorder ? Infinity : Math.max(0, variante.stock);
 }
@@ -217,7 +227,7 @@ export async function addItem(token, varianteId, quantite = 1) {
 		},
 		// Le produit est chargé pour son type : un ouvrage numérique ne connaît
 		// pas la rupture de stock.
-		include: {product: {select: {kind: true}}},
+		include: {product: {select: {kind: true, allowPreorder: true}}},
 	});
 
 	if (!variante) {
@@ -263,7 +273,7 @@ export async function setQuantity(token, ligneId, quantite) {
 
 	const ligne = await prisma.cartItem.findFirst({
 		where: {id: ligneId, cart: {sessionToken: token}},
-		include: {variant: {include: {product: {select: {kind: true}}}}},
+		include: {variant: {include: {product: {select: {kind: true, allowPreorder: true}}}}},
 	});
 
 	if (!ligne) return {ok: false, erreur: 'Cette ligne n’est plus au panier.'};

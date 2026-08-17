@@ -180,3 +180,39 @@ describe.skipIf(!baseDisponible)('panier', () => {
 		expect(apres.franco.resteCents).toBe(0);
 	});
 });
+
+/* La précommande au panier.
+ *
+   Sans cette règle, un produit annoncé pour octobre et dont le stock vaut zéro
+   se voyait refuser l'ajout au panier : impossible d'en vendre un seul, et toute
+   la livraison en deux colis restait sans objet. Le test verrouille le
+   comportement — c'est le genre de règle qu'une relecture distraite de
+   `disponible()` ferait sauter sans que rien ne proteste. */
+describe.skipIf(!baseDisponible)('précommande', () => {
+	beforeAll(() => {
+		expect(process.env.DATABASE_URL).toContain('_test');
+	});
+
+	beforeEach(async () => {
+		await viderLaBase();
+		await ouvrirLaBoutique();
+	});
+
+	it('accepte au panier une précommande dont le stock est nul', async () => {
+		const produit = await creerProduit({stock: 0, allowPreorder: true});
+
+		const resultat = await addItem('jeton-precommande', produit.variants[0].id, 2);
+
+		expect(resultat.ok).toBe(true);
+
+		const panier = await getCart('jeton-precommande');
+		expect(panier.lignes).toHaveLength(1);
+		expect(panier.lignes[0].quantite).toBe(2);
+	});
+
+	it('refuse toujours une rupture ordinaire', async () => {
+		const produit = await creerProduit({stock: 0, allowPreorder: false});
+
+		expect((await addItem('jeton-rupture', produit.variants[0].id, 1)).ok).toBe(false);
+	});
+});

@@ -48,6 +48,11 @@ enum OrderStatus {
   PENDING_PAYMENT
   PAID
   PREPARING
+  /// Un colis est parti, un autre reste à envoyer — le cas d'une commande qui
+  /// mêle du stock et de la précommande, quand le client a demandé à être livré
+  /// en deux fois. Sans ce statut, une telle commande apparaîtrait « expédiée »
+  /// alors qu'il reste une figurine à envoyer en octobre.
+  PARTIALLY_SHIPPED
   SHIPPED
   DELIVERED
   CANCELLED
@@ -511,16 +516,23 @@ model Order {
   customerNote String?
   adminNote    String?
 
-  // Expédition
+  // Expédition — le mode choisi au tunnel, commun à tous les colis.
+  // Le numéro de suivi n'est plus ici : il appartient au colis, pas à la
+  // commande, depuis qu'une commande peut partir en deux fois.
   carrier        String?
   shippingMethod String?
   relayPointId   String?
   relayPointData Json?
-  trackingNumber String?
-  trackingUrl    String?
+
+  /// Le client a demandé à être livré en deux fois : ce qui est en stock tout
+  /// de suite, la précommande à sa réception. Figé à la commande comme le
+  /// reste — c'est ce qui justifie le second port facturé.
+  splitShipping Boolean @default(false)
 
   placedAt    DateTime?
   paidAt      DateTime?
+  /// Date du dernier colis parti. Une commande scindée n'est « expédiée » que
+  /// lorsque le second colis a quitté l'atelier.
   shippedAt   DateTime?
   deliveredAt DateTime?
   cancelledAt DateTime?
@@ -532,11 +544,54 @@ model Order {
   addresses OrderAddress[]
   items     OrderItem[]
   payments  Payment[]
+  shipments Shipment[]
 
   @@index([userId])
   @@index([status])
   @@index([email])
   @@map("orders")
+}
+
+/// Un colis.
+///
+/// Une commande ordinaire en a un seul. Une commande qui mêle du stock
+/// disponible et de la précommande en a deux quand le client a demandé à être
+/// livré en deux fois : le premier part tout de suite, le second à la réception
+/// du réassort.
+///
+/// Le suivi vit ici et non sur la commande. Le porter sur la commande
+/// obligerait à choisir lequel des deux numéros y écrire — et le client qui
+/// clique sur « suivre mon colis » tomberait sur l'autre.
+model Shipment {
+  id      String @id @default(cuid())
+  orderId String
+
+  /// 1 pour le colis immédiat, 2 pour celui de la précommande. Sert à l'ordre
+  /// d'affichage et au « colis 1 sur 2 » des e-mails.
+  position Int @default(1)
+
+  /// Ce que le client lit : « Disponible tout de suite », « À la réception de
+  /// la précommande ». Figé à la commande, comme les lignes.
+  label String
+
+  /// Peut différer d'un colis à l'autre : une précommande volumineuse peut
+  /// partir par un autre transporteur que le premier envoi.
+  carrier        String?
+  trackingNumber String?
+  trackingUrl    String?
+
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@unique([orderId, position])
+  @@index([orderId])
+  @@map("shipments")
 }
 
 /// Copie figée de l'adresse. Ne référence jamais `Address`.
@@ -562,9 +617,12 @@ model OrderAddress {
 
 /// Copie figée de la ligne. `variantId` sert au réassort, jamais à l'affichage.
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  variantId String?
+  id         String  @id @default(cuid())
+  orderId    String
+  variantId  String?
+  /// Le colis dans lequel cette ligne part. Nul sur les lignes numériques, qui
+  /// ne partent dans aucun colis.
+  shipmentId String?
 
   productName    String
   variantName    String
@@ -582,11 +640,13 @@ model OrderItem {
 
   order          Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
   variant        ProductVariant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  shipment       Shipment?        @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
   downloadGrants DownloadGrant[]
   boxContents    BoxContent[]
 
   @@index([orderId])
   @@index([variantId])
+  @@index([shipmentId])
   @@map("order_items")
 }
 

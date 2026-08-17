@@ -380,17 +380,31 @@ ${mention("Vous n'avez rien demandé ? Ignorez ce message, aucun compte ne sera 
 	});
 }
 
-/// Avis d'expédition, avec le suivi s'il a été saisi.
-export async function envoyerAvisExpedition(commande) {
-	const sujet = `Votre commande ${commande.orderNumber} est en route`;
+/* Avis d'expédition, envoyé par colis et non par commande.
+ *
+ * Une commande scindée en envoie deux : le premier en août pour ce qui était en
+ * stock, le second en octobre pour la précommande. Sans le « colis 1 sur 2 », le
+ * client reçoit deux messages identiques et croit à un doublon — ou pire,
+ * attend un seul paquet et laisse le second en point relais. */
+export async function envoyerAvisExpedition(commande, colis = {}) {
+	const surDeux = (colis.total ?? 1) > 1;
+	const rang = surDeux ? ` (colis ${colis.position} sur ${colis.total})` : '';
 
-	const suivi = commande.trackingNumber
-		? `\n\nSuivi ${commande.carrier ?? ''} : ${commande.trackingNumber}`
+	const sujet = surDeux
+		? `Colis ${colis.position} sur ${colis.total} de votre commande ${commande.orderNumber}`
+		: `Votre commande ${commande.orderNumber} est en route`;
+
+	const suivi = colis.trackingNumber
+		? `\n\nSuivi ${colis.carrier ?? ''} : ${colis.trackingNumber}`
+		: '';
+
+	const reste = surDeux && colis.position < colis.total
+		? '\n\nLe reste de votre commande partira à la réception de la précommande — vous recevrez un second message à ce moment-là.'
 		: '';
 
 	const texte = `Bonne nouvelle : votre colis est parti.
 
-Commande ${commande.orderNumber}${suivi}
+Commande ${commande.orderNumber}${rang}${suivi}${reste}
 
 À bientôt dans l'antre,
 Le Vieux geek`;
@@ -400,24 +414,33 @@ Le Vieux geek`;
 		`${p(
 			`Votre commande <strong style="color:${T.titre};">${echapper(
 				commande.orderNumber,
-			)}</strong> vient de quitter l'atelier.`,
+			)}</strong> vient de quitter l'atelier${
+				surDeux ? ` — <strong style="color:${T.titre};">colis ${colis.position} sur ${colis.total}</strong>` : ''
+			}.`,
 			{marge: '0 0 18px'},
 		)}
 ${
-	commande.trackingNumber
+	colis.trackingNumber
 		? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${T.saugeClair};border-radius:10px;">
 <tr><td style="padding:14px 16px;font-family:${POLICE_TEXTE};font-size:13px;color:${T.saugeFonce};">
-Numéro de suivi${commande.carrier ? ` · ${echapper(commande.carrier)}` : ''}<br><strong style="font-size:16px;letter-spacing:.5px;">${echapper(
-				commande.trackingNumber,
+Numéro de suivi${colis.carrier ? ` · ${echapper(colis.carrier)}` : ''}<br><strong style="font-size:16px;letter-spacing:.5px;">${echapper(
+				colis.trackingNumber,
 			)}</strong>
 </td></tr></table>`
 		: ''
 }
-${bouton(`${adresseDuSite()}/compte`, 'Voir ma commande')}
-${p("À bientôt dans l'antre.", {marge: '18px 0 0'})}`,
+${bouton(colis.trackingUrl || `${adresseDuSite()}/compte`, colis.trackingUrl ? 'Suivre le colis' : 'Voir ma commande')}
+${
+	reste
+		? p(
+				'Le reste de votre commande partira à la réception de la précommande — vous recevrez un second message à ce moment-là.',
+				{taille: 14, couleur: T.discret, marge: '18px 0 0'},
+			)
+		: p("À bientôt dans l'antre.", {marge: '18px 0 0'})
+}`,
 		{
-			preheader: commande.trackingNumber
-				? `Suivi ${commande.trackingNumber}`
+			preheader: colis.trackingNumber
+				? `Suivi ${colis.trackingNumber}`
 				: 'Votre colis a quitté l’atelier.',
 		},
 	);

@@ -1,6 +1,7 @@
 import 'server-only';
 import {prisma} from '@/server/db';
 import {envoyerAvisExpedition} from '@/server/email/messages';
+import {statutApresExpedition} from '@/server/services/shipments';
 import {dateCsv, montantCsv, versCsv} from '@/lib/csv';
 
 /* Les commandes vues du back-office.
@@ -17,6 +18,7 @@ export const LIBELLES_STATUT = {
 	PENDING_PAYMENT: 'En attente de paiement',
 	PAID: 'Payée',
 	PREPARING: 'En préparation',
+	PARTIALLY_SHIPPED: 'Partiellement expédiée',
 	SHIPPED: 'Expédiée',
 	DELIVERED: 'Livrée',
 	CANCELLED: 'Annulée',
@@ -37,6 +39,12 @@ const TRANSITIONS = {
 	PENDING_PAYMENT: ['CANCELLED'],
 	PAID: ['PREPARING', 'CANCELLED'],
 	PREPARING: ['SHIPPED', 'CANCELLED'],
+	/* On ne sort de « partiellement expédiée » qu'en expédiant le colis qui
+	   reste, jamais par le menu des statuts. Laisser le choix ouvrirait la porte
+	   à une commande marquée « expédiée » dont la précommande dort encore sur
+	   l'étagère — et le client ne recevrait jamais son second avis d'expédition,
+	   puisque c'est l'expédition du colis qui l'envoie. */
+	PARTIALLY_SHIPPED: [],
 	SHIPPED: ['DELIVERED'],
 	DELIVERED: [],
 	CANCELLED: [],
@@ -103,6 +111,7 @@ export async function getCommandeAdmin(numero) {
 			addresses: true,
 			payments: {orderBy: {createdAt: 'desc'}},
 			user: {select: {id: true, email: true, firstName: true, lastName: true}},
+			shipments: {orderBy: {position: 'asc'}, include: {items: true}},
 		},
 	});
 }
@@ -115,13 +124,14 @@ export async function getCommandeAdmin(numero) {
 
    Les horodatages sont posés en même temps que le statut — c'est ce qui permet
    de répondre à « il est parti quand, ce colis ? » sans journal séparé. */
-export async function changerStatutCommande({numero, statut, suivi = null, transporteur = null}) {
+export async function changerStatutCommande({numero, statut}) {
 	const commande = await prisma.order.findUnique({
 		where: {orderNumber: numero},
 		select: {
 			id: true,
 			status: true,
 			items: {select: {variantId: true, kind: true, quantity: true}},
+			shipments: {select: {id: true, shippedAt: true}},
 		},
 	});
 
@@ -132,6 +142,26 @@ export async function changerStatutCommande({numero, statut, suivi = null, trans
 			ok: false,
 			erreur: `Une commande « ${LIBELLES_STATUT[commande.status]} » ne peut pas passer à « ${LIBELLES_STATUT[statut] ?? statut} ».`,
 		};
+	}
+
+	/* « Expédiée » ne se décrète pas quand il reste des colis à envoyer.
+
+	   Le menu des statuts garde l'entrée pour les commandes qui n'ont rien à
+	   expédier — un ouvrage numérique, par exemple. Sur une commande qui a des
+	   colis, c'est l'expédition de chacun qui fait avancer le statut : la poser à
+	   la main sauterait l'avis d'expédition que le client attend. */
+	if (statut === 'SHIPPED') {
+		const enAttente = commande.shipments.filter((colis) => !colis.shippedAt);
+
+		if (enAttente.length > 0) {
+			return {
+				ok: false,
+				erreur:
+					enAttente.length === commande.shipments.length
+						? 'Expédiez le colis depuis la fiche : c’est ce qui prévient le client.'
+						: `Il reste ${enAttente.length} colis à expédier sur cette commande.`,
+			};
+		}
 	}
 
 	const maintenant = new Date();
@@ -150,12 +180,7 @@ export async function changerStatutCommande({numero, statut, suivi = null, trans
 	await prisma.$transaction(async (tx) => {
 		await tx.order.update({
 			where: {id: commande.id},
-			data: {
-				status: statut,
-				...(horodatage[statut] ?? {}),
-				...(suivi ? {trackingNumber: suivi.trim()} : {}),
-				...(transporteur ? {carrier: transporteur.trim()} : {}),
-			},
+			data: {status: statut, ...(horodatage[statut] ?? {})},
 		});
 
 		if (!rendreLeStock) return;
@@ -171,23 +196,101 @@ export async function changerStatutCommande({numero, statut, suivi = null, trans
 		}
 	});
 
-	/* Le client est prévenu du départ de son colis — c'est le message qu'il
-	   attend le plus. Envoyé hors transaction, et sans lever : le statut est déjà
-	   enregistré, un e-mail qui ne part pas ne doit pas le défaire.
+	/* Aucune de ces transitions n'envoie d'e-mail.
 
-	   Les autres transitions ne déclenchent rien : « en préparation » n'apprend
-	   rien à personne, et un e-mail d'annulation demande une explication écrite à
-	   la main, pas un message automatique. */
-	if (statut === 'SHIPPED') {
-		const complete = await prisma.order.findUnique({
-			where: {id: commande.id},
-			select: {orderNumber: true, email: true, carrier: true, trackingNumber: true},
-		});
+	   L'avis d'expédition part désormais à l'expédition de chaque colis, dans
+	   `expedierColis` — c'est le seul moment où l'on sait quoi annoncer et quel
+	   numéro de suivi donner. « En préparation » n'apprend rien à personne, et un
+	   message d'annulation demande une explication écrite à la main. */
+	return {ok: true};
+}
 
-		await envoyerAvisExpedition(complete);
+/* Expédie un colis.
+ *
+ * C'est le geste du quotidien : ton ami colle l'étiquette, saisit le numéro de
+ * suivi, et le client reçoit son avis de départ. Sur une commande scindée, il
+ * le fait deux fois — en août pour ce qui était en stock, en octobre pour la
+ * précommande.
+ *
+ * Le statut de la commande n'est pas donné par l'appelant mais déduit des colis
+ * qui restent : c'est ce qui garantit qu'une commande ne peut pas être marquée
+ * « expédiée » alors qu'un paquet dort encore sur l'étagère. */
+export async function expedierColis({numero, colisId, suivi = null, transporteur = null, url = null}) {
+	const commande = await prisma.order.findUnique({
+		where: {orderNumber: numero},
+		select: {
+			id: true,
+			status: true,
+			orderNumber: true,
+			email: true,
+			shipments: {select: {id: true, position: true, label: true, shippedAt: true}},
+		},
+	});
+
+	if (!commande) return {ok: false, erreur: 'Commande introuvable.'};
+
+	// On n'expédie pas ce qui n'est pas payé, ni ce qui est annulé.
+	if (!['PAID', 'PREPARING', 'PARTIALLY_SHIPPED'].includes(commande.status)) {
+		return {
+			ok: false,
+			erreur: `Une commande « ${LIBELLES_STATUT[commande.status]} » ne s’expédie pas.`,
+		};
 	}
 
-	return {ok: true};
+	const colis = commande.shipments.find((envoi) => envoi.id === colisId);
+
+	if (!colis) return {ok: false, erreur: 'Colis introuvable sur cette commande.'};
+	if (colis.shippedAt) return {ok: false, erreur: 'Ce colis est déjà parti.'};
+
+	const maintenant = new Date();
+
+	/* L'état des colis après celui-ci — calculé sur la liste relue, avec le colis
+	   courant marqué parti. Interroger la base après coup donnerait le même
+	   résultat mais ferait un aller-retour de plus pour une information qu'on a
+	   déjà sous la main. */
+	const apres = commande.shipments.map((envoi) =>
+		envoi.id === colisId ? {...envoi, shippedAt: maintenant} : envoi,
+	);
+
+	const statut = statutApresExpedition(apres);
+
+	await prisma.$transaction(async (tx) => {
+		await tx.shipment.update({
+			where: {id: colisId},
+			data: {
+				shippedAt: maintenant,
+				...(suivi ? {trackingNumber: suivi.trim()} : {}),
+				...(transporteur ? {carrier: transporteur.trim()} : {}),
+				...(url ? {trackingUrl: url.trim()} : {}),
+			},
+		});
+
+		await tx.order.update({
+			where: {id: commande.id},
+			data: {
+				status: statut,
+				// La commande n'est datée « expédiée » que lorsque le dernier colis
+				// est parti : c'est cette date que lit le suivi de délai.
+				...(statut === 'SHIPPED' ? {shippedAt: maintenant} : {}),
+			},
+		});
+	});
+
+	/* Hors transaction et sans lever : l'expédition est enregistrée, un e-mail
+	   qui ne part pas ne doit pas la défaire. */
+	await envoyerAvisExpedition(
+		{orderNumber: commande.orderNumber, email: commande.email},
+		{
+			position: colis.position,
+			label: colis.label,
+			carrier: transporteur ?? null,
+			trackingNumber: suivi ?? null,
+			trackingUrl: url ?? null,
+			total: commande.shipments.length,
+		},
+	);
+
+	return {ok: true, statut};
 }
 
 /// Note interne sur une commande — « client prévenu du retard », « colis

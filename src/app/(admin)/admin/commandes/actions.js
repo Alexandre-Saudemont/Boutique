@@ -2,7 +2,7 @@
 
 import {revalidatePath} from 'next/cache';
 import {exigerDroit} from '@/server/auth/roles';
-import {changerStatutCommande, enregistrerNoteAdmin} from '@/server/services/orders';
+import {changerStatutCommande, enregistrerNoteAdmin, expedierColis} from '@/server/services/orders';
 import {enregistrerContenuBox} from '@/server/services/boxes';
 import {ACTIONS, journaliser} from '@/server/services/audit';
 
@@ -19,12 +19,7 @@ export async function avancerCommande(_precedent, donnees) {
 	const numero = String(donnees.get('numero') ?? '');
 	const statut = String(donnees.get('statut') ?? '');
 
-	const resultat = await changerStatutCommande({
-		numero,
-		statut,
-		suivi: donnees.get('suivi') || null,
-		transporteur: donnees.get('transporteur') || null,
-	});
+	const resultat = await changerStatutCommande({numero, statut});
 
 	if (!resultat.ok) return {statut: 'erreur', message: resultat.erreur};
 
@@ -44,6 +39,47 @@ export async function avancerCommande(_precedent, donnees) {
 	revalidatePath('/admin', 'layout');
 
 	return {statut: 'ok', message: 'Commande mise à jour.'};
+}
+
+/* Expédier un colis.
+ *
+ * Séparé de l'avancement de statut, parce que ce n'est pas le même geste : on
+ * n'annonce pas un départ, on l'enregistre. C'est le service qui en déduit si la
+ * commande devient « partiellement expédiée » ou « expédiée », pour qu'aucun
+ * écran n'ait à refaire ce raisonnement. */
+export async function expedierUnColis(_precedent, donnees) {
+	const utilisateur = await exigerDroit('commandes.gerer');
+
+	const numero = String(donnees.get('numero') ?? '');
+	const colisId = String(donnees.get('colisId') ?? '');
+
+	const resultat = await expedierColis({
+		numero,
+		colisId,
+		suivi: donnees.get('suivi') || null,
+		transporteur: donnees.get('transporteur') || null,
+		url: donnees.get('url') || null,
+	});
+
+	if (!resultat.ok) return {statut: 'erreur', message: resultat.erreur};
+
+	await journaliser({
+		utilisateurId: utilisateur.id,
+		action: ACTIONS.COMMANDE_STATUT,
+		type: 'order',
+		id: numero,
+		details: {statut: resultat.statut, colis: colisId},
+	});
+
+	revalidatePath('/admin', 'layout');
+
+	return {
+		statut: 'ok',
+		message:
+			resultat.statut === 'SHIPPED'
+				? 'Colis expédié, la commande est complète.'
+				: 'Colis expédié. Il en reste un à envoyer.',
+	};
 }
 
 export async function noterCommande(_precedent, donnees) {

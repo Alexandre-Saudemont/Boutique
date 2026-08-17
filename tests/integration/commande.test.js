@@ -1,7 +1,7 @@
 import {beforeAll, beforeEach, describe, expect, it} from 'vitest';
 import {addItem} from '@/server/services/cart';
 import {creerCommande, getCommande} from '@/server/services/checkout';
-import {changerStatutCommande} from '@/server/services/orders';
+import {changerStatutCommande, expedierColis} from '@/server/services/orders';
 import {
 	baseDisponible,
 	creerModeLivraison,
@@ -270,13 +270,18 @@ describe.skipIf(!baseDisponible)('avancement d’une commande', () => {
 		expect((await changerStatutCommande({numero, statut: 'GRATUITE'})).ok).toBe(false);
 	});
 
-	it('horodate l’expédition et enregistre le suivi', async () => {
+	it('horodate l’expédition et enregistre le suivi sur le colis', async () => {
 		await prisma.order.update({where: {orderNumber: numero}, data: {status: 'PAID'}});
 		await changerStatutCommande({numero, statut: 'PREPARING'});
 
-		const resultat = await changerStatutCommande({
+		const colis = await prisma.shipment.findFirst({
+			where: {order: {orderNumber: numero}},
+			orderBy: {position: 'asc'},
+		});
+
+		const resultat = await expedierColis({
 			numero,
-			statut: 'SHIPPED',
+			colisId: colis.id,
 			suivi: ' 6A12345678901 ',
 			transporteur: 'Colissimo',
 		});
@@ -286,8 +291,29 @@ describe.skipIf(!baseDisponible)('avancement d’une commande', () => {
 		const commande = await prisma.order.findUnique({where: {orderNumber: numero}});
 		expect(commande.status).toBe('SHIPPED');
 		expect(commande.shippedAt).toBeInstanceOf(Date);
-		expect(commande.trackingNumber).toBe('6A12345678901');
-		expect(commande.carrier).toBe('Colissimo');
+
+		const parti = await prisma.shipment.findUnique({where: {id: colis.id}});
+		expect(parti.shippedAt).toBeInstanceOf(Date);
+		expect(parti.trackingNumber).toBe('6A12345678901');
+		expect(parti.carrier).toBe('Colissimo');
+	});
+
+	/* Le garde-fou qui empêche de mentir au client.
+	 *
+	   Marquer « expédiée » à la main sauterait l'avis de départ, puisque c'est
+	   l'expédition du colis qui l'envoie. Une commande passerait pour partie
+	   alors que le paquet dort sur l'étagère, et personne ne s'en apercevrait
+	   avant la réclamation. */
+	it('refuse de marquer expédiée tant qu’un colis n’est pas parti', async () => {
+		await prisma.order.update({where: {orderNumber: numero}, data: {status: 'PAID'}});
+		await changerStatutCommande({numero, statut: 'PREPARING'});
+
+		const resultat = await changerStatutCommande({numero, statut: 'SHIPPED'});
+
+		expect(resultat.ok).toBe(false);
+
+		const commande = await prisma.order.findUnique({where: {orderNumber: numero}});
+		expect(commande.status).toBe('PREPARING');
 	});
 
 	it('rend les pièces au stock quand une commande payée est annulée', async () => {
@@ -316,5 +342,177 @@ describe.skipIf(!baseDisponible)('avancement d’une commande', () => {
 		expect((await changerStatutCommande({numero: 'AVGF-2026-999999', statut: 'PAID'})).ok).toBe(
 			false,
 		);
+	});
+});
+
+/* La livraison en deux colis.
+ *
+   Le cas décrit par le client : un panier qui mêle une pièce en stock et une
+   précommande. Il paie tout de suite, et choisit de recevoir le disponible sans
+   attendre — au prix d'un second port. */
+describe.skipIf(!baseDisponible)('commande scindée en deux colis', () => {
+	let mode;
+	let enStock;
+	let precommande;
+
+	beforeAll(() => {
+		expect(process.env.DATABASE_URL).toContain('_test');
+	});
+
+	beforeEach(async () => {
+		await viderLaBase();
+		await ouvrirLaBoutique();
+		mode = await creerModeLivraison({prixCents: 590, francoCents: 5000});
+
+		enStock = await creerProduit({nom: 'Mug émaillé', prixCents: 1490, stock: 20});
+		precommande = await creerProduit({
+			nom: 'Figurine d’octobre',
+			prixCents: 2000,
+			stock: 0,
+			allowPreorder: true,
+		});
+	});
+
+	async function panierMixte(jeton) {
+		await addItem(jeton, enStock.variants[0].id, 1);
+		await addItem(jeton, precommande.variants[0].id, 1);
+	}
+
+	it('facture deux ports et crée deux colis quand le client le demande', async () => {
+		const jeton = 'panier-scinde';
+		await panierMixte(jeton);
+
+		const resultat = await creerCommande({
+			token: jeton,
+			adresse,
+			rateId: mode.id,
+			livraisonScindee: true,
+		});
+
+		expect(resultat.ok).toBe(true);
+
+		const commande = await prisma.order.findUnique({
+			where: {orderNumber: resultat.numero},
+			include: {shipments: {orderBy: {position: 'asc'}, include: {items: true}}},
+		});
+
+		// 14,90 + 20,00 = 34,90 € — sous le franco, donc 5,90 × 2.
+		expect(commande.subtotalCents).toBe(3490);
+		expect(commande.shippingCents).toBe(1180);
+		expect(commande.totalCents).toBe(4670);
+		expect(commande.splitShipping).toBe(true);
+
+		expect(commande.shipments).toHaveLength(2);
+		expect(commande.shipments[0].items.map((l) => l.productName)).toEqual(['Mug émaillé']);
+		expect(commande.shipments[1].items.map((l) => l.productName)).toEqual(['Figurine d’octobre']);
+	});
+
+	it('n’en facture qu’un et ne crée qu’un colis par défaut', async () => {
+		const jeton = 'panier-groupe';
+		await panierMixte(jeton);
+
+		const resultat = await creerCommande({token: jeton, adresse, rateId: mode.id});
+
+		const commande = await prisma.order.findUnique({
+			where: {orderNumber: resultat.numero},
+			include: {shipments: true},
+		});
+
+		expect(commande.shippingCents).toBe(590);
+		expect(commande.splitShipping).toBe(false);
+		expect(commande.shipments).toHaveLength(1);
+	});
+
+	/* Le franco se juge sur la commande, pas sur chaque colis : décision du
+	   client. Au-dessus du seuil, les deux paquets partent offerts. */
+	it('offre les deux colis quand le franco est atteint', async () => {
+		const jeton = 'panier-franco';
+		await addItem(jeton, enStock.variants[0].id, 4); // 59,60 €
+		await addItem(jeton, precommande.variants[0].id, 1);
+
+		const resultat = await creerCommande({
+			token: jeton,
+			adresse,
+			rateId: mode.id,
+			livraisonScindee: true,
+		});
+
+		const commande = await prisma.order.findUnique({where: {orderNumber: resultat.numero}});
+
+		expect(commande.shippingCents).toBe(0);
+	});
+
+	/* Le choix n'est pas cru sur parole. Sur un panier qui ne mêle rien, une
+	   valeur forgée ferait sinon facturer un second port pour un seul colis. */
+	it('ignore la demande de scission sur un panier homogène', async () => {
+		const jeton = 'panier-homogene';
+		await addItem(jeton, enStock.variants[0].id, 1);
+
+		const resultat = await creerCommande({
+			token: jeton,
+			adresse,
+			rateId: mode.id,
+			livraisonScindee: true,
+		});
+
+		const commande = await prisma.order.findUnique({
+			where: {orderNumber: resultat.numero},
+			include: {shipments: true},
+		});
+
+		expect(commande.shippingCents).toBe(590);
+		expect(commande.splitShipping).toBe(false);
+		expect(commande.shipments).toHaveLength(1);
+	});
+
+	it('reste partiellement expédiée tant que le second colis n’est pas parti', async () => {
+		const jeton = 'panier-expedition';
+		await panierMixte(jeton);
+
+		const {numero} = await creerCommande({
+			token: jeton,
+			adresse,
+			rateId: mode.id,
+			livraisonScindee: true,
+		});
+
+		await prisma.order.update({where: {orderNumber: numero}, data: {status: 'PAID'}});
+		await changerStatutCommande({numero, statut: 'PREPARING'});
+
+		const colis = await prisma.shipment.findMany({
+			where: {order: {orderNumber: numero}},
+			orderBy: {position: 'asc'},
+		});
+
+		const premier = await expedierColis({numero, colisId: colis[0].id, suivi: 'AAA111'});
+		expect(premier.statut).toBe('PARTIALLY_SHIPPED');
+
+		let commande = await prisma.order.findUnique({where: {orderNumber: numero}});
+		expect(commande.status).toBe('PARTIALLY_SHIPPED');
+		// La date d'expédition n'est posée qu'au dernier colis.
+		expect(commande.shippedAt).toBeNull();
+
+		// Et on ne peut pas court-circuiter en marquant la commande expédiée.
+		expect((await changerStatutCommande({numero, statut: 'SHIPPED'})).ok).toBe(false);
+
+		const second = await expedierColis({numero, colisId: colis[1].id, suivi: 'BBB222'});
+		expect(second.statut).toBe('SHIPPED');
+
+		commande = await prisma.order.findUnique({where: {orderNumber: numero}});
+		expect(commande.status).toBe('SHIPPED');
+		expect(commande.shippedAt).toBeInstanceOf(Date);
+	});
+
+	it('refuse d’expédier deux fois le même colis', async () => {
+		const jeton = 'panier-double';
+		await panierMixte(jeton);
+
+		const {numero} = await creerCommande({token: jeton, adresse, rateId: mode.id});
+		await prisma.order.update({where: {orderNumber: numero}, data: {status: 'PAID'}});
+
+		const colis = await prisma.shipment.findFirst({where: {order: {orderNumber: numero}}});
+
+		expect((await expedierColis({numero, colisId: colis.id})).ok).toBe(true);
+		expect((await expedierColis({numero, colisId: colis.id})).ok).toBe(false);
 	});
 });

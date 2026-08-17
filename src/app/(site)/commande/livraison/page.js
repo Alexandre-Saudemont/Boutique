@@ -2,6 +2,7 @@ import {redirect} from 'next/navigation';
 import {getCart} from '@/server/services/cart';
 import {getSettings} from '@/server/services/settings';
 import {getModesLivraisonPour} from '@/server/services/checkout';
+import {analyserExpeditionDuPanier} from '@/server/services/shipments';
 import {getCartToken} from '@/server/auth/cart-session';
 import {getBrouillonCommande} from '@/server/auth/checkout-session';
 import {getCodePromo} from '@/server/auth/promo-session';
@@ -39,6 +40,14 @@ export default async function Livraison() {
 	   sous le seuil. */
 	const modes = await getModesLivraisonPour(panier.totalApresReductionCents);
 
+	/* Le panier mêle-t-il du disponible et de la précommande ?
+	 *
+	   Lu en base, sur les déclinaisons et leur stock réel : c'est ce qui décide si
+	   la question des deux colis est posée, et elle ne doit pas dépendre de ce que
+	   le navigateur affirme. Sur un panier homogène, `scindable` est faux et le
+	   formulaire n'affiche rien du tout. */
+	const expedition = await analyserExpeditionDuPanier(jeton);
+
 	return (
 		<section className={styles.page}>
 			<CheckoutSteps courante='livraison' />
@@ -49,6 +58,7 @@ export default async function Livraison() {
 				panier={panier}
 				modes={modes}
 				brouillon={brouillon}
+				expedition={expedition}
 			/>
 		</section>
 	);
