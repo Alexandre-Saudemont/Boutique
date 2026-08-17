@@ -11,6 +11,12 @@
 > correctif sont couvertes par Next 16.3.0. Voir partie 8, qui traite aussi de
 > ce que `sitemap.xml` et `robots.txt` exposent désormais, et partie 9 pour le
 > changement de mot de passe depuis son compte.
+>
+> **17 août 2026.** Relecture du document contre le code : la partie 3 listait
+> encore ses sept manques comme ouverts alors qu'ils étaient tous comblés, et les
+> parties 3 et 4 affirmaient qu'il n'existait aucun test et que l'encaissement
+> n'avait jamais tourné. Corrigé. Le tunnel de paiement a été déroulé de bout en
+> bout contre l'API Stripe en mode test — partie 10.
 
 Revue complète du code du projet : authentification, sessions, panier, tunnel de
 commande, encaissement Stripe, back-office, envoi d'e-mails, configuration.
@@ -94,50 +100,25 @@ code.
 
 ---
 
-## 3. Ce qui reste à faire
+## 3. Ce qui restait à faire — tout est traité
 
-### Avant la mise en ligne
+> Cette liste dressait sept manques. Ils ont tous été comblés depuis, dans les
+> sections datées plus bas. Elle est conservée telle quelle, avec l'état réel en
+> regard : un document d'audit qui efface ses propres constats ne prouve plus
+> rien. Vérifié le 17 août 2026, code en main.
 
-**1. Content-Security-Policy — le manque le plus important.**
-Aucune CSP n'est posée aujourd'hui. C'est le filet qui limite les dégâts si une
-injection passe malgré tout : sans elle, un script injecté s'exécute sans
-entrave. Elle demande un `nonce` par requête, donc un middleware Next, et doit
-être testée écran par écran — une CSP posée à la va-vite casse les scripts de
-Next en silence, et une CSP qui autorise `unsafe-inline` ne protège de rien.
-Compter une demi-journée, à faire juste avant l'ouverture.
+| # | Constat d'origine | État | Où c'est traité |
+| --- | --- | --- | --- |
+| 1 | Aucune Content-Security-Policy | **Fait** | `src/proxy.js`, avec un `nonce` par requête — parties 5, 6 et 8 |
+| 2 | `npm audit` remonte 3 vulnérabilités *high* | **Fait** | Next 16.3.0, `npm audit` à zéro — partie 8 |
+| 3 | Newsletter sans double opt-in | **Fait** | `confirmedAt` renseigné à la confirmation, désinscription en un clic |
+| 4 | `AuditLog` prévu mais jamais alimenté | **Fait** | `services/audit.js`, appelé par huit modules d'administration |
+| 5 | Aucun parcours de mot de passe oublié | **Fait** | `/compte/mot-de-passe-oublie` et `/compte/nouveau-mot-de-passe`, jetons à durée limitée |
+| 6 | Adresse e-mail jamais vérifiée | **Fait** | `/compte/verification` |
+| 7 | Droit à l'effacement sans écran pour le déclencher | **Fait** | « Mes données » dans l'espace client, ancien mot de passe exigé |
 
-**2. Monter Next en 16.2.x.**
-`npm audit` remonte 3 vulnérabilités *high* héritées de `sharp` et `postcss`
-(traitement d'images côté serveur). Sans rapport avec le code du projet, corrigées
-en amont. À faire avec une passe de tests d'affichage.
-
-**3. Double opt-in de la newsletter.**
-Le champ `confirmedAt` existe mais n'est jamais renseigné : une adresse est
-inscrite sans confirmation. N'importe qui peut donc inscrire l'adresse d'un
-tiers, et le RGPD demande une preuve de consentement que nous n'aurions pas.
-Maintenant que l'envoi d'e-mails existe, c'est une heure de travail.
-
-### Dans les semaines qui suivent
-
-**4. Journal des actions du personnel.**
-Le modèle `AuditLog` est prévu mais rien ne l'alimente. Dès qu'une seconde
-personne aura un accès, il faudra savoir qui a changé un prix ou annulé une
-commande — c'est aussi ce qui protège une personne accusée à tort.
-
-**5. Mot de passe oublié.**
-Aucun parcours de réinitialisation : un client qui oublie son mot de passe n'a
-aucun recours automatique. Ce n'est pas une faille, c'est un manque, et il
-poussera à des contournements manuels risqués (« je te remets ton mot de passe à
-la main ») si personne ne le traite.
-
-**6. Vérification de l'adresse e-mail à l'inscription.**
-Rien ne prouve aujourd'hui que le compte créé appartient bien au titulaire de
-l'adresse.
-
-**7. Droit à l'effacement.**
-`anonymizedAt` est prévu et respecté à la connexion, mais aucun écran ne permet
-de déclencher l'anonymisation. Obligation RGPD à traiter avant d'avoir beaucoup
-de clients.
+Aucun de ces sept points n'est encore ouvert. Ce qui reste ouvert figure
+désormais en partie 4 et dans les limites assumées ci-dessous.
 
 ### Limites connues et assumées
 
@@ -160,17 +141,17 @@ bloquerait des pièces pour des paniers abandonnés.
 `httpOnly`, quatre heures. Pas de chiffrement — ce sont des données que le
 visiteur vient de saisir lui-même, sur sa propre machine.
 
-**Aucun test automatisé.** Rien ne verrouille les garde-fous décrits ici : une
-modification distraite peut retirer un contrôle sans que rien ne proteste. C'est
-le plus gros risque à moyen terme du projet, et il grandit à chaque écran ajouté.
+**~~Aucun test automatisé.~~** *Corrigé.* La suite compte 29 fichiers et 341
+tests au 17 août 2026, et couvre les garde-fous décrits ici : hachage, droits,
+limitation des tentatives, isolation des paniers, transitions de statut,
+politique CSP, ouvrages numériques, calcul des prix. Une modification distraite
+qui retirerait un contrôle fait désormais échouer la suite.
 
 ---
 
 ## 4. Ce que je n'ai pas pu vérifier
 
-- **L'encaissement réel.** Aucune clé Stripe n'est disponible : le tunnel n'a
-  jamais été exécuté de bout en bout contre l'API. À reprendre en mode test dès
-  que le compte existe, webhook compris (`stripe listen`).
+- **~~L'encaissement réel.~~** *Vérifié le 17 août 2026* — voir partie 10.
 - **L'envoi d'e-mails.** Même chose : sans clé Resend, les messages sont écrits
   dans la console. Le contenu a été relu, pas la délivrabilité.
 - **Le comportement en production** (proxy, en-têtes transmis, HSTS effectif) :
@@ -514,3 +495,57 @@ supprimé ensuite.
 appareils ont été déconnectés » demande donc au client de croire sur parole. Un
 écran « mes connexions » — appareil, date, bouton pour fermer — serait la suite
 naturelle ; `Session` porte déjà `userAgent` et `createdAt` pour ça.
+
+---
+
+## 10. Encaissement vérifié de bout en bout — 17 août 2026
+
+La partie 4 disait que le tunnel n'avait jamais tourné contre l'API Stripe,
+faute de clés. Les clés de test existent désormais (compte du client, accès
+collaborateur). Le parcours a été déroulé en entier, en mode test.
+
+### Ce qui a été vérifié
+
+Un article à 14,90 €, Colissimo domicile à 5,90 €, total 20,80 €, réglé avec la
+carte de test `4242 4242 4242 4242`.
+
+| Contrôle | Résultat |
+| --- | --- |
+| Session Stripe créée en mode test | `cs_test_…`, montant et libellé conformes |
+| Franco de port | seuil à 50 € respecté, « plus que 35,10 € » |
+| Frais de port répercutés | 14,90 + 5,90 = 20,80 € |
+| Retour sur le site | `/commande/confirmation?paiement=succes` |
+| **Webhook reçu et traité** | commande passée en `PAID` |
+| Paiement enregistré | `STRIPE` / `SUCCEEDED` / 20,80 € |
+| Décrément du stock | 20 → 19 |
+| Vidage du panier | 0 ligne restante |
+| Adresse figée | copiée dans `OrderAddress`, non référencée |
+
+Le rapprochement montant encaissé / montant facturé (partie 1) fonctionne donc
+sur un cas réel, et la signature du webhook est bien vérifiée : un `whsec_`
+erroné aurait laissé la commande en attente de paiement.
+
+### Deux constats au passage
+
+**PayPal était activé côté site mais désactivé côté Stripe.** Le réglage
+`payment.paypalEnabled` ne suffit pas : le moyen doit aussi être actif dans le
+tableau de bord Stripe, et les modes test et production ont chacun le leur. Un
+client qui aurait choisi PayPal se serait heurté à un échec d'ouverture de
+session. À revérifier en production avant l'ouverture.
+
+**La confirmation annonce « paiement en cours de vérification » alors que la
+commande est déjà réglée.** Comportement voulu — la page ne peut pas savoir si le
+webhook est arrivé au moment où elle s'affiche — mais le message survit quelques
+secondes à un paiement déjà acquis. Sans conséquence de sécurité.
+
+### Ce qui reste non vérifié
+
+- **L'envoi d'e-mails.** `RESEND_API_KEY` toujours absente : confirmation de
+  commande, vérification d'adresse, mot de passe oublié et double opt-in
+  s'écrivent dans la console. Bloquant pour l'ouverture.
+- **Le mode production.** Tout ce qui précède vaut en mode test. Les clés
+  `sk_live_`, le webhook du tableau de bord et l'activation de PayPal en
+  production sont des réglages distincts, à reprendre un par un.
+- **La clé utilisée est la clé secrète complète.** Une clé restreinte, limitée
+  aux paiements et aux webhooks, serait préférable pour un accès collaborateur —
+  d'autant que le compte appartient au client, pas au prestataire.
