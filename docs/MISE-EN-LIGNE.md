@@ -72,6 +72,24 @@ EMAIL_FROM="L'antre du vieux geek fou <bonjour@antreduvieuxgeekfou.fr>"
 Le domaine de `EMAIL_FROM` doit être vérifié chez Resend, sinon les messages
 partent en indésirables — quand ils partent.
 
+> **Les comptes Stripe et Resend appartiennent au client, pas au prestataire.**
+> C'est une règle, pas une préférence, et elle vaut pour les deux :
+>
+> - **La délivrabilité se construit sur un domaine.** La réputation d'expéditeur
+>   s'accumule sur `antreduvieuxgeekfou.fr`. Envoyer depuis le domaine du
+>   prestataire bâtit ce capital au mauvais endroit, le perd au basculement, et
+>   fait retomber les plaintes pour spam sur le domaine avec lequel il prospecte.
+> - **C'est une dépendance qui lie les deux parties.** Si le compte appartient au
+>   prestataire, la boutique cesse d'envoyer ses confirmations de commande le jour
+>   où la collaboration s'arrête, ou simplement où une facture n'est pas payée.
+> - **Ce sont les données du client.** Ses acheteurs, leurs adresses, leurs
+>   paiements. Le contrat de sous-traitance doit être au nom du client.
+>
+> Le prestataire travaille avec un **accès collaborateur** et une **clé
+> restreinte** au périmètre nécessaire — chez Stripe, une clé limitée aux
+> paiements et aux webhooks, jamais la clé secrète complète. En développement,
+> n'importe quel domaine vérifié fait l'affaire ; en production, non.
+
 ### Pour vendre des ouvrages numériques
 
 ```
@@ -320,6 +338,11 @@ Dans `/admin/reglages`, cocher **« Boutique ouverte »**. Vérifier au passage 
 ## 9. Vérifier après la mise en ligne
 
 - [ ] Le site répond en `https`, et `http` y redirige
+- [ ] **Les comptes Stripe et Resend sont au nom du client**, et `EMAIL_FROM`
+      porte le domaine de la boutique — jamais celui du prestataire
+- [ ] **La clé Stripe de production est une clé restreinte**, pas la clé secrète
+- [ ] PayPal est activé dans le tableau de bord Stripe **en mode production**
+      (le réglage est distinct de celui du mode test)
 - [ ] Une commande de test aboutit : paiement, webhook reçu, statut « Payée »
 - [ ] L'e-mail de confirmation arrive — et pas dans les indésirables
 - [ ] Le back-office est accessible, et refuse un compte client ordinaire
