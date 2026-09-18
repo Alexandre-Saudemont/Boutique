@@ -36,36 +36,49 @@ const TAUX_TVA_BP = 0;
 
    La liste des tarifs vient du service livraison plutôt que d'une seconde
    requête écrite ici : deux lectures des mêmes tarifs finiraient par diverger,
-   et la fiche produit annoncerait un mode que le tunnel ne propose pas. */
-export async function getModesLivraisonPour(sousTotalCents) {
+   et la fiche produit annoncerait un mode que le tunnel ne propose pas.
+
+   Le poids écarte les tarifs hors tranche avant même de calculer le prix : un
+   mode pensé pour un petit colis n'a pas à apparaître pour une commande de
+   dix kilos, ni l'inverse. `poidsGrammes` par défaut à 0 laisse passer tous
+   les tarifs dont la tranche par défaut (0 → illimité) n'a pas été resserrée. */
+export async function getModesLivraisonPour(sousTotalCents, poidsGrammes = 0) {
 	const tarifs = await getModesLivraison();
 
-	return tarifs.map((tarif) => {
-		/* Le franco est porté par le tarif, pas par un réglage global : le
-		   retrait à l'atelier est gratuit d'emblée, le relais et le domicile ont
-		   chacun leur seuil. */
-		const offert =
-			typeof tarif.freeAboveCents === 'number' && sousTotalCents >= tarif.freeAboveCents;
+	return tarifs
+		.filter(
+			(tarif) =>
+				poidsGrammes >= tarif.minWeightGrams &&
+				(tarif.maxWeightGrams === null || poidsGrammes <= tarif.maxWeightGrams),
+		)
+		.map((tarif) => {
+			/* Le franco est porté par le tarif, pas par un réglage global : le
+			   retrait à l'atelier est gratuit d'emblée, le relais et le domicile ont
+			   chacun leur seuil. */
+			const offert =
+				typeof tarif.freeAboveCents === 'number' && sousTotalCents >= tarif.freeAboveCents;
 
-		return {
-			id: tarif.id,
-			nom: tarif.name,
-			transporteur: tarif.carrier,
-			delai: tarif.estimatedDays,
-			pointRelais: tarif.isRelayPoint,
-			prixCents: offert ? 0 : tarif.priceCents,
-			prixCatalogueCents: tarif.priceCents,
-			offert,
-		};
-	});
+			return {
+				id: tarif.id,
+				nom: tarif.name,
+				transporteur: tarif.carrier,
+				delai: tarif.estimatedDays,
+				pointRelais: tarif.isRelayPoint,
+				prixCents: offert ? 0 : tarif.priceCents,
+				prixCatalogueCents: tarif.priceCents,
+				offert,
+			};
+		});
 }
 
 /// Le mode choisi, revérifié en base. `null` si l'identifiant ne correspond à
 /// aucun tarif actif — un choix venu du navigateur ne se croit pas sur parole.
-export async function getModeLivraison(rateId, sousTotalCents) {
+/// Revérifié aussi sur le poids : un panier modifié entre l'étape livraison et
+/// le paiement peut faire sortir le mode choisi de sa tranche.
+export async function getModeLivraison(rateId, sousTotalCents, poidsGrammes = 0) {
 	if (!rateId) return null;
 
-	const modes = await getModesLivraisonPour(sousTotalCents);
+	const modes = await getModesLivraisonPour(sousTotalCents, poidsGrammes);
 	return modes.find((mode) => mode.id === rateId) ?? null;
 }
 
@@ -187,7 +200,9 @@ export async function creerCommande({
 	   du client : on regarde ce qu'il paie réellement, pas ce qu'il aurait payé
 	   sans son code. C'est `getCart` qui a déjà fait ce calcul, on ne le refait
 	   pas ici pour être sûr que le panier et la commande disent la même chose. */
-	const mode = dematerialise ? null : await getModeLivraison(rateId, panier.totalApresReductionCents);
+	const mode = dematerialise
+		? null
+		: await getModeLivraison(rateId, panier.totalApresReductionCents, panier.poidsTotalGrammes);
 
 	if (!dematerialise && !mode) {
 		return {ok: false, erreur: 'Choisissez un mode de livraison.'};

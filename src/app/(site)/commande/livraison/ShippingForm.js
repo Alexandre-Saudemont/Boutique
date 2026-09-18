@@ -107,6 +107,13 @@ export default function ShippingForm({panier, modes, brouillon, expedition = nul
 					<fieldset className={styles.carte}>
 						<legend className={styles.carteTitre}>Mode de livraison</legend>
 
+					{modes.length === 0 && (
+						<p className={styles.mentionDonnees}>
+							Aucun mode de livraison ne couvre le poids de ce panier pour
+							l’instant. Contactez-nous pour un devis de livraison adapté.
+						</p>
+					)}
+
 					<div className={styles.modes}>
 						{modes.map((candidat) => (
 							<label

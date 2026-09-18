@@ -38,7 +38,10 @@ export default async function Livraison() {
 	   client paie réellement. `totalApresReductionCents` porte cette valeur ;
 	   passer le sous-total brut ici offrirait la livraison sur un panier retombé
 	   sous le seuil. */
-	const modes = await getModesLivraisonPour(panier.totalApresReductionCents);
+	const modes = await getModesLivraisonPour(
+		panier.totalApresReductionCents,
+		panier.poidsTotalGrammes,
+	);
 
 	/* Le panier mêle-t-il du disponible et de la précommande ?
 	 *

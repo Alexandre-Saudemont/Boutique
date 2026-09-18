@@ -46,6 +46,15 @@ export function formatDate(date) {
 	return FORMAT_DATE.format(new Date(date));
 }
 
+/// 250 → « 250 g », 1500 → « 1,5 kg ». `null`/`undefined` → « — » : le poids
+/// n'est pas toujours renseigné, contrairement au prix.
+export function formatPoids(grammes) {
+	if (typeof grammes !== 'number' || !Number.isFinite(grammes)) return '—';
+	if (grammes < 1000) return `${grammes} g`;
+	const kilos = grammes / 1000;
+	return `${kilos % 1 === 0 ? kilos : kilos.toFixed(1).replace('.', ',')} kg`;
+}
+
 /// Accorde un nom au pluriel et le préfixe de son nombre.
 /// pluriel(1, 'pièce en vitrine', 'pièces en vitrine') → « 1 pièce en vitrine »
 export function pluriel(nombre, singulier, plurielForme) {

@@ -102,6 +102,34 @@ function pourAffichage(produit) {
    tenable tant que le catalogue reste petit (quelques centaines de pièces). Au
    delà, il faudra dénormaliser un `prixMinCents` sur Product, tenu à jour à
    l'enregistrement d'une variante. */
+/* Ce qu'il faut charger pour afficher une carte produit en vitrine : le rayon
+   pour le fil d'ariane, les variantes actives pour le prix et le stock, la
+   première photo pour la vignette. Partagé entre toutes les lectures
+   publiques (catalogue, mises en avant) pour que la carte ait toujours la
+   même forme, où qu'elle s'affiche. */
+const INCLUSION_VITRINE = {
+	primaryCategory: {select: {name: true, slug: true}},
+	variants: {
+		where: {isActive: true, archivedAt: null},
+		select: {
+			priceCents: true,
+			compareAtPriceCents: true,
+			stock: true,
+			allowBackorder: true,
+			// varianteAffichee revérifie ces deux champs. Les omettre du select
+			// les rendrait `undefined`, et le filtre rejetterait toutes les
+			// variantes — donc plus aucun prix affiché.
+			isActive: true,
+			archivedAt: true,
+		},
+	},
+	images: {
+		orderBy: {position: 'asc'},
+		take: 1,
+		select: {url: true, alt: true},
+	},
+};
+
 export async function listProducts({rayon, etat, tri} = {}) {
 	const produits = await prisma.product.findMany({
 		where: {
@@ -110,28 +138,7 @@ export async function listProducts({rayon, etat, tri} = {}) {
 			...(rayon ? {primaryCategory: {slug: rayon}} : {}),
 		},
 		orderBy: {publishedAt: 'desc'},
-		include: {
-			primaryCategory: {select: {name: true, slug: true}},
-			variants: {
-				where: {isActive: true, archivedAt: null},
-				select: {
-					priceCents: true,
-					compareAtPriceCents: true,
-					stock: true,
-					allowBackorder: true,
-					// varianteAffichee revérifie ces deux champs. Les omettre du select
-					// les rendrait `undefined`, et le filtre rejetterait toutes les
-					// variantes — donc plus aucun prix affiché.
-					isActive: true,
-					archivedAt: true,
-				},
-			},
-			images: {
-				orderBy: {position: 'asc'},
-				take: 1,
-				select: {url: true, alt: true},
-			},
-		},
+		include: INCLUSION_VITRINE,
 	});
 
 	const affichables = produits.map(pourAffichage);
@@ -145,6 +152,47 @@ export async function listProducts({rayon, etat, tri} = {}) {
 	}
 
 	return affichables; // nouveautés d'abord : déjà l'ordre de la requête
+}
+
+/* « Les premières trouvailles », sur l'accueil.
+
+   D'abord les produits cochés `isFeatured` en back-office — c'est le Vieux
+   geek qui choisit sa vitrine. S'il n'y en a pas assez pour remplir la
+   rangée (le début, ou une case oubliée), on complète avec les nouveautés,
+   sans jamais répéter un produit déjà pris.
+
+   `limite` reste petit (4 par défaut, la taille d'une rangée) : on ne
+   remplace pas ici une vraie pagination. */
+export async function getProduitsMisEnAvant(limite = 4) {
+	const misEnAvant = await prisma.product.findMany({
+		where: {...conditionsVitrine(), isFeatured: true},
+		orderBy: {updatedAt: 'desc'},
+		take: limite,
+		include: INCLUSION_VITRINE,
+	});
+
+	if (misEnAvant.length >= limite) {
+		return misEnAvant.map(pourAffichage);
+	}
+
+	const complement = await prisma.product.findMany({
+		where: {...conditionsVitrine(), id: {notIn: misEnAvant.map((p) => p.id)}},
+		orderBy: {publishedAt: 'desc'},
+		take: limite - misEnAvant.length,
+		include: INCLUSION_VITRINE,
+	});
+
+	return [...misEnAvant, ...complement].map(pourAffichage);
+}
+
+/* Compte une ouverture de fiche produit.
+   Volontairement fait-et-oublié niveau métier : un compteur brut, pas une
+   mesure d'audience. `.catch()` avale l'erreur plutôt que de la remonter —
+   une panne d'écriture sur ce compteur ne doit jamais empêcher la fiche de
+   s'afficher à l'acheteur, ni faire planter la page derrière une erreur
+   serveur pour une statistique interne. */
+export async function comptabiliserVue(id) {
+	await prisma.product.update({where: {id}, data: {viewCount: {increment: 1}}}).catch(() => {});
 }
 
 /* Recherche en vitrine.
@@ -180,21 +228,7 @@ export async function searchProducts(requete) {
 		},
 		orderBy: {publishedAt: 'desc'},
 		take: 48,
-		include: {
-			primaryCategory: {select: {name: true, slug: true}},
-			variants: {
-				where: {isActive: true, archivedAt: null},
-				select: {
-					priceCents: true,
-					compareAtPriceCents: true,
-					stock: true,
-					allowBackorder: true,
-					isActive: true,
-					archivedAt: true,
-				},
-			},
-			images: {orderBy: {position: 'asc'}, take: 1, select: {url: true, alt: true}},
-		},
+		include: INCLUSION_VITRINE,
 	});
 
 	return produits.map(pourAffichage);
@@ -209,22 +243,35 @@ export async function searchProducts(requete) {
 
    Les variantes remontent toutes, avec leur stock : c'est le stock cumulé qui
    intéresse à l'inventaire, pas celui de la variante la moins chère. */
-export async function listerProduitsAdmin({inclureArchives = false} = {}) {
+export async function listerProduitsAdmin({inclureArchives = false, triVues = false} = {}) {
 	const produits = await prisma.product.findMany({
 		where: inclureArchives ? {} : {archivedAt: null},
-		orderBy: {updatedAt: 'desc'},
+		// Par défaut, les modifications récentes en tête — c'est ce qu'on veut
+		// retrouver juste après une saisie. Le tri par vues sert un besoin
+		// différent : repérer d'un coup d'œil les pièces qui attirent le regard.
+		orderBy: triVues ? {viewCount: 'desc'} : {updatedAt: 'desc'},
 		take: 200,
 		include: {
 			primaryCategory: {select: {name: true}},
 			variants: {
 				where: {archivedAt: null},
-				select: {id: true, name: true, priceCents: true, stock: true, isActive: true},
+				select: {
+					id: true,
+					name: true,
+					priceCents: true,
+					stock: true,
+					isActive: true,
+					weightGrams: true,
+				},
 			},
 		},
 	});
 
 	return produits.map((produit) => {
 		const prix = produit.variants.map((v) => v.priceCents);
+		const poids = produit.variants
+			.map((v) => v.weightGrams)
+			.filter((g) => g !== null && g !== undefined);
 
 		return {
 			id: produit.id,
@@ -234,8 +281,11 @@ export async function listerProduitsAdmin({inclureArchives = false} = {}) {
 			etat: etatProduit(produit),
 			prixMinCents: prix.length > 0 ? Math.min(...prix) : null,
 			prixMaxCents: prix.length > 0 ? Math.max(...prix) : null,
+			poidsMinGrammes: poids.length > 0 ? Math.min(...poids) : null,
+			poidsMaxGrammes: poids.length > 0 ? Math.max(...poids) : null,
 			stock: produit.variants.reduce((somme, v) => somme + v.stock, 0),
 			nbVariantes: produit.variants.length,
+			vues: produit.viewCount,
 			/* Trois états distincts, dans cet ordre de priorité : archivé l'emporte
 			   sur désactivé, qui l'emporte sur non publié. C'est l'ordre dans lequel
 			   ils se corrigent. */

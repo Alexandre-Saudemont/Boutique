@@ -3,7 +3,7 @@ import Image from 'next/image';
 import {ArrowRight, MapPin, ShieldCheck, Truck} from 'lucide-react';
 import {getRayons} from '@/server/services/categories';
 import {getSettings} from '@/server/services/settings';
-import {listProducts} from '@/server/services/products';
+import {listProducts, getProduitsMisEnAvant} from '@/server/services/products';
 import {getLatestPosts} from '@/server/services/posts';
 import {formatDate, formatPrixCompact} from '@/lib/format';
 import ProductCard from '@/components/ProductCard/ProductCard';
@@ -62,17 +62,18 @@ function fondRayon(index) {
 }
 
 export default async function Accueil() {
-	const [rayons, reglages, produits, articles] = await Promise.all([
+	const [rayons, reglages, trouvailles, articles] = await Promise.all([
 		getRayons(),
 		getSettings(),
-		listProducts(),
+		// Choisies à la main en back-office ; complétées par les nouveautés s'il
+		// n'y en a pas assez pour remplir la rangée.
+		getProduitsMisEnAvant(4),
 		getLatestPosts(3),
 	]);
 
 	const boutiqueOuverte = Boolean(reglages['shop.open']);
 	const seuilFranco = formatPrixCompact(reglages['shipping.freeAboveCents']);
 	const moyensPaiement = reglages['payment.paypalEnabled'] ? 'CB & PayPal' : 'CB';
-	const trouvailles = produits.slice(0, 4);
 
 	return (
 		<>

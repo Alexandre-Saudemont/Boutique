@@ -2,7 +2,8 @@ import Link from 'next/link';
 import {Plus} from 'lucide-react';
 import {aLeDroit, exigerDroit} from '@/server/auth/roles';
 import {listerProduitsAdmin} from '@/server/services/products';
-import {formatPrix, pluriel} from '@/lib/format';
+import {pluriel} from '@/lib/format';
+import InventaireTableau from './InventaireTableau';
 import styles from '../../admin.module.css';
 
 /* Inventaire.
@@ -19,8 +20,9 @@ export default async function Produits({searchParams}) {
 
 	const parametres = await searchParams;
 	const inclureArchives = parametres?.archives === '1';
+	const triVues = parametres?.tri === 'vues';
 
-	const produits = await listerProduitsAdmin({inclureArchives});
+	const produits = await listerProduitsAdmin({inclureArchives, triVues});
 
 	return (
 		<>
@@ -56,6 +58,17 @@ export default async function Produits({searchParams}) {
 							className={`${styles.puce} ${inclureArchives ? styles.puceActive : ''}`}>
 							Avec les archives
 						</Link>
+						{/* Le tri par vues garde le filtre d'archives en cours : changer de
+						    tri ne doit pas faire disparaître les archives qu'on regardait. */}
+						<Link
+							href={`/admin/produits?${new URLSearchParams({
+								...(inclureArchives ? {archives: '1'} : {}),
+								tri: 'vues',
+							})}`}
+							className={`${styles.puce} ${triVues ? styles.puceActive : ''}`}
+							style={{marginLeft: 'auto'}}>
+							Les plus regardés
+						</Link>
 					</div>
 
 					{produits.length === 0 ? (
@@ -64,72 +77,7 @@ export default async function Produits({searchParams}) {
 							attendant l’écran de saisie.
 						</p>
 					) : (
-						<div className={styles.tableauDefile}>
-							<table className={styles.tableau}>
-								<thead>
-									<tr>
-										<th>Produit</th>
-										<th>Rayon</th>
-										<th>Prix</th>
-										<th>Stock</th>
-										<th>État</th>
-										<th>Publication</th>
-									</tr>
-								</thead>
-								<tbody>
-									{produits.map((produit) => (
-										<tr key={produit.id}>
-											<td className={styles.cellulePrincipale}>
-												{/* Vers l'édition pour qui peut modifier, vers la
-												    fiche publique pour les autres — un lien qui
-												    mène à une page interdite n'apprend rien. */}
-												<Link
-													href={
-														peutGerer
-															? `/admin/produits/${produit.id}`
-															: `/produit/${produit.slug}`
-													}
-													className={styles.lienLigne}>
-													{produit.nom}
-												</Link>
-												{produit.nbVariantes > 1 && (
-													<span className={styles.celluleDiscrete}>
-														{' '}
-														· {produit.nbVariantes} variantes
-													</span>
-												)}
-											</td>
-											<td className={styles.celluleDiscrete}>
-												{produit.rayon ?? '—'}
-											</td>
-											<td className={styles.celluleMontant}>
-												{produit.prixMinCents === null
-													? '—'
-													: produit.prixMinCents === produit.prixMaxCents
-														? formatPrix(produit.prixMinCents)
-														: `dès ${formatPrix(produit.prixMinCents)}`}
-											</td>
-											<td
-												style={{
-													fontWeight: 600,
-													color:
-														produit.stock === 0
-															? 'var(--color-accent-700)'
-															: undefined,
-												}}>
-												{produit.stock}
-											</td>
-											<td className={styles.celluleDiscrete}>
-												{produit.etat.libelle}
-											</td>
-											<td className={styles.celluleDiscrete}>
-												{produit.publication}
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
+						<InventaireTableau produits={produits} peutGerer={peutGerer} />
 					)}
 				</div>
 			</div>

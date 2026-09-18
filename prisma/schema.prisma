@@ -309,6 +309,12 @@ model Product {
   publishedAt DateTime?
   archivedAt  DateTime?
 
+  /// Coché à la main dans le back-office pour apparaître dans « Les premières
+  /// trouvailles » sur l'accueil. Un simple booléen plutôt qu'un tri
+  /// automatique (date, stock…) : c'est le Vieux geek qui choisit sa vitrine,
+  /// pas un algorithme qui pousserait toujours les mêmes best-sellers.
+  isFeatured Boolean @default(false)
+
   // SEO
   metaTitle       String?
   metaDescription String?
@@ -317,6 +323,13 @@ model Product {
   // Dénormalisé pour tri/affichage (recalculé à chaque avis validé)
   averageRating Float?
   reviewCount   Int    @default(0)
+
+  /// Compteur brut d'ouvertures de la fiche produit, incrémenté à chaque
+  /// visite publique. Sert uniquement à repérer les pièces qui attirent le
+  /// regard en back-office — ce n'est pas une donnée de trafic fiable (un
+  /// même visiteur qui recharge compte plusieurs fois), donc jamais affiché
+  /// au client ni utilisé pour trier la boutique.
+  viewCount Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

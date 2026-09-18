@@ -66,11 +66,27 @@ export async function listerCommandes({statut = null, recherche = null, taille =
 
 	const where = {
 		...(statut ? {status: statut} : {}),
+		/* Le champ cherche sur trois choses à la fois : le numéro de commande,
+		   l'e-mail du compte, et le nom du destinataire — c'est ce qu'on a sous
+		   les yeux quand un client appelle en donnant son nom plutôt que sa
+		   référence. Le nom vit sur l'adresse de livraison (`OrderAddress`), une
+		   copie figée à la commande : `some` cherche parmi les adresses liées à
+		   cette commande, qu'il s'agisse de la partie prénom ou nom. */
 		...(terme
 			? {
 					OR: [
 						{orderNumber: {contains: terme, mode: 'insensitive'}},
 						{email: {contains: terme, mode: 'insensitive'}},
+						{
+							addresses: {
+								some: {
+									OR: [
+										{firstName: {contains: terme, mode: 'insensitive'}},
+										{lastName: {contains: terme, mode: 'insensitive'}},
+									],
+								},
+							},
+						},
 					],
 				}
 			: {}),

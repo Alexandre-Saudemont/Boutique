@@ -177,6 +177,99 @@
 	background: color-mix(in srgb, var(--color-accent-100) 55%, transparent);
 }
 
+/* Bandeaux de statut de commande — toute la ligne se teinte, pas seulement une
+   pastille dans une colonne : c'est ce qui se repère sans avoir à lire, dans
+   une liste de vingt commandes. Un trait plein sur le bord gauche porte la
+   couleur la plus soutenue — voir `src/lib/statutCommande.js` pour la
+   correspondance statut → classe, partagée par les quatre écrans qui listent
+   des commandes.
+
+   La logique de couleur suit l'avancement : gris pour ce qui n'a pas encore
+   commencé ou s'est arrêté, terracotta tant que la commande se prépare côté
+   boutique, sauge une fois le colis parti — de plus en plus soutenu à mesure
+   qu'on se rapproche de la livraison, avec un saut net entre chaque palier
+   (200 → 400 → 800) plutôt que des teintes voisines qui se confondent.
+
+   Les deux statuts les plus soutenus — livrée, remboursée — gardent le texte
+   par défaut (sombre), mais trois cellules à couleur fixe ne suivent pas
+   l'accord du reste du tableau et doivent être reprises pour cette ligne :
+   le montant et le lien du numéro de commande (toujours en
+   `--color-accent-700`, l'orange de caisse) et le libellé du statut
+   (toujours dans un gris translucide, pensé pour un fond clair). Sur un fond
+   vert ou gris soutenu, ces trois-là redeviennent illisibles ou presque —
+   vérifié à l'écran, pas déduit des tokens — d'où la reprise en un ton foncé
+   de la même famille que le fond plutôt qu'en clair : ça reste net sans
+   dénoter avec le reste de la page. */
+.ligneEnAttente {
+	background: var(--color-neutral-300);
+	border-left: 4px solid var(--color-neutral-600);
+}
+
+.lignePayee {
+	background: var(--color-accent-200);
+	border-left: 4px solid var(--color-accent-600);
+}
+
+.lignePreparation {
+	background: var(--color-accent-400);
+	border-left: 4px solid var(--color-accent-800);
+}
+
+.lignePartielle {
+	background: var(--color-accent-2-200);
+	border-left: 4px solid var(--color-accent-2-600);
+}
+
+.ligneExpediee {
+	background: var(--color-accent-2-400);
+	border-left: 4px solid var(--color-accent-2-700);
+}
+
+.ligneLivree {
+	background: var(--color-accent-2-600);
+	border-left: 4px solid var(--color-accent-2-900);
+}
+
+.ligneLivree .celluleMontant,
+.ligneLivree .lienLigne,
+.ligneLivree .celluleDiscrete {
+	color: var(--color-accent-2-900);
+}
+
+.ligneAnnulee {
+	background: var(--color-neutral-400);
+	border-left: 4px solid var(--color-neutral-700);
+}
+
+.ligneRemboursee {
+	background: var(--color-neutral-600);
+	border-left: 4px solid var(--color-neutral-900);
+}
+
+.ligneRemboursee .celluleMontant,
+.ligneRemboursee .lienLigne,
+.ligneRemboursee .celluleDiscrete {
+	color: var(--color-neutral-900);
+}
+
+/* Le survol garde la couleur du statut plutôt que de la remplacer par le
+   même orangé partout : une ligne verte qui vire à l'orange au survol
+   ferait croire, l'instant d'un mouvement de souris, qu'elle a changé de
+   statut. Les sélecteurs sont énumérés plutôt qu'un `[class*='ligne']` :
+   en production, Next raccourcit les noms de classe des modules CSS, et un
+   sélecteur d'attribut qui suppose le nom d'origine s'y serait tu sans
+   prévenir personne. */
+.tableau tbody tr.ligneEnAttente:hover,
+.tableau tbody tr.lignePayee:hover,
+.tableau tbody tr.lignePreparation:hover,
+.tableau tbody tr.lignePartielle:hover,
+.tableau tbody tr.ligneExpediee:hover,
+.tableau tbody tr.ligneLivree:hover,
+.tableau tbody tr.ligneAnnulee:hover,
+.tableau tbody tr.ligneRemboursee:hover {
+	filter: brightness(0.97);
+}
+
 .cellulePrincipale {
 	font-weight: 600;
 }

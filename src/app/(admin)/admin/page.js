@@ -4,6 +4,7 @@ import {aLeDroit, exigerStaff} from '@/server/auth/roles';
 import {getChiffresTableauDeBord, getDernieresCommandes} from '@/server/services/dashboard';
 import {LIBELLES_STATUT} from '@/server/services/orders';
 import {formatDate, formatPrix, pluriel} from '@/lib/format';
+import {classeLigneStatut} from '@/lib/statutCommande';
 import styles from '../admin.module.css';
 
 /* Tableau de bord.
@@ -122,7 +123,9 @@ export default async function TableauDeBord() {
 									</thead>
 									<tbody>
 										{dernieres.map((commande) => (
-											<tr key={commande.orderNumber}>
+											<tr
+												key={commande.orderNumber}
+												className={classeLigneStatut(styles, commande.status)}>
 												<td className={styles.cellulePrincipale}>
 													<Link
 														href={`/admin/commandes/${commande.orderNumber}`}

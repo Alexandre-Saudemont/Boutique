@@ -24,7 +24,22 @@ import styles from '../../admin.module.css';
 
 const ETAT_INITIAL = {statut: 'vierge'};
 
-const VARIANTE_VIERGE = {id: '', nom: 'Standard', sku: '', prix: '', stock: '0', etat: 'EN_VENTE'};
+const VARIANTE_VIERGE = {
+	id: '',
+	nom: 'Standard',
+	sku: '',
+	prix: '',
+	reduction: '',
+	stock: '0',
+	poids: '',
+	etat: 'EN_VENTE',
+};
+
+/// Euros avec virgule française, à partir de centimes. `null`/`undefined` → ''.
+function centimesEnSaisie(centimes) {
+	if (centimes === null || centimes === undefined) return '';
+	return (centimes / 100).toFixed(2).replace('.', ',');
+}
 
 function Enregistrer({creation}) {
 	const {pending} = useFormStatus();
@@ -46,16 +61,32 @@ export default function ProductForm({produit, referentiels}) {
 
 	const [variantes, setVariantes] = useState(() =>
 		produit?.variants?.length
-			? produit.variants.map((variante) => ({
-					id: variante.id,
-					nom: variante.name,
-					sku: variante.sku,
-					// Les centimes ne remontent jamais tels quels à l'écran : on saisit
-					// des euros, avec la virgule française.
-					prix: (variante.priceCents / 100).toFixed(2).replace('.', ','),
-					stock: String(variante.stock),
-					etat: variante.isActive ? 'EN_VENTE' : 'SUSPENDUE',
-				}))
+			? produit.variants.map((variante) => {
+					// En solde, `priceCents` est déjà le prix réduit et
+					// `compareAtPriceCents` porte le prix catalogue d'avant solde :
+					// c'est ce dernier qu'on remet dans le champ « Prix », pour que la
+					// saisie parle toujours en prix plein, réduction à part.
+					const enSolde =
+						typeof variante.compareAtPriceCents === 'number' &&
+						variante.compareAtPriceCents > variante.priceCents;
+
+					return {
+						id: variante.id,
+						nom: variante.name,
+						sku: variante.sku,
+						prix: centimesEnSaisie(enSolde ? variante.compareAtPriceCents : variante.priceCents),
+						reduction: enSolde
+							? String(
+									Math.round(
+										(1 - variante.priceCents / variante.compareAtPriceCents) * 100,
+									),
+								)
+							: '',
+						stock: String(variante.stock),
+						poids: variante.weightGrams === null ? '' : String(variante.weightGrams),
+						etat: variante.isActive ? 'EN_VENTE' : 'SUSPENDUE',
+					};
+				})
 			: [{...VARIANTE_VIERGE}],
 	);
 
@@ -152,90 +183,140 @@ export default function ProductForm({produit, referentiels}) {
 						<div
 							key={variante.id || `nouvelle-${index}`}
 							style={{
-								display: 'grid',
-								gridTemplateColumns: '1.2fr 1fr 0.8fr 0.7fr 1fr auto',
-								gap: 10,
-								alignItems: 'end',
+								border: '1px solid var(--color-border)',
+								borderRadius: 'var(--radius-md)',
+								padding: 12,
 								marginBottom: 14,
 							}}>
 							<input type='hidden' name='varianteId' value={variante.id} />
 
-							<label className={styles.champ} style={{marginBottom: 0}}>
-								Nom
-								<input
-									className='input'
-									name='varianteNom'
-									value={variante.nom}
-									onChange={(e) => majVariante(index, 'nom', e.target.value)}
-								/>
-							</label>
+							{/* Première ligne : ce qui identifie la variante. */}
+							<div
+								style={{
+									display: 'grid',
+									gridTemplateColumns: '1.2fr 1fr 1fr auto',
+									gap: 10,
+									alignItems: 'end',
+									marginBottom: 10,
+								}}>
+								<label className={styles.champ} style={{marginBottom: 0}}>
+									Nom
+									<input
+										className='input'
+										name='varianteNom'
+										value={variante.nom}
+										onChange={(e) => majVariante(index, 'nom', e.target.value)}
+									/>
+								</label>
 
-							<label className={styles.champ} style={{marginBottom: 0}}>
-								SKU
-								<input
-									className='input'
-									name='varianteSku'
-									value={variante.sku}
-									onChange={(e) => majVariante(index, 'sku', e.target.value)}
-									placeholder='Généré si vide'
-								/>
-							</label>
+								<label className={styles.champ} style={{marginBottom: 0}}>
+									SKU
+									<input
+										className='input'
+										name='varianteSku'
+										value={variante.sku}
+										onChange={(e) => majVariante(index, 'sku', e.target.value)}
+										placeholder='Généré si vide'
+									/>
+								</label>
 
-							<label className={styles.champ} style={{marginBottom: 0}}>
-								Prix (€)
-								<input
-									className='input'
-									name='variantePrix'
-									value={variante.prix}
-									onChange={(e) => majVariante(index, 'prix', e.target.value)}
-									placeholder='74,90'
-									inputMode='decimal'
-								/>
-							</label>
+								<label className={styles.champ} style={{marginBottom: 0}}>
+									État
+									{/* Un select et non une case à cocher : une case décochée
+									    n'est pas envoyée par le navigateur, ce qui décalerait
+									    les tableaux parallèles d'une ligne à l'autre. */}
+									<select
+										className='input'
+										name='varianteEtat'
+										value={variante.etat}
+										onChange={(e) => majVariante(index, 'etat', e.target.value)}>
+										<option value='EN_VENTE'>En vente</option>
+										<option value='SUSPENDUE'>Suspendue</option>
+									</select>
+								</label>
 
-							<label className={styles.champ} style={{marginBottom: 0}}>
-								Stock
-								<input
-									className='input'
-									name='varianteStock'
-									value={variante.stock}
-									onChange={(e) => majVariante(index, 'stock', e.target.value)}
-									inputMode='numeric'
-								/>
-							</label>
+								<button
+									type='button'
+									className='btn btn-ghost'
+									aria-label='Retirer cette variante'
+									disabled={variantes.length === 1}
+									onClick={() =>
+										setVariantes((lignes) => lignes.filter((_, i) => i !== index))
+									}
+									style={{padding: 10}}>
+									<Trash2 size={16} strokeWidth={2.75} />
+								</button>
+							</div>
 
-							<label className={styles.champ} style={{marginBottom: 0}}>
-								État
-								{/* Un select et non une case à cocher : une case décochée
-								    n'est pas envoyée par le navigateur, ce qui décalerait
-								    les tableaux parallèles d'une ligne à l'autre. */}
-								<select
-									className='input'
-									name='varianteEtat'
-									value={variante.etat}
-									onChange={(e) => majVariante(index, 'etat', e.target.value)}>
-									<option value='EN_VENTE'>En vente</option>
-									<option value='SUSPENDUE'>Suspendue</option>
-								</select>
-							</label>
+							{/* Seconde ligne : ce qui chiffre la variante. Le prix reste le
+							    prix catalogue — celui d'avant solde — et la réduction, si
+							    elle est renseignée, calcule le prix réellement facturé à sa
+							    place. Voir `calculerPrixVariante` dans
+							    `server/services/product-admin.js` pour le détail du calcul. */}
+							<div
+								style={{
+									display: 'grid',
+									gridTemplateColumns: '0.8fr 0.8fr 0.7fr 0.7fr',
+									gap: 10,
+									alignItems: 'end',
+								}}>
+								<label className={styles.champ} style={{marginBottom: 0}}>
+									Prix (€)
+									<input
+										className='input'
+										name='variantePrix'
+										value={variante.prix}
+										onChange={(e) => majVariante(index, 'prix', e.target.value)}
+										placeholder='74,90'
+										inputMode='decimal'
+									/>
+								</label>
 
-							<button
-								type='button'
-								className='btn btn-ghost'
-								aria-label='Retirer cette variante'
-								disabled={variantes.length === 1}
-								onClick={() =>
-									setVariantes((lignes) => lignes.filter((_, i) => i !== index))
-								}
-								style={{padding: 10}}>
-								<Trash2 size={16} strokeWidth={2.75} />
-							</button>
+								<label className={styles.champ} style={{marginBottom: 0}}>
+									Réduction (%)
+									<input
+										className='input'
+										name='varianteReduction'
+										value={variante.reduction}
+										onChange={(e) => majVariante(index, 'reduction', e.target.value)}
+										placeholder='Laisser vide si pas de solde'
+										inputMode='numeric'
+									/>
+								</label>
+
+								<label className={styles.champ} style={{marginBottom: 0}}>
+									Stock
+									<input
+										className='input'
+										name='varianteStock'
+										value={variante.stock}
+										onChange={(e) => majVariante(index, 'stock', e.target.value)}
+										inputMode='numeric'
+									/>
+								</label>
+
+								<label className={styles.champ} style={{marginBottom: 0}}>
+									Poids (g)
+									<input
+										className='input'
+										name='variantePoids'
+										value={variante.poids}
+										onChange={(e) => majVariante(index, 'poids', e.target.value)}
+										placeholder='Ex. 850'
+										inputMode='numeric'
+									/>
+								</label>
+							</div>
 
 							{(erreurs[`variante.${index}.prix`] ||
-								erreurs[`variante.${index}.stock`]) && (
-								<span className={styles.erreur} style={{gridColumn: '1 / -1'}}>
+								erreurs[`variante.${index}.stock`] ||
+								erreurs[`variante.${index}.poids`] ||
+								erreurs[`variante.${index}.reduction`]) && (
+								<span className={styles.erreur} style={{display: 'block', marginTop: 8}}>
 									{erreurs[`variante.${index}.prix`] ??
-										erreurs[`variante.${index}.stock`]}
+										erreurs[`variante.${index}.stock`] ??
+										erreurs[`variante.${index}.poids`] ??
+										erreurs[`variante.${index}.reduction`]}
 								</span>
 							)}
 						</div>
@@ -382,6 +463,20 @@ export default function ProductForm({produit, referentiels}) {
 							style={{width: 18, height: 18, accentColor: 'var(--color-accent)'}}
 						/>
 						Box surprise — je noterai son contenu à la préparation
+					</label>
+
+					{/* Coché : le produit apparaît dans « Les premières trouvailles »
+					    de l'accueil, tant qu'il reste en vente. */}
+					<label
+						className={styles.champ}
+						style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+						<input
+							type='checkbox'
+							name='miseEnAvant'
+							defaultChecked={produit?.isFeatured ?? false}
+							style={{width: 18, height: 18, accentColor: 'var(--color-accent)'}}
+						/>
+						Mettre en avant sur l’accueil
 					</label>
 				</div>
 

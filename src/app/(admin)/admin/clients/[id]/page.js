@@ -5,6 +5,7 @@ import {aLeDroit, exigerDroit} from '@/server/auth/roles';
 import {LIBELLES_ROLE, getClient} from '@/server/services/customers';
 import {LIBELLES_STATUT} from '@/server/services/orders';
 import {formatDate, formatPrix, pluriel} from '@/lib/format';
+import {classeLigneStatut} from '@/lib/statutCommande';
 import RoleForm from '../RoleForm';
 import styles from '../../../admin.module.css';
 
@@ -68,7 +69,9 @@ export default async function FicheClient({params}) {
 										</thead>
 										<tbody>
 											{client.orders.map((commande) => (
-												<tr key={commande.orderNumber}>
+												<tr
+													key={commande.orderNumber}
+													className={classeLigneStatut(styles, commande.status)}>
 													<td className={styles.cellulePrincipale}>
 														{aLeDroit(utilisateur, 'commandes.voir') ? (
 															<Link

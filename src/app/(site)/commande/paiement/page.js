@@ -49,7 +49,11 @@ export default async function Paiement({searchParams}) {
 	// montant après réduction.
 	const mode = panier.dematerialise
 		? null
-		: await getModeLivraison(brouillon.rateId, panier.totalApresReductionCents);
+		: await getModeLivraison(
+				brouillon.rateId,
+				panier.totalApresReductionCents,
+				panier.poidsTotalGrammes,
+			);
 
 	if (!panier.dematerialise && !mode) {
 		redirect('/commande/livraison');

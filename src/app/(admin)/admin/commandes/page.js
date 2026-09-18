@@ -3,6 +3,7 @@ import {Download} from 'lucide-react';
 import {aLeDroit, exigerDroit} from '@/server/auth/roles';
 import {exercicesDeRecettes, LIBELLES_STATUT, listerCommandes} from '@/server/services/orders';
 import {formatDate, formatPrix, pluriel} from '@/lib/format';
+import {classeLigneStatut} from '@/lib/statutCommande';
 import styles from '../../admin.module.css';
 
 /* Liste des commandes.
@@ -12,8 +13,10 @@ import styles from '../../admin.module.css';
    aussi ce qui permet de rester en Server Component — pas de JavaScript à
    charger pour afficher un tableau.
 
-   Recherche volontairement simple : numéro de commande ou e-mail. C'est ce
-   qu'on a sous les yeux quand un client écrit ou appelle. */
+   La recherche porte sur le numéro de commande, l'e-mail du compte ou le nom
+   du destinataire — c'est ce qu'on a sous les yeux quand un client écrit ou
+   appelle. Le filtrage réel se fait dans `listerCommandes`, pas ici : cette
+   page ne fait qu'afficher le champ et transmettre ce qui est tapé. */
 
 export const metadata = {title: 'Commandes'};
 
@@ -61,7 +64,7 @@ export default async function Commandes({searchParams}) {
 							type='search'
 							name='q'
 							defaultValue={recherche ?? ''}
-							placeholder='Numéro ou e-mail…'
+							placeholder='Numéro, e-mail ou nom…'
 							aria-label='Rechercher une commande'
 							style={{width: 220, fontSize: 13.5}}
 						/>
@@ -142,7 +145,9 @@ export default async function Commandes({searchParams}) {
 										const destinataire = commande.addresses[0];
 
 										return (
-											<tr key={commande.orderNumber}>
+											<tr
+												key={commande.orderNumber}
+												className={classeLigneStatut(styles, commande.status)}>
 												<td className={styles.cellulePrincipale}>
 													<Link
 														href={`/admin/commandes/${commande.orderNumber}`}

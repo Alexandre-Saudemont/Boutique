@@ -6,6 +6,7 @@ import {LIBELLES_STATUT, getCommandeAdmin, statutsSuivants} from '@/server/servi
 import {historique} from '@/server/services/audit';
 import {formatDate, formatPrix} from '@/lib/format';
 import {getBoxesDeLaCommande} from '@/server/services/boxes';
+import StatutCommande from '@/components/StatutCommande/StatutCommande';
 import OrderActions from './OrderActions';
 import BoxContents from './BoxContents';
 import styles from '../../../admin.module.css';
@@ -67,9 +68,12 @@ export default async function FicheCommande({params}) {
 						<ArrowLeft size={16} strokeWidth={2.75} />
 						Toutes les commandes
 					</Link>
-					<h1 className={styles.titre}>{commande.orderNumber}</h1>
+					<h1 className={styles.titre} style={{display: 'flex', alignItems: 'center', gap: 10}}>
+						{commande.orderNumber}
+						<StatutCommande statut={commande.status} />
+					</h1>
 					<p className={styles.sousTitre}>
-						{LIBELLES_STATUT[commande.status]} · passée le {formatDate(commande.createdAt)}
+						Passée le {formatDate(commande.createdAt)}
 						{commande.paidAt && ` · payée le ${formatDate(commande.paidAt)}`}
 					</p>
 				</div>

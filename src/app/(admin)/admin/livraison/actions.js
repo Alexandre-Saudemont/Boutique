@@ -27,6 +27,8 @@ export async function sauvegarderTarif(_precedent, donnees) {
 		transporteur: donnees.get('transporteur'),
 		prix: donnees.get('prix'),
 		franco: donnees.get('franco'),
+		poidsMin: donnees.get('poidsMin'),
+		poidsMax: donnees.get('poidsMax'),
 		delai: donnees.get('delai'),
 		pointRelais: donnees.get('pointRelais') === 'on',
 		actif: donnees.get('actif') === 'on',

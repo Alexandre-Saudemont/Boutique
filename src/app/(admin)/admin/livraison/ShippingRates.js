@@ -4,7 +4,7 @@ import {useActionState, useState} from 'react';
 import {useFormStatus} from 'react-dom';
 import {Pencil, Plus, X} from 'lucide-react';
 import {basculer, sauvegarderTarif, sauvegarderZone} from './actions';
-import {formatPrix} from '@/lib/format';
+import {formatPrix, formatPoids} from '@/lib/format';
 import styles from '../../admin.module.css';
 
 /* Modes de livraison et zones.
@@ -26,6 +26,8 @@ const TARIF_VIERGE = {
 	transporteur: '',
 	prix: '',
 	franco: '',
+	poidsMin: '',
+	poidsMax: '',
 	delai: '',
 	pointRelais: false,
 	actif: true,
@@ -77,6 +79,8 @@ export default function ShippingRates({zones}) {
 					? ''
 					: (tarif.freeAboveCents / 100).toFixed(2).replace('.', ','),
 			delai: tarif.estimatedDays ?? '',
+			poidsMin: tarif.minWeightGrams ? String(tarif.minWeightGrams) : '',
+			poidsMax: tarif.maxWeightGrams === null ? '' : String(tarif.maxWeightGrams),
 			pointRelais: tarif.isRelayPoint,
 			actif: tarif.isActive,
 			position: tarif.position,
@@ -173,6 +177,38 @@ export default function ShippingRates({zones}) {
 							</label>
 						</div>
 
+						<div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14}}>
+							<label className={styles.champ}>
+								Poids minimum (g)
+								<input
+									className='input'
+									name='poidsMin'
+									defaultValue={enEdition.poidsMin}
+									placeholder='0'
+									inputMode='numeric'
+								/>
+								{erreurs.poidsMin && <span className={styles.erreur}>{erreurs.poidsMin}</span>}
+							</label>
+
+							<label className={styles.champ}>
+								Poids maximum (g)
+								<input
+									className='input'
+									name='poidsMax'
+									defaultValue={enEdition.poidsMax}
+									placeholder='Laisser vide si illimité'
+									inputMode='numeric'
+								/>
+								{erreurs.poidsMax && <span className={styles.erreur}>{erreurs.poidsMax}</span>}
+							</label>
+						</div>
+
+						<p className={styles.kpiDetail} style={{marginBottom: 16}}>
+							Le mode ne s’affiche au client que si le poids total du panier
+							tombe dans cette tranche. Laissez les deux champs vides pour un
+							mode proposé quel que soit le poids.
+						</p>
+
 						<div style={{display: 'flex', gap: 24, alignItems: 'center', marginBottom: 18}}>
 							<label style={{display: 'flex', alignItems: 'center', gap: 10, fontSize: 14}}>
 								<input
@@ -239,6 +275,7 @@ export default function ShippingRates({zones}) {
 										<th>Transporteur</th>
 										<th>Prix</th>
 										<th>Offerte dès</th>
+										<th>Poids</th>
 										<th>Délai</th>
 										<th>État</th>
 										<th className={styles.celluleActions}>Actions</th>
@@ -264,6 +301,13 @@ export default function ShippingRates({zones}) {
 												{tarif.freeAboveCents === null
 													? '—'
 													: formatPrix(tarif.freeAboveCents)}
+											</td>
+											<td className={styles.celluleDiscrete}>
+												{tarif.minWeightGrams === 0 && tarif.maxWeightGrams === null
+													? 'Tout poids'
+													: tarif.maxWeightGrams === null
+														? `dès ${formatPoids(tarif.minWeightGrams)}`
+														: `${formatPoids(tarif.minWeightGrams)} – ${formatPoids(tarif.maxWeightGrams)}`}
 											</td>
 											<td className={styles.celluleDiscrete}>
 												{tarif.estimatedDays ?? '—'}

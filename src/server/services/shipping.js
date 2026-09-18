@@ -10,8 +10,9 @@ import {prisma} from '@/server/db';
    l'atelier est gratuit d'emblée, le relais et le domicile ont leur propre
    seuil. */
 
-/// Les modes de livraison proposés, pour l'affichage. Le calcul réel des frais
-/// se fera au tunnel de commande, en fonction du poids et de la destination.
+/// Les modes de livraison proposés, pour l'affichage. Le tri par poids se fait
+/// au tunnel de commande (`getModesLivraisonPour`), en fonction du panier et
+/// de la destination.
 export async function getModesLivraison() {
 	const tarifs = await prisma.shippingRate.findMany({
 		where: {isActive: true, zone: {isActive: true}},
@@ -24,6 +25,8 @@ export async function getModesLivraison() {
 			freeAboveCents: true,
 			estimatedDays: true,
 			isRelayPoint: true,
+			minWeightGrams: true,
+			maxWeightGrams: true,
 		},
 	});
 
@@ -66,6 +69,26 @@ export function validerTarif(saisie) {
 		erreurs.franco = 'Montant invalide. Laissez vide pour ne pas offrir la livraison.';
 	}
 
+	const poidsMin = String(saisie.poidsMin ?? '').trim();
+	if (poidsMin && !/^\d+$/.test(poidsMin)) {
+		erreurs.poidsMin = 'Le poids minimum est un nombre entier de grammes.';
+	}
+
+	const poidsMax = String(saisie.poidsMax ?? '').trim();
+	if (poidsMax && !/^\d+$/.test(poidsMax)) {
+		erreurs.poidsMax = 'Le poids maximum est un nombre entier de grammes.';
+	}
+
+	if (
+		poidsMin &&
+		poidsMax &&
+		!erreurs.poidsMin &&
+		!erreurs.poidsMax &&
+		Number(poidsMin) > Number(poidsMax)
+	) {
+		erreurs.poidsMax = 'Le poids maximum doit dépasser le poids minimum.';
+	}
+
 	return {valide: Object.keys(erreurs).length === 0, erreurs};
 }
 
@@ -93,6 +116,9 @@ export async function enregistrerTarif(saisie) {
 
 	const franco = String(saisie.franco ?? '').trim();
 
+	const poidsMin = String(saisie.poidsMin ?? '').trim();
+	const poidsMax = String(saisie.poidsMax ?? '').trim();
+
 	const donnees = {
 		zoneId: saisie.zoneId,
 		name: String(saisie.nom).trim(),
@@ -103,6 +129,8 @@ export async function enregistrerTarif(saisie) {
 		isRelayPoint: Boolean(saisie.pointRelais),
 		isActive: Boolean(saisie.actif),
 		position: Number(saisie.position) || 0,
+		minWeightGrams: poidsMin ? Number(poidsMin) : 0,
+		maxWeightGrams: poidsMax ? Number(poidsMax) : null,
 	};
 
 	const tarif = saisie.id

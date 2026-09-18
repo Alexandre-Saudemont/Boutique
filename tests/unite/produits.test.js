@@ -1,5 +1,11 @@
 import {describe, expect, it} from 'vitest';
-import {prixEnCentimes, urlImageAcceptable, validerProduit} from '@/server/services/product-admin';
+import {
+	calculerPrixVariante,
+	prixEnCentimes,
+	reductionEnPourcent,
+	urlImageAcceptable,
+	validerProduit,
+} from '@/server/services/product-admin';
 import {slugifier} from '@/lib/slug';
 
 /* Saisie du catalogue : conversion des prix, adresses d'images, validation.
@@ -30,6 +36,53 @@ describe('prixEnCentimes', () => {
 		for (const saisie of ['', 'gratuit', '-5', '74,905', '1e3', null, undefined, '12,']) {
 			expect(prixEnCentimes(saisie), String(saisie)).toBeNull();
 		}
+	});
+});
+
+describe('reductionEnPourcent', () => {
+	it('accepte un entier entre 1 et 99', () => {
+		expect(reductionEnPourcent('20')).toBe(20);
+		expect(reductionEnPourcent('1')).toBe(1);
+		expect(reductionEnPourcent('99')).toBe(99);
+	});
+
+	it('rend null sur une saisie vide — pas de solde', () => {
+		expect(reductionEnPourcent('')).toBeNull();
+		expect(reductionEnPourcent('   ')).toBeNull();
+		expect(reductionEnPourcent(undefined)).toBeNull();
+	});
+
+	it('refuse 0 % et 100 % — l’un ne réduit rien, l’autre offre la pièce', () => {
+		expect(reductionEnPourcent('0')).toBeUndefined();
+		expect(reductionEnPourcent('100')).toBeUndefined();
+	});
+
+	it('refuse ce qui n’est pas un entier', () => {
+		for (const saisie of ['dix', '20,5', '-10', '1e2']) {
+			expect(reductionEnPourcent(saisie), saisie).toBeUndefined();
+		}
+	});
+});
+
+describe('calculerPrixVariante', () => {
+	it('sans réduction, facture le prix catalogue et ne barre rien', () => {
+		expect(calculerPrixVariante(7490, null)).toEqual({
+			priceCents: 7490,
+			compareAtPriceCents: null,
+		});
+	});
+
+	it('avec une réduction, facture le prix réduit et barre le prix catalogue', () => {
+		// 74,90 € à -20 % = 59,92 €.
+		expect(calculerPrixVariante(7490, 20)).toEqual({
+			priceCents: 5992,
+			compareAtPriceCents: 7490,
+		});
+	});
+
+	it('arrondit au centime plutôt que de laisser un flottant', () => {
+		// 19,99 € à -33 % = 13,3933 €, arrondi à 13,39 €.
+		expect(calculerPrixVariante(1999, 33).priceCents).toBe(1339);
 	});
 });
 
@@ -108,6 +161,23 @@ describe('validerProduit', () => {
 		expect(controle.valide).toBe(false);
 		expect(controle.erreurs['variante.1.prix']).toBeTruthy();
 		expect(controle.erreurs['variante.0.prix']).toBeUndefined();
+	});
+
+	it('refuse une réduction hors de 1 à 99 %', () => {
+		const controle = validerProduit({
+			...valide,
+			variantes: [{prix: '10,00', stock: '1', reduction: '150'}],
+		});
+
+		expect(controle.valide).toBe(false);
+		expect(controle.erreurs['variante.0.reduction']).toBeTruthy();
+	});
+
+	it('accepte une variante sans réduction', () => {
+		expect(
+			validerProduit({...valide, variantes: [{prix: '10,00', stock: '1', reduction: ''}]})
+				.valide,
+		).toBe(true);
 	});
 
 	it('refuse un stock qui n’est pas un entier', () => {

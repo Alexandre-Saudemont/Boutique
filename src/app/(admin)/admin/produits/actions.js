@@ -4,9 +4,12 @@ import {redirect} from 'next/navigation';
 import {revalidatePath} from 'next/cache';
 import {exigerDroit} from '@/server/auth/roles';
 import {
+	appliquerReductionEnLot,
+	appliquerStockEnLot,
 	archiverProduit,
 	enregistrerProduit,
 	restaurerProduit,
+	retirerReductionEnLot,
 } from '@/server/services/product-admin';
 import {enregistrerFichier, supprimerFichier} from '@/server/services/digital';
 import {ACTIONS, journaliser} from '@/server/services/audit';
@@ -30,7 +33,9 @@ function lireVariantes(donnees) {
 		nom: donnees.getAll('varianteNom')[index] ?? 'Standard',
 		sku: donnees.getAll('varianteSku')[index] ?? '',
 		prix: donnees.getAll('variantePrix')[index] ?? '',
+		reduction: donnees.getAll('varianteReduction')[index] ?? '',
 		stock: donnees.getAll('varianteStock')[index] ?? '0',
+		poids: donnees.getAll('variantePoids')[index] ?? '',
 		etat: donnees.getAll('varianteEtat')[index] ?? 'EN_VENTE',
 	}));
 }
@@ -59,6 +64,7 @@ export async function sauvegarderProduit(_precedent, donnees) {
 		licenceId: donnees.get('licenceId'),
 		precommande: donnees.get('precommande') === 'on',
 		boxSurprise: donnees.get('boxSurprise') === 'on',
+		miseEnAvant: donnees.get('miseEnAvant') === 'on',
 		publication: donnees.get('publication'),
 		variantes: lireVariantes(donnees),
 		images: lireImages(donnees),
@@ -183,6 +189,80 @@ export async function retirerFichierNumerique(_precedent, donnees) {
 	revalidatePath(`/admin/produits/${produitId}`);
 
 	return {statut: 'ok'};
+}
+
+/* Actions groupées, depuis l'inventaire.
+
+   Les trois partagent la même forme : une liste d'identifiants cochés dans le
+   tableau (`produitId`, un par case), plus un réglage. Le droit demandé est
+   `produits.gerer` — c'est le même que pour éditer une fiche une par une, et
+   c'est cohérent : le lot ne fait rien qu'une suite d'éditions individuelles
+   n'aurait pas pu faire. */
+function lireIdsSelectionnes(donnees) {
+	return donnees.getAll('produitId').map(String).filter(Boolean);
+}
+
+export async function appliquerStockLot(_precedent, donnees) {
+	const utilisateur = await exigerDroit('produits.gerer');
+	const ids = lireIdsSelectionnes(donnees);
+
+	const resultat = await appliquerStockEnLot(ids, donnees.get('stock'));
+	if (!resultat.ok) return {statut: 'erreur', message: resultat.erreur};
+
+	await journaliser({
+		utilisateurId: utilisateur.id,
+		action: ACTIONS.PRODUIT_MODIFIE,
+		type: 'product',
+		id: ids.join(','),
+		details: {lot: 'stock', nombre: ids.length, stock: donnees.get('stock')},
+	});
+
+	revalidatePath('/admin/produits');
+	revalidatePath('/', 'layout');
+
+	return {statut: 'ok', message: `Stock mis à jour sur ${ids.length} produit(s).`};
+}
+
+export async function appliquerSoldeLot(_precedent, donnees) {
+	const utilisateur = await exigerDroit('produits.gerer');
+	const ids = lireIdsSelectionnes(donnees);
+
+	const resultat = await appliquerReductionEnLot(ids, donnees.get('reduction'));
+	if (!resultat.ok) return {statut: 'erreur', message: resultat.erreur};
+
+	await journaliser({
+		utilisateurId: utilisateur.id,
+		action: ACTIONS.PRODUIT_MODIFIE,
+		type: 'product',
+		id: ids.join(','),
+		details: {lot: 'solde', nombre: ids.length, reduction: donnees.get('reduction')},
+	});
+
+	revalidatePath('/admin/produits');
+	revalidatePath('/', 'layout');
+
+	return {statut: 'ok', message: `Solde appliqué sur ${ids.length} produit(s).`};
+}
+
+export async function retirerSoldeLot(_precedent, donnees) {
+	const utilisateur = await exigerDroit('produits.gerer');
+	const ids = lireIdsSelectionnes(donnees);
+
+	const resultat = await retirerReductionEnLot(ids);
+	if (!resultat.ok) return {statut: 'erreur', message: resultat.erreur};
+
+	await journaliser({
+		utilisateurId: utilisateur.id,
+		action: ACTIONS.PRODUIT_MODIFIE,
+		type: 'product',
+		id: ids.join(','),
+		details: {lot: 'retrait-solde', nombre: ids.length},
+	});
+
+	revalidatePath('/admin/produits');
+	revalidatePath('/', 'layout');
+
+	return {statut: 'ok', message: `Solde retiré sur ${ids.length} produit(s).`};
 }
 
 export async function restaurer(_precedent, donnees) {

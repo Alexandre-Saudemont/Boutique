@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {Check, FileDown, PackageCheck, RotateCcw, Truck} from 'lucide-react';
-import {getProductBySlug, getRelatedProducts} from '@/server/services/products';
+import {comptabiliserVue, getProductBySlug, getRelatedProducts} from '@/server/services/products';
 import {getModesLivraison} from '@/server/services/shipping';
 import {getSettings} from '@/server/services/settings';
 import {aDejaDonneSonAvis, getAvisPublics} from '@/server/services/reviews';
@@ -84,6 +84,11 @@ export default async function FicheProduit({params}) {
 		getSettings(),
 		getAvisPublics(produit.id),
 		getUtilisateurCourant(),
+		// Compté ici et pas dans `generateMetadata` : Next appelle cette
+		// dernière séparément (et parfois plusieurs fois pour les robots de
+		// prévisualisation), ce qui gonflerait le chiffre sans rapport avec de
+		// vraies visites.
+		comptabiliserVue(produit.id),
 	]);
 
 	// Question posée seulement si quelqu'un est connecté : inutile d'interroger

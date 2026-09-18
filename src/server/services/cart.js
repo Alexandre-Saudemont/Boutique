@@ -40,6 +40,7 @@ const PANIER_VIDE = {
 	sousTotalCents: 0,
 	reductionCents: 0,
 	totalApresReductionCents: 0,
+	poidsTotalGrammes: 0,
 	promo: null,
 	franco: {seuilCents: 0, atteint: false, resteCents: 0},
 	dematerialise: false,
@@ -107,10 +108,14 @@ function ligneAffichable(ligne) {
 		image: produit.images[0] ?? null,
 		prixCents: variant.priceCents,
 		// Un ouvrage numérique ne s'expédie pas : c'est ce qui décide, plus haut,
-		// si le tunnel demande une adresse postale et des frais de port.
+		// si le tunnel demande une adresse postale et des frais de port. Son
+		// poids n'existe pas non plus — `weightGrams` reste `null` en base pour
+		// une variante numérique, d'où le repli à 0 plutôt qu'une erreur au
+		// moment du calcul.
 		numerique: produit.kind === 'DIGITAL',
 		quantite: ligne.quantity,
 		totalLigneCents: variant.priceCents * ligne.quantity,
+		totalLignePoidsGrammes: (variant.weightGrams ?? 0) * ligne.quantity,
 		maximum: Math.min(QUANTITE_MAX, disponible(variant)),
 		/* Cette ligne attend-elle un réassort ?
 		 *
@@ -134,6 +139,10 @@ async function pourAffichage(lignes, codePromo = null) {
 	const affichables = lignes.map(ligneAffichable);
 	const sousTotalCents = affichables.reduce(
 		(somme, ligne) => somme + ligne.totalLigneCents,
+		0,
+	);
+	const poidsTotalGrammes = affichables.reduce(
+		(somme, ligne) => somme + ligne.totalLignePoidsGrammes,
 		0,
 	);
 
@@ -181,6 +190,7 @@ async function pourAffichage(lignes, codePromo = null) {
 		sousTotalCents,
 		reductionCents,
 		totalApresReductionCents: baseFrancoCents,
+		poidsTotalGrammes,
 		promo: promo?.ok
 			? {
 					code: promo.code,

@@ -1,0 +1,49 @@
+.badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px 10px;
+	border-radius: var(--radius-sm);
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.enAttente {
+	background: var(--color-neutral-300);
+	color: var(--color-neutral-800);
+}
+
+.payee {
+	background: var(--color-accent-200);
+	color: var(--color-accent-800);
+}
+
+.preparation {
+	background: var(--color-accent-400);
+	color: var(--color-accent-900);
+}
+
+.partielle {
+	background: var(--color-accent-2-200);
+	color: var(--color-accent-2-800);
+}
+
+.expediee {
+	background: var(--color-accent-2-400);
+	color: var(--color-accent-2-900);
+}
+
+.livree {
+	background: var(--color-accent-2-600);
+	color: var(--color-accent-2-900);
+}
+
+.annulee {
+	background: var(--color-neutral-500);
+	color: var(--color-neutral-100);
+}
+
+.remboursee {
+	background: var(--color-neutral-600);
+	color: var(--color-neutral-900);
+}

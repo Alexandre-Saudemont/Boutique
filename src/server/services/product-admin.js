@@ -63,6 +63,33 @@ export function prixEnCentimes(saisie) {
 	return Math.round(Number(texte) * 100);
 }
 
+/// La réduction, saisie en pourcentage entier. `null` si vide (pas de solde
+/// sur cette variante) ou si la saisie ne tombe pas entre 1 et 99 — 0 % ne
+/// dirait rien, et 100 % offrirait la pièce.
+export function reductionEnPourcent(saisie) {
+	const texte = String(saisie ?? '').trim();
+	if (!texte) return null;
+	if (!/^\d+$/.test(texte)) return undefined; // saisie invalide, à distinguer d'« absente »
+
+	const valeur = Number(texte);
+	return valeur >= 1 && valeur <= 99 ? valeur : undefined;
+}
+
+/* Le prix catalogue et sa réduction éventuelle, mis en forme pour l'écriture.
+
+   Sans réduction : `priceCents` porte le prix catalogue, `compareAtPriceCents`
+   reste `null` — rien ne s'affiche barré. Avec une réduction : le prix
+   catalogue part dans `compareAtPriceCents` (le prix barré), et `priceCents`
+   devient celui réellement facturé, arrondi au centime comme partout ailleurs
+   dans la caisse. C'est ce second prix que le panier et la commande liront —
+   eux ignorent tout du mécanisme de solde, ils ne voient qu'un prix. */
+export function calculerPrixVariante(prixCatalogueCents, pourcentReduction) {
+	if (!pourcentReduction) return {priceCents: prixCatalogueCents, compareAtPriceCents: null};
+
+	const priceCents = Math.round(prixCatalogueCents * (1 - pourcentReduction / 100));
+	return {priceCents, compareAtPriceCents: prixCatalogueCents};
+}
+
 /// Les listes déroulantes du formulaire. Une seule requête pour les trois.
 export async function getReferentiels() {
 	const [categories, marques, licences] = await Promise.all([
@@ -145,8 +172,19 @@ export function validerProduit(saisie) {
 			erreurs[`variante.${index}.prix`] = 'Prix invalide (ex. 74,90).';
 		}
 
+		if (reductionEnPourcent(variante.reduction) === undefined) {
+			erreurs[`variante.${index}.reduction`] = 'La réduction est un pourcentage entre 1 et 99.';
+		}
+
 		if (!/^\d+$/.test(String(variante.stock ?? ''))) {
 			erreurs[`variante.${index}.stock`] = 'Le stock est un nombre entier.';
+		}
+
+		// Facultatif : un produit numérique n'a pas de poids, et le renseigner
+		// plus tard ne doit pas bloquer la création de la fiche.
+		const poids = String(variante.poids ?? '').trim();
+		if (poids && !/^\d+$/.test(poids)) {
+			erreurs[`variante.${index}.poids`] = 'Le poids est un nombre entier de grammes.';
 		}
 	});
 
@@ -196,6 +234,7 @@ export async function enregistrerProduit(saisie) {
 		licenceId: saisie.licenceId || null,
 		allowPreorder: Boolean(saisie.precommande),
 		isMysteryBox: Boolean(saisie.boxSurprise),
+		isFeatured: Boolean(saisie.miseEnAvant),
 		isActive: saisie.publication !== 'DESACTIVE',
 	};
 
@@ -251,10 +290,19 @@ export async function enregistrerProduit(saisie) {
 		});
 
 		for (const [index, variante] of saisie.variantes.entries()) {
+			const {priceCents, compareAtPriceCents} = calculerPrixVariante(
+				prixEnCentimes(variante.prix),
+				reductionEnPourcent(variante.reduction),
+			);
+
 			const donneesVariante = {
 				name: variante.nom?.trim() || 'Standard',
-				priceCents: prixEnCentimes(variante.prix),
+				priceCents,
+				compareAtPriceCents,
 				stock: Number(variante.stock),
+				weightGrams: String(variante.poids ?? '').trim()
+					? Number(String(variante.poids).trim())
+					: null,
 				isActive: variante.etat !== 'SUSPENDUE',
 				position: index,
 			};
@@ -325,6 +373,99 @@ export async function restaurerProduit(id) {
 		where: {id},
 		data: {archivedAt: null, isActive: true, publishedAt: null},
 	});
+
+	return {ok: true};
+}
+
+/* ── Actions groupées ─────────────────────────────────────────────────────
+
+   Trois opérations sur une sélection de produits depuis l'inventaire, pour
+   éviter d'ouvrir chaque fiche une par une quand un carton entier de
+   nouveautés arrive, ou qu'une gamme entière part en solde le même jour.
+
+   Toutes les trois ne touchent que les variantes non archivées : une
+   variante archivée est un historique de commande, pas un article encore en
+   vente, elle ne doit jamais être recalculée après coup. */
+
+/// Fixe le même stock sur toutes les variantes des produits sélectionnés.
+export async function appliquerStockEnLot(productIds, stockSaisi) {
+	if (!Array.isArray(productIds) || productIds.length === 0) {
+		return {ok: false, erreur: 'Sélectionnez au moins un produit.'};
+	}
+
+	if (!/^\d+$/.test(String(stockSaisi ?? ''))) {
+		return {ok: false, erreur: 'Le stock est un nombre entier.'};
+	}
+
+	await prisma.productVariant.updateMany({
+		where: {productId: {in: productIds}, archivedAt: null},
+		data: {stock: Number(stockSaisi)},
+	});
+
+	return {ok: true};
+}
+
+/* Met en solde toutes les variantes des produits sélectionnés, au même
+   pourcentage.
+
+   Le prix catalogue de référence est `compareAtPriceCents` s'il existe déjà
+   (la pièce était déjà soldée à un autre taux) sinon `priceCents` (elle ne
+   l'était pas). Sans cette règle, appliquer deux fois « -20 % » de suite
+   soldrait le prix déjà soldé, et la pièce finirait à -36 % sans que
+   personne ne l'ait demandé. */
+export async function appliquerReductionEnLot(productIds, pourcentSaisi) {
+	if (!Array.isArray(productIds) || productIds.length === 0) {
+		return {ok: false, erreur: 'Sélectionnez au moins un produit.'};
+	}
+
+	const pourcent = reductionEnPourcent(pourcentSaisi);
+	if (!pourcent) {
+		return {ok: false, erreur: 'La réduction est un pourcentage entre 1 et 99.'};
+	}
+
+	const variantes = await prisma.productVariant.findMany({
+		where: {productId: {in: productIds}, archivedAt: null},
+		select: {id: true, priceCents: true, compareAtPriceCents: true},
+	});
+
+	await prisma.$transaction(
+		variantes.map((variante) => {
+			const prixCatalogueCents = variante.compareAtPriceCents ?? variante.priceCents;
+			const {priceCents, compareAtPriceCents} = calculerPrixVariante(
+				prixCatalogueCents,
+				pourcent,
+			);
+
+			return prisma.productVariant.update({
+				where: {id: variante.id},
+				data: {priceCents, compareAtPriceCents},
+			});
+		}),
+	);
+
+	return {ok: true};
+}
+
+/// Retire le solde des produits sélectionnés : le prix catalogue (le prix
+/// barré) redevient le prix facturé, et plus rien n'est barré.
+export async function retirerReductionEnLot(productIds) {
+	if (!Array.isArray(productIds) || productIds.length === 0) {
+		return {ok: false, erreur: 'Sélectionnez au moins un produit.'};
+	}
+
+	const variantes = await prisma.productVariant.findMany({
+		where: {productId: {in: productIds}, archivedAt: null, compareAtPriceCents: {not: null}},
+		select: {id: true, compareAtPriceCents: true},
+	});
+
+	await prisma.$transaction(
+		variantes.map((variante) =>
+			prisma.productVariant.update({
+				where: {id: variante.id},
+				data: {priceCents: variante.compareAtPriceCents, compareAtPriceCents: null},
+			}),
+		),
+	);
 
 	return {ok: true};
 }
