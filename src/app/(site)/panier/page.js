@@ -76,6 +76,25 @@ export default async function Panier() {
 							<CartLine key={ligne.id} ligne={ligne} />
 						))}
 
+						{/* L'avertissement de précommande, demandé par le client.
+
+						    Il est au panier et non à l'étape livraison : quelqu'un qui
+						    découvre au moment de payer que son colis partira dans deux
+						    mois se sent piégé. Le dire ici, c'est le dire avant qu'il
+						    s'engage. */}
+						{panier.precommande.presente && (
+							<p className={styles.precommande} role='status'>
+								<strong>
+									{panier.precommande.toutAttend
+										? 'Votre commande partira à la réception de la précommande.'
+										: 'Votre commande contient une précommande.'}
+								</strong>{' '}
+								{panier.precommande.toutAttend
+									? `Je n’ai pas encore reçu ${panier.precommande.pieces.length > 1 ? 'ces pièces' : 'cette pièce'} : ${panier.precommande.pieces.join(', ')}. Le colis part dès son arrivée à l’atelier.`
+									: `Je n’ai pas encore reçu ${panier.precommande.pieces.join(', ')}. Par défaut, tout part ensemble à son arrivée — vous pourrez choisir à l’étape suivante de recevoir le reste sans attendre.`}
+							</p>
+						)}
+
 						<Link href='/boutique' className={styles.continuer}>
 							<ArrowLeft size={16} strokeWidth={2.75} />
 							Continuer mes achats

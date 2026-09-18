@@ -3,6 +3,7 @@ import {prisma} from '@/server/db';
 import {getSettings} from '@/server/services/settings';
 import {etatProduit} from '@/server/services/products';
 import {appliquerCodeAuPanier} from '@/server/services/discounts';
+import {ligneEnAttente} from '@/server/services/shipments';
 
 /* Le panier.
 
@@ -42,6 +43,7 @@ const PANIER_VIDE = {
 	promo: null,
 	franco: {seuilCents: 0, atteint: false, resteCents: 0},
 	dematerialise: false,
+	precommande: {presente: false, pieces: [], toutAttend: false},
 };
 
 /* Ce qu'il faut charger pour afficher une ligne : le nom et l'image viennent du
@@ -110,6 +112,13 @@ function ligneAffichable(ligne) {
 		quantite: ligne.quantity,
 		totalLigneCents: variant.priceCents * ligne.quantity,
 		maximum: Math.min(QUANTITE_MAX, disponible(variant)),
+		/* Cette ligne attend-elle un réassort ?
+		 *
+		   Calculé ici et pas dans la page : le panier, le tunnel et la commande
+		   doivent répondre la même chose, et trois calculs séparés finiraient par
+		   diverger. `ligneEnAttente` est la seule règle, partagée avec le service
+		   des colis. */
+		enAttente: ligneEnAttente(variant, ligne.quantity),
 	};
 }
 
@@ -149,9 +158,25 @@ async function pourAffichage(lignes, codePromo = null) {
 	   ce qu'il expédie. */
 	const dematerialise = affichables.length > 0 && affichables.every((ligne) => ligne.numerique);
 
+	/* Le panier contient-il une pièce qui n'est pas encore arrivée ?
+	 *
+	   C'est ce qui déclenche l'avertissement au panier. Le dire ici, avant le
+	   tunnel, est une demande explicite du client : sans cela, un acheteur paie
+	   un mug le 17 août, ne reçoit rien, et écrit au bout de dix jours pour
+	   savoir où est son colis. */
+	const enAttente = affichables.filter((ligne) => ligne.enAttente);
+
 	return {
 		lignes: affichables,
 		dematerialise,
+		precommande: {
+			presente: enAttente.length > 0,
+			// Le nom des pièces concernées : une liste se comprend, « 1 article » non.
+			pieces: enAttente.map((ligne) => ligne.nom),
+			// Tout le panier attend : rien ne partira avant le réassort, et il n'y
+			// aura aucun choix de colis à faire au tunnel.
+			toutAttend: enAttente.length > 0 && enAttente.length === affichables.length,
+		},
 		nombreArticles: affichables.reduce((somme, ligne) => somme + ligne.quantite, 0),
 		sousTotalCents,
 		reductionCents,

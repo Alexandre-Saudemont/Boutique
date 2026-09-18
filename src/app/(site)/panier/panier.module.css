@@ -66,6 +66,26 @@
 	color: color-mix(in srgb, var(--color-text) 62%, transparent);
 }
 
+/* Avertissement de précommande.
+
+   En sauge et non en terracotta : ce n'est pas une erreur ni une alerte, c'est
+   une information de calendrier. Le rouge-orangé du site sert à ce qui bloque,
+   et un client qui voit rouge sur son panier croit avoir fait une bêtise. */
+.precommande {
+	margin: 4px 0 0;
+	padding: 14px 16px;
+	border-radius: var(--radius-md);
+	background: var(--color-accent-2-100);
+	border-left: 3px solid var(--color-accent-2-600);
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--color-accent-2-800);
+}
+
+.precommande strong {
+	color: var(--color-accent-2-900);
+}
+
 .continuer {
 	display: inline-flex;
 	align-items: center;
