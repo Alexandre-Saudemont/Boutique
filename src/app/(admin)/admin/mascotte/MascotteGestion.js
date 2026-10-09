@@ -57,6 +57,12 @@ export default function MascotteGestion({mascottes}) {
 	const [etat, action] = useActionState(sauvegarderMascotte, ETAT_INITIAL);
 	const [enEdition, setEnEdition] = useState(null);
 	const erreurs = etat.erreurs ?? {};
+	// Après un refus, on repart de ce qui a été tapé (voir l'action) — mais
+	// seulement pour la même fiche, jamais pour une autre période.
+	const valeurs =
+		etat.statut === 'erreur' && enEdition && (etat.valeurs.id ?? '') === enEdition.id
+			? etat.valeurs
+			: enEdition;
 	const maintenant = new Date();
 
 	return (
@@ -91,7 +97,7 @@ export default function MascotteGestion({mascottes}) {
 							<input
 								className='input'
 								name='nom'
-								defaultValue={enEdition.nom}
+								defaultValue={valeurs.nom}
 								placeholder='Halloween 2026'
 								required
 							/>
@@ -103,7 +109,7 @@ export default function MascotteGestion({mascottes}) {
 							<input
 								className='input'
 								name='imageUrl'
-								defaultValue={enEdition.imageUrl}
+								defaultValue={valeurs.imageUrl}
 								placeholder='https://…'
 								required
 							/>
@@ -115,7 +121,7 @@ export default function MascotteGestion({mascottes}) {
 							<input
 								className='input'
 								name='alt'
-								defaultValue={enEdition.alt}
+								defaultValue={valeurs.alt}
 								placeholder='Le Vieux geek déguisé en citrouille'
 							/>
 						</label>
@@ -123,13 +129,13 @@ export default function MascotteGestion({mascottes}) {
 						<div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14}}>
 							<label className={styles.champ}>
 								Du
-								<input className='input' type='date' name='debut' defaultValue={enEdition.debut} required />
+								<input className='input' type='date' name='debut' defaultValue={valeurs.debut} required />
 								{erreurs.debut && <span className={styles.erreur}>{erreurs.debut}</span>}
 							</label>
 
 							<label className={styles.champ}>
 								Au (jour inclus)
-								<input className='input' type='date' name='fin' defaultValue={enEdition.fin} required />
+								<input className='input' type='date' name='fin' defaultValue={valeurs.fin} required />
 								{erreurs.fin && <span className={styles.erreur}>{erreurs.fin}</span>}
 							</label>
 						</div>
@@ -140,7 +146,7 @@ export default function MascotteGestion({mascottes}) {
 							<input
 								type='checkbox'
 								name='actif'
-								defaultChecked={enEdition.actif}
+								defaultChecked={valeurs.actif}
 								style={{width: 18, height: 18, accentColor: 'var(--color-accent)'}}
 							/>
 							Active

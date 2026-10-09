@@ -19,7 +19,7 @@ function invalider() {
 export async function sauvegarderMascotte(_precedent, donnees) {
 	const utilisateur = await exigerDroit('reglages.gerer');
 
-	const resultat = await enregistrerMascotte({
+	const saisie = {
 		id: donnees.get('id') || null,
 		nom: donnees.get('nom'),
 		imageUrl: donnees.get('imageUrl'),
@@ -27,10 +27,20 @@ export async function sauvegarderMascotte(_precedent, donnees) {
 		debut: donnees.get('debut'),
 		fin: donnees.get('fin'),
 		actif: donnees.get('actif') === 'on',
-	});
+	};
 
+	const resultat = await enregistrerMascotte(saisie);
+
+	/* La saisie repart avec l'erreur : React 19 vide les champs non contrôlés
+	   après chaque envoi, et sans ça une adresse mal tapée ferait perdre le
+	   reste du formulaire. */
 	if (!resultat.ok) {
-		return {statut: 'erreur', erreurs: resultat.erreurs, message: 'Corrigez les champs signalés.'};
+		return {
+			statut: 'erreur',
+			erreurs: resultat.erreurs,
+			message: 'Corrigez les champs signalés.',
+			valeurs: saisie,
+		};
 	}
 
 	await journaliser({
