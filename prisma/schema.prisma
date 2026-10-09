@@ -922,3 +922,25 @@ model AuditLog {
   @@index([userId])
   @@map("audit_logs")
 }
+
+// ============================================================
+// HEADER
+// ============================================================
+
+/// Image de mascotte affichée dans le header pendant une période (Halloween,
+/// Noël…). Hors de toute période, le header n'affiche rien : il n'y a pas
+/// d'image par défaut. Pas de FK ni d'historique à protéger : une période
+/// périmée se supprime sans conséquence.
+model HeaderMascot {
+  id        String   @id @default(cuid())
+  name      String // libellé interne : « Halloween 2026 »
+  imageUrl  String
+  alt       String
+  startsAt  DateTime
+  endsAt    DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([startsAt, endsAt])
+  @@map("header_mascots")
+}

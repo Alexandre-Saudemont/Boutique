@@ -42,6 +42,7 @@ export default function HeaderClient({
 	articlesAuPanier = 0,
 	compte = null,
 	soldes = false,
+	mascotte = null,
 }) {
 	const [menuOuvert, setMenuOuvert] = useState(null);
 	const [mobileOuvert, setMobileOuvert] = useState(false);
@@ -87,8 +88,22 @@ export default function HeaderClient({
 
 			<div className={styles.barre}>
 				<Link href='/' className={styles.wordmark}>
-					<span className={styles.wordmarkHaut}>L&apos;antre du</span>
-					<span className={styles.wordmarkBas}>vieux geek fou</span>
+					{/* Mascotte de la période en cours (back-office → Mascotte). Image
+					    décorative : le nom du site, juste à côté, porte le lien. */}
+					{mascotte && (
+						// eslint-disable-next-line @next/next/no-img-element
+						<img
+							src={mascotte.imageUrl}
+							alt={mascotte.alt}
+							className={styles.mascotte}
+							width={44}
+							height={44}
+						/>
+					)}
+					<span className={styles.wordmarkTexte}>
+						<span className={styles.wordmarkHaut}>L&apos;antre du</span>
+						<span className={styles.wordmarkBas}>vieux geek fou</span>
+					</span>
 				</Link>
 
 				<nav className={styles.nav}>

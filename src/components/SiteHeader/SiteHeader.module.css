@@ -43,11 +43,22 @@
 
 .wordmark {
 	display: flex;
-	flex-direction: column;
+	align-items: center;
+	gap: 10px;
 	line-height: 1;
 	margin-right: auto;
 	text-decoration: none;
 	color: var(--color-text);
+}
+
+.wordmarkTexte {
+	display: flex;
+	flex-direction: column;
+}
+
+.mascotte {
+	object-fit: contain;
+	flex-shrink: 0;
 }
 
 .wordmarkHaut {
