@@ -130,12 +130,32 @@ const INCLUSION_VITRINE = {
 	},
 };
 
-export async function listProducts({rayon, etat, tri} = {}) {
+/* Une variante en solde : active, avec un prix barré (`compareAtPriceCents`).
+   La saisie admin garantit que ce prix dépasse le prix facturé. */
+const VARIANTE_EN_SOLDE = {
+	isActive: true,
+	archivedAt: null,
+	compareAtPriceCents: {not: null},
+};
+
+/// Y a-t-il au moins un produit en vitrine avec une variante en solde ?
+/// Alimente le macaron « Soldes » du header, affiché sur toutes les pages.
+export async function ilYADesSoldes() {
+	const trouve = await prisma.product.findFirst({
+		where: {...conditionsVitrine(), variants: {some: VARIANTE_EN_SOLDE}},
+		select: {id: true},
+	});
+
+	return Boolean(trouve);
+}
+
+export async function listProducts({rayon, etat, tri, solde = false} = {}) {
 	const produits = await prisma.product.findMany({
 		where: {
 			...conditionsVitrine(),
 			...filtreEtat(etat),
 			...(rayon ? {primaryCategory: {slug: rayon}} : {}),
+			...(solde ? {variants: {some: VARIANTE_EN_SOLDE}} : {}),
 		},
 		orderBy: {publishedAt: 'desc'},
 		include: INCLUSION_VITRINE,
@@ -243,13 +263,21 @@ export async function searchProducts(requete) {
 
    Les variantes remontent toutes, avec leur stock : c'est le stock cumulé qui
    intéresse à l'inventaire, pas celui de la variante la moins chère. */
-export async function listerProduitsAdmin({inclureArchives = false, triVues = false} = {}) {
+export async function listerProduitsAdmin({inclureArchives = false, tri = null} = {}) {
 	const produits = await prisma.product.findMany({
 		where: inclureArchives ? {} : {archivedAt: null},
 		// Par défaut, les modifications récentes en tête — c'est ce qu'on veut
 		// retrouver juste après une saisie. Le tri par vues sert un besoin
 		// différent : repérer d'un coup d'œil les pièces qui attirent le regard.
-		orderBy: triVues ? {viewCount: 'desc'} : {updatedAt: 'desc'},
+		// Les brouillons (sans date de mise en vente) vont en dernier dans le tri
+		// par date : `nulls: 'last'`, sinon ils passeraient devant les produits
+		// en ligne.
+		orderBy:
+			tri === 'vues'
+				? {viewCount: 'desc'}
+				: tri === 'mise-en-vente'
+					? {publishedAt: {sort: 'desc', nulls: 'last'}}
+					: {updatedAt: 'desc'},
 		take: 200,
 		include: {
 			primaryCategory: {select: {name: true}},
@@ -286,6 +314,7 @@ export async function listerProduitsAdmin({inclureArchives = false, triVues = fa
 			stock: produit.variants.reduce((somme, v) => somme + v.stock, 0),
 			nbVariantes: produit.variants.length,
 			vues: produit.viewCount,
+			miseEnVente: produit.publishedAt,
 			/* Trois états distincts, dans cet ordre de priorité : archivé l'emporte
 			   sur désactivé, qui l'emporte sur non publié. C'est l'ordre dans lequel
 			   ils se corrigent. */
@@ -293,9 +322,11 @@ export async function listerProduitsAdmin({inclureArchives = false, triVues = fa
 				? 'Archivé'
 				: !produit.isActive
 					? 'Désactivé'
-					: !produit.publishedAt || produit.publishedAt > new Date()
+					: !produit.publishedAt
 						? 'Brouillon'
-						: 'En ligne',
+						: produit.publishedAt > new Date()
+							? 'Programmé'
+							: 'En ligne',
 		};
 	});
 }

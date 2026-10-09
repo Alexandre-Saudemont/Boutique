@@ -425,3 +425,16 @@
 		display: none;
 	}
 }
+
+/* Macaron « Soldes » : terracotta franc, texte clair. Le fond est
+   `--color-accent-700` et non l'accent brut, qui n'a qu'un contraste de ~3:1
+   avec du texte clair. */
+.macaronSoldes {
+	background: var(--color-accent-700);
+	color: var(--color-bg);
+	padding: 3px 12px;
+	border-radius: var(--radius-lg);
+	font-size: 13px;
+	font-weight: 700;
+	text-decoration: none;
+}

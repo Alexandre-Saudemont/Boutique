@@ -66,6 +66,7 @@ export async function sauvegarderProduit(_precedent, donnees) {
 		boxSurprise: donnees.get('boxSurprise') === 'on',
 		miseEnAvant: donnees.get('miseEnAvant') === 'on',
 		publication: donnees.get('publication'),
+		miseEnVente: donnees.get('miseEnVente'),
 		variantes: lireVariantes(donnees),
 		images: lireImages(donnees),
 	};

@@ -3,7 +3,7 @@
 import {useActionState, useState} from 'react';
 import Link from 'next/link';
 import {useFormStatus} from 'react-dom';
-import {formatPrix, formatPoids} from '@/lib/format';
+import {formatDate, formatPrix, formatPoids} from '@/lib/format';
 import {appliquerSoldeLot, appliquerStockLot, retirerSoldeLot} from './actions';
 import styles from '../../admin.module.css';
 
@@ -163,6 +163,7 @@ export default function InventaireTableau({produits, peutGerer}) {
 							<th>Prix</th>
 							<th>Poids</th>
 							<th>Stock</th>
+							<th>Mise en vente</th>
 							<th>Vues</th>
 							<th>État</th>
 							<th>Publication</th>
@@ -219,6 +220,9 @@ export default function InventaireTableau({produits, peutGerer}) {
 										color: produit.stock === 0 ? 'var(--color-accent-700)' : undefined,
 									}}>
 									{produit.stock}
+								</td>
+								<td className={styles.celluleDiscrete}>
+									{produit.miseEnVente ? formatDate(produit.miseEnVente) : '—'}
 								</td>
 								<td className={styles.celluleDiscrete}>{produit.vues}</td>
 								<td className={styles.celluleDiscrete}>{produit.etat.libelle}</td>

@@ -4,6 +4,7 @@ import {getSetting} from '@/server/services/settings';
 import {countCartItems} from '@/server/services/cart';
 import {getCartToken} from '@/server/auth/cart-session';
 import {getUtilisateurCourant} from '@/server/auth/session';
+import {ilYADesSoldes} from '@/server/services/products';
 import {formatPrixCompact} from '@/lib/format';
 import HeaderClient from './HeaderClient';
 
@@ -22,13 +23,14 @@ import HeaderClient from './HeaderClient';
 export default async function SiteHeader() {
 	const jeton = await getCartToken();
 
-	const [rayons, boxes, taillesBox, annonce, articlesAuPanier, utilisateur] = await Promise.all([
+	const [rayons, boxes, taillesBox, annonce, articlesAuPanier, utilisateur, soldes] = await Promise.all([
 		getRayons(),
 		listerBoxes(),
 		getTaillesBox(),
 		getSetting('shop.announcement'),
 		countCartItems(jeton),
 		getUtilisateurCourant(),
+		ilYADesSoldes(),
 	]);
 
 	/* Seul le strict nécessaire à l'affichage descend au navigateur : un prénom
@@ -54,6 +56,7 @@ export default async function SiteHeader() {
 			annonce={annonce}
 			articlesAuPanier={articlesAuPanier}
 			compte={compte}
+			soldes={soldes}
 		/>
 	);
 }

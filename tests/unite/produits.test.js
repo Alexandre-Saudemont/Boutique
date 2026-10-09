@@ -173,6 +173,15 @@ describe('validerProduit', () => {
 		expect(controle.erreurs['variante.0.reduction']).toBeTruthy();
 	});
 
+	it('accepte une date de mise en vente valide ou absente, refuse le reste', () => {
+		expect(validerProduit({...valide, miseEnVente: '2026-12-01'}).valide).toBe(true);
+		expect(validerProduit({...valide, miseEnVente: ''}).valide).toBe(true);
+
+		const controle = validerProduit({...valide, miseEnVente: 'bientôt'});
+		expect(controle.valide).toBe(false);
+		expect(controle.erreurs.miseEnVente).toBeTruthy();
+	});
+
 	it('accepte une variante sans réduction', () => {
 		expect(
 			validerProduit({...valide, variantes: [{prix: '10,00', stock: '1', reduction: ''}]})

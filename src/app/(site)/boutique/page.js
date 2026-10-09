@@ -42,7 +42,13 @@ export default async function Boutique({searchParams}) {
 	const [rayons, reglages, produits, compteurs] = await Promise.all([
 		getRayons(),
 		getSettings(),
-		listProducts({rayon: rayonActif, etat: etatActif, tri: triActif}),
+		listProducts({
+			rayon: rayonActif,
+			etat: etatActif,
+			tri: triActif,
+			// Lien du macaron « Soldes » du header : /boutique?solde=1.
+			solde: parametres.solde === '1',
+		}),
 		/* Les compteurs suivent le filtre d'état mais pas celui de rayon :
 		   ils doivent montrer ce qu'on trouverait en changeant de rayon, pas ce
 		   que contient le rayon déjà sélectionné. */

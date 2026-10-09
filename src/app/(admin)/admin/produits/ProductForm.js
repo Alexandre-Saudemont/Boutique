@@ -104,7 +104,7 @@ export default function ProductForm({produit, referentiels}) {
 			? 'DESACTIVE'
 			: !produit.isActive
 				? 'DESACTIVE'
-				: produit.publishedAt && produit.publishedAt <= new Date()
+				: produit.publishedAt
 					? 'EN_LIGNE'
 					: 'BROUILLON';
 
@@ -417,6 +417,26 @@ export default function ProductForm({produit, referentiels}) {
 							<option value='EN_LIGNE'>En ligne — visible et achetable</option>
 							<option value='DESACTIVE'>Désactivé — retiré de la vente</option>
 						</select>
+					</label>
+
+					{/* « En ligne » avec une date future = produit programmé : il
+					    n'apparaît en boutique qu'à partir de ce jour. Vide, la mise
+					    en vente est immédiate. */}
+					<label className={styles.champ}>
+						Mise en vente le
+						<input
+							className='input'
+							type='date'
+							name='miseEnVente'
+							defaultValue={
+								produit?.publishedAt
+									? new Date(produit.publishedAt).toISOString().slice(0, 10)
+									: ''
+							}
+						/>
+						{erreurs.miseEnVente && (
+							<span className={styles.erreur}>{erreurs.miseEnVente}</span>
+						)}
 					</label>
 
 					<label className={styles.champ}>

@@ -20,9 +20,9 @@ export default async function Produits({searchParams}) {
 
 	const parametres = await searchParams;
 	const inclureArchives = parametres?.archives === '1';
-	const triVues = parametres?.tri === 'vues';
+	const tri = ['vues', 'mise-en-vente'].includes(parametres?.tri) ? parametres.tri : null;
 
-	const produits = await listerProduitsAdmin({inclureArchives, triVues});
+	const produits = await listerProduitsAdmin({inclureArchives, tri});
 
 	return (
 		<>
@@ -58,17 +58,23 @@ export default async function Produits({searchParams}) {
 							className={`${styles.puce} ${inclureArchives ? styles.puceActive : ''}`}>
 							Avec les archives
 						</Link>
-						{/* Le tri par vues garde le filtre d'archives en cours : changer de
-						    tri ne doit pas faire disparaître les archives qu'on regardait. */}
-						<Link
-							href={`/admin/produits?${new URLSearchParams({
-								...(inclureArchives ? {archives: '1'} : {}),
-								tri: 'vues',
-							})}`}
-							className={`${styles.puce} ${triVues ? styles.puceActive : ''}`}
-							style={{marginLeft: 'auto'}}>
-							Les plus regardés
-						</Link>
+						{/* Les tris gardent le filtre d'archives en cours : changer de tri
+						    ne doit pas faire disparaître les archives qu'on regardait. */}
+						{[
+							{cle: 'mise-en-vente', libelle: 'Par date de mise en vente'},
+							{cle: 'vues', libelle: 'Les plus regardés'},
+						].map((entree, index) => (
+							<Link
+								key={entree.cle}
+								href={`/admin/produits?${new URLSearchParams({
+									...(inclureArchives ? {archives: '1'} : {}),
+									tri: entree.cle,
+								})}`}
+								className={`${styles.puce} ${tri === entree.cle ? styles.puceActive : ''}`}
+								style={index === 0 ? {marginLeft: 'auto'} : undefined}>
+								{entree.libelle}
+							</Link>
+						))}
 					</div>
 
 					{produits.length === 0 ? (

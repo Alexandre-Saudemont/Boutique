@@ -41,6 +41,7 @@ export default function HeaderClient({
 	annonce,
 	articlesAuPanier = 0,
 	compte = null,
+	soldes = false,
 }) {
 	const [menuOuvert, setMenuOuvert] = useState(null);
 	const [mobileOuvert, setMobileOuvert] = useState(false);
@@ -94,6 +95,13 @@ export default function HeaderClient({
 					<Link href='/boutique' data-actif={estActif(['/boutique', '/produit'])}>
 						Boutique
 					</Link>
+					{/* Macaron présent seulement quand au moins un produit en vitrine
+					    est soldé : il disparaît tout seul à la fin des soldes. */}
+					{soldes && (
+						<Link href='/boutique?solde=1' className={styles.macaronSoldes}>
+							Soldes
+						</Link>
+					)}
 					<Link href='/blog' data-actif={estActif(['/blog'])}>
 						Blog
 					</Link>

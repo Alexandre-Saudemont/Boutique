@@ -195,6 +195,14 @@ export function validerProduit(saisie) {
 		}
 	});
 
+	// Facultative : vide, le produit est mis en vente à l'enregistrement. Une
+	// date future le programme — la vitrine ne montre que ce dont la date est
+	// passée (`conditionsVitrine`).
+	const miseEnVente = String(saisie.miseEnVente ?? '').trim();
+	if (miseEnVente && Number.isNaN(Date.parse(`${miseEnVente}T00:00:00`))) {
+		erreurs.miseEnVente = 'Date invalide.';
+	}
+
 	if (saisie.kind && !KINDS.includes(saisie.kind)) erreurs.kind = 'Type inconnu.';
 	if (saisie.condition && !CONDITIONS.includes(saisie.condition)) {
 		erreurs.condition = 'État inconnu.';
@@ -222,6 +230,9 @@ export async function enregistrerProduit(saisie) {
 
 	const nom = String(saisie.nom).trim();
 	const enLigne = saisie.publication === 'EN_LIGNE';
+	const dateSaisie = String(saisie.miseEnVente ?? '').trim()
+		? new Date(`${String(saisie.miseEnVente).trim()}T00:00:00`)
+		: null;
 
 	const donneesProduit = {
 		name: nom,
@@ -267,7 +278,7 @@ export async function enregistrerProduit(saisie) {
 					   `publishedAt` qui commande l'affichage en vitrine, et une date
 					   laissée derrière republierait le produit au prochain
 					   enregistrement. */
-					publishedAt: enLigne ? (existant.publishedAt ?? new Date()) : null,
+					publishedAt: enLigne ? (dateSaisie ?? existant.publishedAt ?? new Date()) : null,
 				},
 			});
 		} else {
@@ -275,7 +286,7 @@ export async function enregistrerProduit(saisie) {
 				data: {
 					...donneesProduit,
 					slug: await slugLibre(nom),
-					publishedAt: enLigne ? new Date() : null,
+					publishedAt: enLigne ? (dateSaisie ?? new Date()) : null,
 				},
 			});
 		}
