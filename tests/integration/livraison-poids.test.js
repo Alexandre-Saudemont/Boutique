@@ -1,6 +1,16 @@
 import {beforeEach, describe, expect, it} from 'vitest';
-import {getModeLivraison, getModesLivraisonPour} from '@/server/services/checkout';
-import {baseDisponible, prisma, viderLaBase} from './aide';
+import {creerCommande, getModeLivraison, getModesLivraisonPour} from '@/server/services/checkout';
+import {addItem} from '@/server/services/cart';
+import {baseDisponible, creerProduit, ouvrirLaBoutique, prisma, viderLaBase} from './aide';
+
+const adresse = {
+	firstName: 'Camille',
+	lastName: 'Durand',
+	line1: '12 rue des Lilas',
+	postalCode: '69003',
+	city: 'Lyon',
+	email: 'camille@exemple.fr',
+};
 
 /* Les frais de port suivent le poids du panier.
 
@@ -52,5 +62,28 @@ describe.skipIf(!baseDisponible)('modes de livraison selon le poids', () => {
 		expect(await getModeLivraison(petit.id, 2000, 400)).not.toBeNull();
 		expect(await getModeLivraison(petit.id, 2000, 5000)).toBeNull();
 		expect(await getModeLivraison(gros.id, 2000, 5000)).not.toBeNull();
+	});
+
+	it('de bout en bout : la commande refuse un mode trop petit et accepte le bon, port compris', async () => {
+		await ouvrirLaBoutique();
+
+		const produit = await creerProduit({prixCents: 2000, stock: 5});
+		await prisma.productVariant.update({
+			where: {id: produit.variants[0].id},
+			data: {weightGrams: 800},
+		});
+
+		// 2 × 800 g = 1 600 g : hors de la tranche « petit colis » (≤ 1 000 g).
+		await addItem('jeton-poids', produit.variants[0].id, 2);
+
+		const refus = await creerCommande({token: 'jeton-poids', adresse, rateId: petit.id});
+		expect(refus.ok).toBe(false);
+
+		const accepte = await creerCommande({token: 'jeton-poids', adresse, rateId: gros.id});
+		expect(accepte.ok).toBe(true);
+
+		const commande = await prisma.order.findUnique({where: {id: accepte.id}});
+		expect(commande.shippingCents).toBe(1290);
+		expect(commande.totalCents).toBe(4000 + 1290);
 	});
 });

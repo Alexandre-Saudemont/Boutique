@@ -54,8 +54,14 @@ function statut(mascotte, maintenant) {
 }
 
 export default function MascotteGestion({mascottes}) {
-	const [etat, action] = useActionState(sauvegarderMascotte, ETAT_INITIAL);
 	const [enEdition, setEnEdition] = useState(null);
+	// Le formulaire se referme quand l'enregistrement a réussi ; en cas d'erreur
+	// il reste ouvert, avec ce qui a été tapé.
+	const [etat, action] = useActionState(async (precedent, donnees) => {
+		const resultat = await sauvegarderMascotte(precedent, donnees);
+		if (resultat.statut === 'ok') setEnEdition(null);
+		return resultat;
+	}, ETAT_INITIAL);
 	const erreurs = etat.erreurs ?? {};
 	// Après un refus, on repart de ce qui a été tapé (voir l'action) — mais
 	// seulement pour la même fiche, jamais pour une autre période.

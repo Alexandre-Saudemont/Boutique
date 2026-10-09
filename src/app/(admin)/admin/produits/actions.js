@@ -74,7 +74,16 @@ export async function sauvegarderProduit(_precedent, donnees) {
 	const resultat = await enregistrerProduit(saisie);
 
 	if (!resultat.ok) {
-		return {statut: 'erreur', erreurs: resultat.erreurs, message: 'Corrigez les champs signalés.'};
+		// La saisie repart avec l'erreur pour que le formulaire ne se vide pas ;
+		// variantes et photos restent dans l'état du composant.
+		const {variantes: _variantes, images: _images, ...valeurs} = saisie;
+
+		return {
+			statut: 'erreur',
+			erreurs: resultat.erreurs,
+			message: 'Corrigez les champs signalés.',
+			valeurs,
+		};
 	}
 
 	/* Le prix et l'état de publication sont journalisés : ce sont les deux

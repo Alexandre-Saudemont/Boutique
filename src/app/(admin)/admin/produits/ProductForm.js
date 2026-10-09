@@ -98,6 +98,15 @@ export default function ProductForm({produit, referentiels}) {
 
 	const erreurs = etat.erreurs ?? {};
 
+	/* Après un refus du serveur, on repart de ce qui a été tapé. React 19 vide
+	   les champs non contrôlés après chaque envoi : sans ça, une faute dans un
+	   prix ferait perdre le nom, la description, les cases cochées… Les
+	   variantes et les photos sont déjà dans l'état du composant, elles
+	   survivent seules. */
+	const saisi = etat.statut === 'erreur' ? etat.valeurs : null;
+	const pris = (cle, defaut) => saisi?.[cle] ?? defaut;
+	const coche = (cle, defaut) => (saisi ? Boolean(saisi[cle]) : defaut);
+
 	const publicationInitiale = !produit
 		? 'BROUILLON'
 		: produit.archivedAt
@@ -139,7 +148,7 @@ export default function ProductForm({produit, referentiels}) {
 						<input
 							className='input'
 							name='nom'
-							defaultValue={produit?.name ?? ''}
+							defaultValue={pris('nom', produit?.name ?? '')}
 							required
 							placeholder='Ex. Rônin des Cerisiers — 1/7'
 						/>
@@ -151,7 +160,7 @@ export default function ProductForm({produit, referentiels}) {
 						<input
 							className='input'
 							name='accroche'
-							defaultValue={produit?.shortDescription ?? ''}
+							defaultValue={pris('accroche', produit?.shortDescription ?? '')}
 							placeholder='La phrase affichée sous le nom, dans les listes'
 						/>
 					</label>
@@ -162,7 +171,7 @@ export default function ProductForm({produit, referentiels}) {
 							className='input'
 							name='description'
 							rows={6}
-							defaultValue={produit?.longDescription ?? ''}
+							defaultValue={pris('description', produit?.longDescription ?? '')}
 							placeholder='Décrivez la pièce, son état, ce qui la rend spéciale…'
 							style={{resize: 'vertical', fontFamily: 'inherit'}}
 						/>
@@ -412,7 +421,7 @@ export default function ProductForm({produit, referentiels}) {
 						<select
 							className='input'
 							name='publication'
-							defaultValue={publicationInitiale}>
+							defaultValue={pris('publication', publicationInitiale)}>
 							<option value='BROUILLON'>Brouillon — invisible en boutique</option>
 							<option value='EN_LIGNE'>En ligne — visible et achetable</option>
 							<option value='DESACTIVE'>Désactivé — retiré de la vente</option>
@@ -428,11 +437,12 @@ export default function ProductForm({produit, referentiels}) {
 							className='input'
 							type='date'
 							name='miseEnVente'
-							defaultValue={
+							defaultValue={pris(
+								'miseEnVente',
 								produit?.publishedAt
 									? new Date(produit.publishedAt).toISOString().slice(0, 10)
-									: ''
-							}
+									: '',
+							)}
 						/>
 						{erreurs.miseEnVente && (
 							<span className={styles.erreur}>{erreurs.miseEnVente}</span>
@@ -441,7 +451,7 @@ export default function ProductForm({produit, referentiels}) {
 
 					<label className={styles.champ}>
 						Type
-						<select className='input' name='kind' defaultValue={produit?.kind ?? 'PHYSICAL'}>
+						<select className='input' name='kind' defaultValue={pris('kind', produit?.kind ?? 'PHYSICAL')}>
 							<option value='PHYSICAL'>Physique — à expédier</option>
 							<option value='DIGITAL'>Numérique — à télécharger</option>
 						</select>
@@ -452,7 +462,7 @@ export default function ProductForm({produit, referentiels}) {
 						<select
 							className='input'
 							name='condition'
-							defaultValue={produit?.condition ?? 'NEW'}>
+							defaultValue={pris('condition', produit?.condition ?? 'NEW')}>
 							<option value='NEW'>Neuf</option>
 							<option value='USED'>Occasion</option>
 						</select>
@@ -464,7 +474,7 @@ export default function ProductForm({produit, referentiels}) {
 						<input
 							type='checkbox'
 							name='precommande'
-							defaultChecked={produit?.allowPreorder ?? false}
+							defaultChecked={coche('precommande', produit?.allowPreorder ?? false)}
 							style={{width: 18, height: 18, accentColor: 'var(--color-accent)'}}
 						/>
 						Proposé en précommande
@@ -479,7 +489,7 @@ export default function ProductForm({produit, referentiels}) {
 						<input
 							type='checkbox'
 							name='boxSurprise'
-							defaultChecked={produit?.isMysteryBox ?? false}
+							defaultChecked={coche('boxSurprise', produit?.isMysteryBox ?? false)}
 							style={{width: 18, height: 18, accentColor: 'var(--color-accent)'}}
 						/>
 						Box surprise — je noterai son contenu à la préparation
@@ -493,7 +503,7 @@ export default function ProductForm({produit, referentiels}) {
 						<input
 							type='checkbox'
 							name='miseEnAvant'
-							defaultChecked={produit?.isFeatured ?? false}
+							defaultChecked={coche('miseEnAvant', produit?.isFeatured ?? false)}
 							style={{width: 18, height: 18, accentColor: 'var(--color-accent)'}}
 						/>
 						Mettre en avant sur l’accueil
@@ -508,7 +518,7 @@ export default function ProductForm({produit, referentiels}) {
 						<select
 							className='input'
 							name='categorieId'
-							defaultValue={produit?.primaryCategoryId ?? ''}>
+							defaultValue={pris('categorieId', produit?.primaryCategoryId ?? '')}>
 							<option value=''>— Aucun —</option>
 							{referentiels.categories.map((categorie) => (
 								<option key={categorie.id} value={categorie.id}>
@@ -520,7 +530,7 @@ export default function ProductForm({produit, referentiels}) {
 
 					<label className={styles.champ}>
 						Marque
-						<select className='input' name='marqueId' defaultValue={produit?.brandId ?? ''}>
+						<select className='input' name='marqueId' defaultValue={pris('marqueId', produit?.brandId ?? '')}>
 							<option value=''>— Aucune —</option>
 							{referentiels.marques.map((marque) => (
 								<option key={marque.id} value={marque.id}>
@@ -535,7 +545,7 @@ export default function ProductForm({produit, referentiels}) {
 						<select
 							className='input'
 							name='licenceId'
-							defaultValue={produit?.licenceId ?? ''}>
+							defaultValue={pris('licenceId', produit?.licenceId ?? '')}>
 							<option value=''>— Aucune —</option>
 							{referentiels.licences.map((licence) => (
 								<option key={licence.id} value={licence.id}>
