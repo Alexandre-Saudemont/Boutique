@@ -21,10 +21,10 @@ import {adresseDuSite} from '@/lib/site-url';
    recharge tout le catalogue à chaque passage pour découvrir que rien n'a
    bougé. */
 
-/* Le sitemap est régénéré une fois par heure plutôt qu'à chaque requête : une
-   publication n'a pas à être annoncée à la seconde, et le fichier interroge
-   trois tables. */
-export const revalidate = 3600;
+/* Le sitemap lit la base : il est construit à la demande, jamais au build
+   (la base peut être injoignable ou vide à ce moment-là). Les moteurs ne le
+   demandent que de temps en temps, la charge est négligeable. */
+export const dynamic = 'force-dynamic';
 
 /* Les pages qui ne dépendent pas de la base. La priorité n'est qu'un indice
    relatif à notre propre site — elle dit à un moteur ce qui compte le plus ici,

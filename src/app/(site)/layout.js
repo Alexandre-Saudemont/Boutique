@@ -9,10 +9,11 @@ import CookieBanner from '@/components/CookieBanner/CookieBanner';
    ligne, Next les prérendrait une fois au build et les figerait : le client
    ajouterait un rayon depuis l'admin sans jamais le voir apparaître.
 
-   Une minute est un compromis provisoire. Quand le back-office existera, on
-   passera à une invalidation par tag — la page se régénérera à l'enregistrement
-   plutôt qu'à intervalle fixe. */
-export const revalidate = 60;
+   La page est donc construite à chaque visite, pas au build. C'est aussi ce
+   qui permet de construire le site sans base de données (Coolify construit
+   dans un conteneur qui n'atteint pas toujours la base, et sur une base neuve
+   les tables n'existent pas encore). */
+export const dynamic = 'force-dynamic';
 
 export default function SiteLayout({children}) {
 	return (

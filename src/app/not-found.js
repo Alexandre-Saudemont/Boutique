@@ -10,9 +10,10 @@ import PageIntrouvable from '@/components/PageIntrouvable/PageIntrouvable';
    page, faute de quoi le visiteur atterrirait sur un écran nu, sans aucun moyen
    de repartir vers le catalogue. */
 
-/* Même cadence que le layout de la vitrine : l'en-tête lit les rayons en base,
-   il ne doit pas rester figé sur l'état du jour de la mise en ligne. */
-export const revalidate = 60;
+/* Comme le layout de la vitrine : l'en-tête lit les rayons en base, il ne doit
+   pas rester figé sur l'état du jour de la mise en ligne, ni exiger la base
+   au moment du build. */
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
 	title: 'Page introuvable',
