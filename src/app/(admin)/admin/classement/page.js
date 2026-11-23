@@ -13,7 +13,7 @@ import styles from '../../admin.module.css';
    Le type vient de l'URL et n'est jamais cru sur parole : une valeur inconnue
    retombe sur les rayons plutôt que d'atteindre le service. */
 
-export const metadata = {title: 'Classement'};
+export const metadata = {title: 'Rayons'};
 
 export default async function Classement({searchParams}) {
 	await exigerDroit('produits.voir');
@@ -27,7 +27,7 @@ export default async function Classement({searchParams}) {
 		<>
 			<div className={styles.barreTitre}>
 				<div>
-					<h1 className={styles.titre}>Classement</h1>
+					<h1 className={styles.titre}>Rayons</h1>
 					<p className={styles.sousTitre}>
 						Les rayons rangent la boutique, les marques disent qui fabrique, les
 						licences disent de quel univers vient la pièce.

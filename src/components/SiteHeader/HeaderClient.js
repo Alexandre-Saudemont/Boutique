@@ -120,6 +120,9 @@ export default function HeaderClient({
 					<Link href='/blog' data-actif={estActif(['/blog'])}>
 						Blog
 					</Link>
+					{/* Raccourci vers le back-office, réservé à l'équipe : évite de taper
+					    /admin à la main. */}
+					{compte?.backOffice && <Link href='/admin'>Back-office</Link>}
 					{/* Connecté, l'entrée porte le prénom et une pastille à l'initiale :
 					    l'état de connexion doit se lire d'un coup d'œil, sans avoir à
 					    ouvrir la page. */}
@@ -196,6 +199,11 @@ export default function HeaderClient({
 						<Link href='/blog' onClick={fermerMobile}>
 							Blog
 						</Link>
+						{compte?.backOffice && (
+							<Link href='/admin' onClick={fermerMobile}>
+								Back-office
+							</Link>
+						)}
 						<Link href='/compte' onClick={fermerMobile}>
 							{compte ? (compte.prenom ? `Mon compte (${compte.prenom})` : 'Mon compte') : 'Compte'}
 						</Link>

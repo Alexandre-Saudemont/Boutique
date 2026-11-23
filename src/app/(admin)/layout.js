@@ -27,7 +27,7 @@ const ENTREES = [
 	{cle: 'tableau', libelle: 'Tableau de bord', href: '/admin', droit: null},
 	{cle: 'commandes', libelle: 'Commandes', href: '/admin/commandes', droit: 'commandes.voir'},
 	{cle: 'produits', libelle: 'Produits', href: '/admin/produits', droit: 'produits.voir'},
-	{cle: 'classement', libelle: 'Classement', href: '/admin/classement', droit: 'produits.voir'},
+	{cle: 'classement', libelle: 'Rayons', href: '/admin/classement', droit: 'produits.voir'},
 	{cle: 'livraison', libelle: 'Livraison', href: '/admin/livraison', droit: 'reglages.gerer'},
 	{cle: 'promos', libelle: 'Réductions', href: '/admin/promos', droit: 'reglages.gerer'},
 	{cle: 'mascotte', libelle: 'Mascotte', href: '/admin/mascotte', droit: 'reglages.gerer'},

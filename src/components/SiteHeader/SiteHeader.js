@@ -4,6 +4,7 @@ import {getSetting} from '@/server/services/settings';
 import {countCartItems} from '@/server/services/cart';
 import {getCartToken} from '@/server/auth/cart-session';
 import {getUtilisateurCourant} from '@/server/auth/session';
+import {estStaff} from '@/server/auth/roles';
 import {ilYADesSoldes} from '@/server/services/products';
 import {getMascotteActive} from '@/server/services/mascottes';
 import {formatPrixCompact} from '@/lib/format';
@@ -35,13 +36,18 @@ export default async function SiteHeader() {
 		getMascotteActive(),
 	]);
 
-	/* Seul le strict nécessaire à l'affichage descend au navigateur : un prénom
-	   et une initiale. Passer l'objet utilisateur entier enverrait son rôle et
-	   ses dates dans le HTML de chaque page. */
+	/* Seul le strict nécessaire à l'affichage descend au navigateur : un prénom,
+	   une initiale, et un simple oui/non « a accès au back-office » (pour afficher
+	   le raccourci). Passer l'objet utilisateur entier enverrait son rôle et ses
+	   dates dans le HTML de chaque page.
+
+	   Ce oui/non n'ouvre aucune porte : il ne fait qu'afficher un lien. Le vrai
+	   contrôle reste côté serveur, dans chaque page de /admin (exigerStaff). */
 	const compte = utilisateur
 		? {
 				prenom: utilisateur.firstName ?? null,
 				initiale: (utilisateur.firstName ?? utilisateur.email).charAt(0).toUpperCase(),
+				backOffice: estStaff(utilisateur),
 			}
 		: null;
 
